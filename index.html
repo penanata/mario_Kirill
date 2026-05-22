@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Марио и копы</title>
+<style>
+  html,body{margin:0;min-height:100%;background:#0f172a;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:14px;padding:28px 16px 40px;box-sizing:border-box;}
+  .brand{
+    font-size:clamp(34px, 6vw, 64px);
+    font-weight:900;
+    letter-spacing:1px;
+    text-align:center;
+    background:linear-gradient(90deg,#fde047 0%,#ef4444 45%,#3b82f6 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    text-shadow:0 4px 20px rgba(239,68,68,0.25);
+    margin:0;
+    line-height:1.05;
+  }
+  .brand small{display:block;font-size:.45em;font-weight:600;letter-spacing:3px;color:#94a3b8;-webkit-text-fill-color:#94a3b8;margin-top:6px;text-transform:uppercase}
+  .title{font-size:22px;font-weight:700;letter-spacing:.3px;margin-top:4px}
+  canvas{background:linear-gradient(#87ceeb 0%,#9ad6f0 55%,#5a5a5a 55%,#3a3a3a 100%);border:3px solid #fff;border-radius:10px;display:block;box-shadow:0 10px 40px rgba(0,0,0,.5);max-width:100%;height:auto}
+  .hud{font-size:13px;opacity:.75;text-align:center}
+</style>
+</head>
+<body>
+<h1 class="brand">Навайбкодил Кирилл Изотов<small>Mario × Police Jump</small></h1>
+<div class="title">Марио курит и прыгает по копам</div>
+<canvas id="c" width="900" height="500"></canvas>
+<div class="hud">Пробел / ↑ — прыжок (удерживай для высокого прыжка) · R — рестарт</div>
+<script>
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const GROUND_Y = H - 80;
+const G = 0.62;
+
+const mario = { x: 180, y: 0, vy: 0, w: 30, h: 42, onCar: null, alive: true };
+
+let cars = [];
+let scrollSpeed = 3.2;
+let distance = 0;
+let score = 0;
+let best = +localStorage.getItem('marioCopsBest') || 0;
+let smokePuffs = [];
+let frame = 0;
+let holdingJump = false;
+let jumpHoldFrames = 0;
+
+function resetGame() {
+  cars = [];
+  let x = 0;
+  cars.push({ x: 0, y: GROUND_Y - 60, w: 260, h: 60, passed: true });
+  let cursor = 260;
+  for (let i = 0; i < 4; i++) {
+    const gap = 80 + Math.random() * 50;
+    const w = 130 + Math.random() * 70;
+    cars.push({ x: cursor + gap, y: GROUND_Y - 60, w, h: 60, passed: false });
+    cursor += gap + w;
+  }
+  mario.x = 180;
+  mario.y = cars[0].y - mario.h;
+  mario.vy = 0;
+  mario.onCar = cars[0];
+  mario.alive = true;
+  scrollSpeed = 3.2;
+  distance = 0;
+  score = 0;
+  smokePuffs = [];
+  frame = 0;
+  holdingJump = false;
+  jumpHoldFrames = 0;
+}
+resetGame();
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    if (!mario.alive) return;
+    if (mario.onCar) {
+      mario.vy = -8.5;
+      mario.onCar = null;
+      holdingJump = true;
+      jumpHoldFrames = 0;
+    }
+  } else if (e.code === 'KeyR') {
+    resetGame();
+  }
+});
+document.addEventListener('keyup', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') holdingJump = false;
+});
+
+function update() {
+  frame++;
+  if (!mario.alive) return;
+
+  if (holdingJump && jumpHoldFrames < 12) {
+    mario.vy -= 0.5;
+    jumpHoldFrames++;
+  }
+
+  for (const c of cars) c.x -= scrollSpeed;
+  while (cars.length && cars[0].x + cars[0].w < -60) cars.shift();
+
+  let last = cars[cars.length - 1];
+  while (!last || last.x + last.w < W + 240) {
+    const baseGap = 80 + Math.random() * 60 + Math.min(70, scrollSpeed * 7);
+    const w = 120 + Math.random() * 80;
+    const yShift = Math.random() < 0.3 ? -(10 + Math.random() * 25) : 0;
+    cars.push({
+      x: (last ? last.x + last.w + baseGap : W),
+      y: GROUND_Y - 60 + yShift,
+      w, h: 60 - yShift,
+      passed: false,
+    });
+    last = cars[cars.length - 1];
+  }
+
+  mario.vy += G;
+  if (mario.vy > 15) mario.vy = 15;
+  mario.y += mario.vy;
+
+  mario.onCar = null;
+  for (const c of cars) {
+    const overlapX = mario.x + mario.w > c.x + 6 && mario.x < c.x + c.w - 6;
+    if (!overlapX) continue;
+    const feet = mario.y + mario.h;
+    if (mario.vy >= 0 && feet >= c.y && feet <= c.y + 22) {
+      mario.y = c.y - mario.h;
+      mario.vy = 0;
+      mario.onCar = c;
+      if (!c.passed) { c.passed = true; score++; }
+    }
+  }
+
+  if (mario.y + mario.h > GROUND_Y + 25) {
+    mario.alive = false;
+    if (score > best) { best = score; localStorage.setItem('marioCopsBest', best); }
+  }
+
+  if (frame % 10 === 0) {
+    smokePuffs.push({ x: mario.x + mario.w + 8, y: mario.y + 14, r: 2.5, a: 0.85, vx: 0.6, vy: -0.5 });
+  }
+  for (const p of smokePuffs) { p.x += p.vx; p.y += p.vy; p.r += 0.18; p.a -= 0.014; }
+  smokePuffs = smokePuffs.filter(p => p.a > 0);
+
+  distance += scrollSpeed;
+  scrollSpeed = Math.min(7.5, 3.2 + distance / 3500);
+}
+
+function drawBackground() {
+  const offset = (distance * 0.3) % 80;
+  for (let i = -1; i < 14; i++) {
+    const seed = ((i * 73 + 137) % 100) / 100;
+    const bh = 70 + seed * 90;
+    const bx = i * 80 - offset;
+    ctx.fillStyle = '#34345c';
+    ctx.fillRect(bx, GROUND_Y - bh, 60, bh);
+    ctx.fillStyle = '#fde047';
+    for (let wy = GROUND_Y - bh + 12; wy < GROUND_Y - 8; wy += 14) {
+      for (let wx = bx + 6; wx < bx + 54; wx += 12) {
+        if (((wx * 7 + wy * 3 + Math.floor(frame / 200)) % 31) < 18) {
+          ctx.fillRect(wx, wy, 4, 6);
+        }
+      }
+    }
+  }
+
+  ctx.fillStyle = '#2a2a2a';
+  ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+  ctx.fillStyle = '#ffd84d';
+  const dashOff = (distance * 1) % 60;
+  for (let i = -1; i < W / 60 + 2; i++) {
+    ctx.fillRect(i * 60 - dashOff, GROUND_Y + (H - GROUND_Y) / 2 - 2, 30, 4);
+  }
+}
+
+function drawCar(c) {
+  const x = c.x, y = c.y, w = c.w, h = c.h;
+  ctx.fillStyle = '#111';
+  ctx.fillRect(x, y + 18, w, h - 18);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(x, y + 32, w, 16);
+  ctx.fillStyle = '#000';
+  ctx.font = 'bold 11px monospace';
+  ctx.fillText('POLICE', x + w / 2 - 19, y + 44);
+
+  ctx.fillStyle = '#1f1f1f';
+  ctx.beginPath();
+  ctx.moveTo(x + 22, y + 18);
+  ctx.lineTo(x + w - 22, y + 18);
+  ctx.lineTo(x + w - 32, y + 6);
+  ctx.lineTo(x + 32, y + 6);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#7ec0ff';
+  const ww = (w - 70) / 2 - 4;
+  ctx.fillRect(x + 36, y + 9, ww, 8);
+  ctx.fillRect(x + 36 + ww + 6, y + 9, ww, 8);
+
+  const blink = Math.floor(frame / 7) % 2 === 0;
+  ctx.fillStyle = blink ? '#3b82f6' : '#ef4444';
+  ctx.fillRect(x + w / 2 - 16, y - 4, 16, 6);
+  ctx.fillStyle = blink ? '#ef4444' : '#3b82f6';
+  ctx.fillRect(x + w / 2, y - 4, 16, 6);
+  if (blink) {
+    ctx.fillStyle = 'rgba(59,130,246,0.35)';
+    ctx.beginPath(); ctx.arc(x + w / 2 - 8, y - 1, 14, 0, Math.PI * 2); ctx.fill();
+  } else {
+    ctx.fillStyle = 'rgba(239,68,68,0.35)';
+    ctx.beginPath(); ctx.arc(x + w / 2 + 8, y - 1, 14, 0, Math.PI * 2); ctx.fill();
+  }
+
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(x + 26, y + h, 11, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + w - 26, y + h, 11, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#888';
+  ctx.beginPath(); ctx.arc(x + 26, y + h, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + w - 26, y + h, 4, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawMario() {
+  const x = mario.x, y = mario.y, w = mario.w, h = mario.h;
+  const running = !!mario.onCar;
+  const swing = running ? Math.sin(frame * 0.35) * 3 : 0;
+
+  ctx.fillStyle = '#3a2c1a';
+  ctx.fillRect(x + 4, y + h - 10, 8, 10 + swing);
+  ctx.fillRect(x + w - 12, y + h - 10, 8, 10 - swing);
+
+  ctx.fillStyle = '#1d4ed8';
+  ctx.fillRect(x + 2, y + 20, w - 4, h - 28);
+
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(x, y + 12, w, 12);
+
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(x - 4, y + 14, 6, 14);
+  ctx.fillRect(x + w - 2, y + 14, 6, 14);
+  ctx.fillStyle = '#fcd9b6';
+  ctx.fillRect(x - 5, y + 26, 6, 6);
+  ctx.fillRect(x + w - 1, y + 26, 6, 6);
+
+  ctx.fillStyle = '#1d4ed8';
+  ctx.fillRect(x + 8, y + 12, 4, 12);
+  ctx.fillRect(x + w - 12, y + 12, 4, 12);
+  ctx.fillStyle = '#fde047';
+  ctx.fillRect(x + 9, y + 22, 2, 2);
+  ctx.fillRect(x + w - 11, y + 22, 2, 2);
+
+  ctx.fillStyle = '#fcd9b6';
+  ctx.fillRect(x + 4, y + 2, w - 8, 14);
+
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(x + 2, y, w - 4, 6);
+  ctx.fillRect(x - 2, y + 4, w + 4, 4);
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(x + w / 2, y + 3, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#dc2626';
+  ctx.font = 'bold 6px monospace';
+  ctx.fillText('M', x + w / 2 - 2, y + 5);
+
+  ctx.fillStyle = '#000';
+  ctx.fillRect(x + 10, y + 8, 2, 3);
+  ctx.fillRect(x + w - 12, y + 8, 2, 3);
+
+  ctx.fillStyle = '#3a2c1a';
+  ctx.fillRect(x + 8, y + 12, w - 16, 2);
+  ctx.fillRect(x + 7, y + 13, 3, 2);
+  ctx.fillRect(x + w - 10, y + 13, 3, 2);
+
+  ctx.fillStyle = '#f5f5f5';
+  ctx.fillRect(x + w - 4, y + 15, 12, 2);
+  ctx.fillStyle = '#ff7a00';
+  ctx.fillRect(x + w + 8, y + 15, 2, 2);
+  ctx.fillStyle = 'rgba(255,150,0,0.45)';
+  ctx.beginPath();
+  ctx.arc(x + w + 9, y + 16, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawSmoke() {
+  for (const p of smokePuffs) {
+    ctx.fillStyle = `rgba(210,210,210,${p.a})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawHud() {
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(10, 10, 180, 56);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 22px system-ui,sans-serif';
+  ctx.fillText('Очки: ' + score, 20, 34);
+  ctx.font = '13px system-ui,sans-serif';
+  ctx.fillStyle = '#fde047';
+  ctx.fillText('Рекорд: ' + best, 20, 54);
+
+  if (!mario.alive) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 44px system-ui,sans-serif';
+    ctx.fillText('Сигарета потухла', W / 2, H / 2 - 20);
+    ctx.font = '20px system-ui,sans-serif';
+    ctx.fillText('Очки: ' + score + '   ·   Рекорд: ' + best, W / 2, H / 2 + 14);
+    ctx.font = '16px system-ui,sans-serif';
+    ctx.fillStyle = '#fde047';
+    ctx.fillText('Нажми R, чтобы попробовать снова', W / 2, H / 2 + 48);
+    ctx.textAlign = 'left';
+  }
+}
+
+function loop() {
+  update();
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  for (const c of cars) drawCar(c);
+  drawMario();
+  drawSmoke();
+  drawHud();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
