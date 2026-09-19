@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Каталог — сорта, цены, фото{% endblock %}
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Актуальная выгрузка из чата поставщика</p>
+    <h1>Фото можно скачать, цена и наличие — на карточке</h1>
+    <p class="lead">Не таблица: у каждого сорта свои снимки в исходном качестве. Ищите по названию, фильтруйте наличие, скачивайте одно фото или весь каталог архивом.</p>
+  </div>
+  <aside class="stats">
+    <div><b>{{ stats.products }}</b><span>сортов</span></div>
+    <div><b>{{ stats.photos }}</b><span>фото</span></div>
+    <div><b>{{ stats.in_stock }}</b><span>в наличии</span></div>
+  </aside>
+</section>
+
+<form class="toolbar" method="get" action="/">
+  <input type="search" name="q" value="{{ q }}" placeholder="Найти сорт, цвет, страну…">
+  <select name="stock">
+    <option value="all" {% if stock == 'all' %}selected{% endif %}>Все</option>
+    <option value="in" {% if stock == 'in' %}selected{% endif %}>В наличии</option>
+    <option value="out" {% if stock == 'out' %}selected{% endif %}>Нет / под заказ</option>
+  </select>
+  <button type="submit">Показать</button>
+  <a class="btn ghost" href="/download/all.zip?q={{ q }}&stock={{ stock }}">Скачать фото архивом</a>
+</form>
+
+{% if has_demo %}
+  <div class="note wait">
+    Сейчас показаны демо-сорта, чтобы было видно как выглядит каталог.
+    Перед загрузкой своего чата их лучше убрать.
+    <form method="post" action="/clear-demo" style="display:inline">
+      <button type="submit" class="btn small">Удалить демо</button>
+    </form>
+  </div>
+{% endif %}
+
+{% if not products %}
+  <div class="empty">
+    <h2>Пока пусто</h2>
+    <p>Загрузите экспорт чата из Telegram — фото, цены и остатки появятся здесь.</p>
+    <a class="btn" href="/import">Загрузить чат</a>
+  </div>
+{% else %}
+  <section class="grid">
+    {% for product in products %}
+      <article class="card">
+        <a class="photo" href="/product/{{ product.id }}">
+          {% if product.photos %}
+            <img src="/photo/{{ product.photos[0].id }}?thumb=1" alt="{{ product.name }}">
+            {% if product.photos|length > 1 %}
+              <span class="count">{{ product.photos|length }} фото</span>
+            {% endif %}
+          {% else %}
+            <div class="no-photo">нет фото</div>
+          {% endif %}
+        </a>
+        <div class="body">
+          <h2><a href="/product/{{ product.id }}">{{ product.name }}</a></h2>
+          <p class="price">{{ format_price(product.price, product.price_text) }}</p>
+          <p class="badge {{ stock_class(product) }}">{{ stock_label(product) }}</p>
+          <div class="actions">
+            {% if product.photos %}
+              <a href="/photo/{{ product.photos[0].id }}?download=1">Скачать фото</a>
+              {% if product.photos|length > 1 %}
+                <a href="/product/{{ product.id }}/zip">Все фото</a>
+              {% endif %}
+            {% endif %}
+            <a href="/product/{{ product.id }}">Карточка</a>
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+{% endif %}
+{% endblock %}

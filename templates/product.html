@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+<p class="back"><a href="/">← К каталогу</a></p>
+<article class="product">
+  <div class="gallery">
+    {% if product.photos %}
+      {% for photo in product.photos %}
+        <figure>
+          <a href="/photo/{{ photo.id }}" target="_blank" rel="noopener">
+            <img src="/photo/{{ photo.id }}?thumb=1" alt="{{ product.name }} {{ loop.index }}">
+          </a>
+          <a class="btn small" href="/photo/{{ photo.id }}?download=1">Скачать</a>
+        </figure>
+      {% endfor %}
+    {% else %}
+      <div class="no-photo tall">Нет фото</div>
+    {% endif %}
+  </div>
+  <div class="info">
+    <p class="eyebrow">карточка сорта</p>
+    <h1>{{ product.name }}</h1>
+    <p class="price big">{{ format_price(product.price, product.price_text) }}</p>
+    <p class="badge {{ stock_class(product) }}">{{ stock_label(product) }}</p>
+    {% if product.extra.heights %}
+      <ul class="heights">
+        {% for row in product.extra.heights %}
+          <li>{{ row.height_cm }} см — {{ format_price(row.price) }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if product.extra %}
+      <dl class="extra">
+        {% for key, value in product.extra.items() %}
+          {% if key != 'heights' %}
+            <div><dt>{{ key }}</dt><dd>{{ value }}</dd></div>
+          {% endif %}
+        {% endfor %}
+      </dl>
+    {% endif %}
+    <div class="actions stack">
+      {% if product.photos %}
+        <a class="btn" href="/product/{{ product.id }}/zip">Скачать все фото zip</a>
+      {% endif %}
+      <a class="btn ghost" href="/download/all.zip">Скачать весь каталог</a>
+    </div>
+    {% if product.raw_text %}
+      <h2>Как написал поставщик</h2>
+      <pre class="raw">{{ product.raw_text }}</pre>
+    {% endif %}
+    {% if product.telegram_date %}
+      <p class="meta">Обновлено из Telegram: {{ fmt_dt(product.telegram_date) }}</p>
+    {% else %}
+      <p class="meta">Обновлено: {{ fmt_dt(product.updated_at) }}</p>
+    {% endif %}
+  </div>
+</article>
+{% endblock %}
