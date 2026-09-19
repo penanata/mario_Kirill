@@ -116,7 +116,8 @@ h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.05; margin: 0 0 12px; }
   color: var(--leaf-2);
   border: 1px solid var(--line);
 }
-.btn.small { padding: 8px 12px; font-size: 13px; width: 100%; }
+.btn.small { padding: 8px 12px; font-size: 13px; }
+.gallery .btn.small { width: 100%; }
 
 .grid {
   display: grid;
@@ -190,7 +191,14 @@ h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.05; margin: 0 0 12px; }
 .steps { padding-left: 18px; line-height: 1.7; }
 .note { padding: 12px 14px; border-radius: 12px; margin: 0 0 16px; }
 .note.ok { background: #e5f4ea; }
-.note.wait { background: #f7eed8; }
+.note.wait {
+  background: #f7eed8;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
 .upload { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 18px 0 28px; }
 .drop {
   flex: 1;
