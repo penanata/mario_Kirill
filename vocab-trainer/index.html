@@ -1,0 +1,1345 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3efe8">
+<meta name="description" content="Английские слова к уроку. Список хранится только на этом телефоне.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Слова">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Слова</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<style>
+  :root {
+    --bg: #f3efe8;
+    --card: #fffdfb;
+    --ink: #221e1a;
+    --muted: #5c564f;
+    --line: #e5ddd3;
+    --accent: #246b58;
+    --accent-ink: #1c4a3d;
+    --accent-soft: #e5f2ec;
+    --on-accent: #f7fffb;
+    --danger: #7a332b;
+    --danger-line: #efd2cd;
+    --back: #f3f8f6;
+    --shadow: 0 10px 30px rgba(60, 44, 28, 0.06);
+    --nav: calc(72px + env(safe-area-inset-bottom));
+  }
+  * { box-sizing: border-box; }
+  html {
+    scroll-padding-top: 12px;
+    scroll-padding-bottom: calc(var(--nav) + 16px);
+  }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 18px;
+    line-height: 1.35;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, textarea { font: inherit; color: inherit; }
+  button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+  }
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    padding: calc(18px + env(safe-area-inset-top)) 16px calc(var(--nav) + 20px);
+  }
+  body.in-session #app {
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+  h1 {
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+  h2 { margin: 0 0 12px; font-size: 20px; font-weight: 650; }
+  .sub { margin: 6px 0 0; color: var(--muted); font-size: 16px; }
+  .top { margin-bottom: 18px; }
+  .notice {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    font-size: 16px;
+  }
+  .empty {
+    min-height: calc(100dvh - 240px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+  }
+  .empty-title { margin: 0; font-size: 26px; font-weight: 700; }
+  .empty-text {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-size: 18px;
+    max-width: 26ch;
+  }
+  .empty .btn { width: min(100%, 320px); }
+  .words { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .word {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .word-en {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+  }
+  .badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    font-size: 13px;
+    font-weight: 600;
+    vertical-align: 3px;
+  }
+  .word-ru { margin-top: 4px; font-size: 18px; overflow-wrap: anywhere; }
+  .word-ex { margin-top: 6px; color: var(--muted); font-size: 15px; overflow-wrap: anywhere; }
+  .missing { color: var(--muted); }
+  .actions { margin-top: 14px; display: grid; gap: 10px; }
+  .confirm-q { margin: 0; font-size: 16px; }
+  section + section { margin-top: 28px; }
+  .field { display: grid; gap: 6px; margin-bottom: 12px; }
+  label { font-size: 15px; color: var(--muted); }
+  input, textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--card);
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 18px;
+    line-height: 1.35;
+    min-height: 56px;
+    color: var(--ink);
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  textarea { min-height: 168px; resize: vertical; }
+  .help { margin: 0 0 10px; color: var(--muted); font-size: 15px; line-height: 1.45; }
+  .form-error { margin: 0 0 8px; color: var(--danger); font-size: 16px; }
+  .form-error:empty { display: none; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 56px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    border: 1px solid transparent;
+    font-size: 18px;
+    font-weight: 650;
+    background: var(--card);
+  }
+  .btn.primary { background: var(--accent); color: var(--on-accent); }
+  .btn.secondary { background: var(--card); color: var(--ink); border-color: var(--line); }
+  .btn.danger { background: var(--card); color: var(--danger); border-color: var(--danger-line); }
+  .btn:disabled { opacity: 0.4; }
+  .btn { scroll-margin-bottom: 24px; }
+  .btn:active { transform: translateY(1px); }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .choice { margin-bottom: 18px; }
+  .choice-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button {
+    min-height: 52px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    font-weight: 650;
+  }
+  .seg button[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+  }
+  .pool { margin: 4px 0 16px; font-size: 18px; }
+  .reset { margin-top: 28px; }
+  .session-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .session-top h1 { font-size: 28px; }
+  .text-btn {
+    min-height: 48px;
+    padding: 8px 4px;
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+    font-weight: 650;
+    font-size: 17px;
+  }
+  .progress-wrap { margin: 4px 0 14px; }
+  .progress {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .progress-label { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+  .bar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .card {
+    display: block;
+    width: 100%;
+    height: 320px;
+    margin-bottom: 16px;
+    perspective: 1200px;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform: rotateY(0deg);
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    transition: transform 0.28s ease;
+  }
+  .card.flipped .card-inner { transform: rotateY(180deg); }
+  .face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 20px 52px;
+    border-radius: 22px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    box-shadow: var(--shadow);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    text-align: center;
+    overflow: hidden;
+  }
+  .face.back {
+    transform: rotateY(180deg);
+    background: var(--back);
+  }
+  .kicker { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  .word-text {
+    font-size: clamp(32px, 9vw, 44px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  .face.back .word-text { color: var(--accent); }
+  .face.back .word-text.missing { color: var(--muted); }
+  .example {
+    margin-top: 14px;
+    font-size: 17px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .tap-hint {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .done {
+    min-height: 260px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 28px 20px;
+    box-shadow: var(--shadow);
+  }
+  .done h2 { margin: 0; font-size: 28px; }
+  .done p { margin: 0 0 8px; color: var(--muted); }
+  .nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    background: rgba(255, 253, 251, 0.96);
+    border-top: 1px solid var(--line);
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+  .nav-inner {
+    width: 100%;
+    max-width: 480px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .nav button {
+    min-height: 52px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 16px;
+    font-weight: 650;
+  }
+  .nav button[aria-current="page"] {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+  }
+  .noscript {
+    max-width: 480px;
+    margin: 24px auto;
+    padding: 0 16px;
+    font-family: system-ui, sans-serif;
+  }
+  .keys {
+    margin: 12px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .word.is-current { border-color: #9ec9bb; }
+  @media (min-width: 1100px) {
+    html { scroll-padding-bottom: 28px; }
+    #app {
+      max-width: 1120px;
+      padding: 28px 32px 40px;
+    }
+    body.in-session #app { padding-bottom: 40px; }
+    .desk-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+      gap: 28px;
+      align-items: start;
+    }
+    .desk-practice {
+      position: sticky;
+      top: 20px;
+    }
+    .desk-practice .card { height: 260px; }
+    .desk-practice .choice { margin-bottom: 12px; }
+    .desk-practice .seg button { min-height: 44px; }
+    .desk-practice .reset { margin-top: 16px; }
+    .desk-practice h2 { margin-bottom: 10px; }
+    .empty { min-height: 0; align-items: flex-start; text-align: left; padding: 8px 0 20px; }
+    .word .btn { min-height: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-inner { transition: none; }
+    .btn:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+<noscript><p class="noscript">Включите JavaScript в браузере. Слова хранятся только на этом телефоне.</p></noscript>
+<div id="app"></div>
+<script>
+const KEY = 'slova-v1';
+
+const STARTER = [
+  ['up', 'вверх'],
+  ['down', 'вниз'],
+  ['over', 'через'],
+  ['under', 'под'],
+  ['into', 'внутрь'],
+  ['out of', 'из'],
+  ['onto', 'на поверхность'],
+  ['off', 'с поверхности'],
+  ['towards', 'по направлению к'],
+  ['away from', 'прочь от'],
+  ['across', 'поперёк'],
+  ['along', 'вдоль'],
+  ['around', 'вокруг'],
+  ['past', 'мимо'],
+  ['through', 'сквозь'],
+  ['at', 'у'],
+  ['on', 'на'],
+  ['opposite', 'напротив'],
+  ['to', 'к'],
+  ['somehow', 'каким-то образом'],
+  ['to have a lot on my plate', 'дел по горло'],
+  ['to juggle it all', 'успевать всё сразу'],
+  ['loans', 'кредиты'],
+  ['to wear different hats', 'выполнять разные роли'],
+  ['individual entrepreneurship', 'индивидуальное предпринимательство'],
+  ['income', 'доход'],
+  ['to influence / have an impact', 'влиять'],
+  ['bridge', 'мост'],
+  ['church', 'церковь'],
+  ['crossing', 'переход'],
+  ['crossroads', 'перекрёсток'],
+  ['monument', 'памятник'],
+  ['playground', 'детская площадка'],
+  ['police station', 'полицейский участок'],
+  ['roundabout', 'круговая развязка'],
+  ['stadium', 'стадион'],
+  ['subway', 'метро'],
+  ['town hall', 'мэрия'],
+  ['traffic lights', 'светофор'],
+];
+
+const state = load();
+if (state.pendingSeedSave) {
+  delete state.pendingSeedSave;
+  save();
+}
+let view = 'list';
+let editingId = null;
+let pendingDeleteId = null;
+let confirmReset = false;
+let notice = '';
+let focusId = null;
+let session = null;
+let renderedView = '';
+let kept = null;
+
+const wideQuery = window.matchMedia('(min-width: 1100px)');
+function isWide() { return wideQuery.matches; }
+wideQuery.addEventListener('change', () => {
+  if (!isWide()) {
+    if (editingId) view = 'edit';
+    else if (session) view = 'session';
+  }
+  render();
+});
+
+function wordKey(text) {
+  return String(text || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function mergeStarter(words) {
+  const seen = new Set(words.map((word) => wordKey(word.en)));
+  for (const [en, ru] of STARTER) {
+    const key = wordKey(en);
+    if (seen.has(key)) continue;
+    words.push({ id: uid(), en, ru, example: '', known: false });
+    seen.add(key);
+  }
+}
+
+function load() {
+  let data = null;
+  try {
+    data = JSON.parse(localStorage.getItem(KEY) || 'null');
+  } catch (err) {
+    data = null;
+  }
+  const next = {
+    words: data && Array.isArray(data.words) ? data.words.map(sanitizeWord).filter(Boolean) : [],
+    direction: data && data.direction === 'ru-en' ? 'ru-en' : 'en-ru',
+    mode: data && data.mode === 'all' ? 'all' : 'learning',
+    pendingSeedSave: false,
+  };
+  if (!data || data.starterSeeded !== true) {
+    mergeStarter(next.words);
+    next.pendingSeedSave = true;
+  }
+  return next;
+}
+
+function sanitizeWord(word) {
+  if (!word || typeof word.en !== 'string' || !word.en.trim()) return null;
+  return {
+    id: typeof word.id === 'string' && word.id ? word.id : uid(),
+    en: word.en.trim(),
+    ru: typeof word.ru === 'string' ? word.ru.trim() : '',
+    example: typeof word.example === 'string' ? word.example.trim() : '',
+    known: !!word.known,
+  };
+}
+
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      words: state.words,
+      direction: state.direction,
+      mode: state.mode,
+      starterSeeded: true,
+    }));
+    return true;
+  } catch (err) {
+    notice = 'Не удалось сохранить на этом устройстве';
+    return false;
+  }
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function parseLine(line) {
+  const text = String(line || '').replace(/\u00a0/g, ' ').trim();
+  if (!text) return null;
+  const match = /\s*[—–]\s*|\s*:\s*|\s*\/\s*|\s+[-\u2212]\s+/.exec(text);
+  if (!match) return { en: text, ru: '' };
+  const en = text.slice(0, match.index).trim();
+  const ru = text.slice(match.index + match[0].length).trim();
+  if (!en) return null;
+  return { en, ru };
+}
+
+function parseList(text) {
+  const items = [];
+  for (const line of String(text || '').split(/\r?\n/)) {
+    const item = parseLine(line);
+    if (item) items.push(item);
+  }
+  return items;
+}
+
+function ruCards(n) {
+  const n10 = n % 10;
+  const n100 = n % 100;
+  let word = 'слов';
+  if (n10 === 1 && n100 !== 11) word = 'слово';
+  else if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) word = 'слова';
+  return n + ' ' + word;
+}
+
+function currentPool() {
+  if (state.mode === 'all') return state.words.slice();
+  return state.words.filter((word) => !word.known);
+}
+
+function el(tag, attrs, kids) {
+  const node = document.createElement(tag);
+  const props = attrs || {};
+  for (const key of Object.keys(props)) {
+    const value = props[key];
+    if (value == null || value === false) continue;
+    if (key === 'class') node.className = value;
+    else if (key === 'text') node.textContent = value;
+    else if (key === 'value') node.value = value;
+    else if (key.startsWith('on') && typeof value === 'function') {
+      node.addEventListener(key.slice(2).toLowerCase(), value);
+    } else node.setAttribute(key, value === true ? '' : String(value));
+  }
+  if (tag === 'button' && !node.hasAttribute('type')) node.type = 'button';
+  const list = kids == null ? [] : Array.isArray(kids) ? kids : [kids];
+  for (const kid of list) {
+    if (kid == null || kid === false) continue;
+    node.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return node;
+}
+
+function openView(name, nextNotice, nextFocus) {
+  view = name;
+  notice = nextNotice || '';
+  focusId = nextFocus || null;
+  pendingDeleteId = null;
+  confirmReset = false;
+  if (name !== 'edit') editingId = null;
+  if (name !== 'session') session = null;
+  render();
+}
+
+function maybeNotice() {
+  if (!notice) return null;
+  return el('div', { class: 'notice', role: 'status', text: notice });
+}
+
+function captureDraft() {
+  const one = document.getElementById('one-word');
+  const many = document.getElementById('many-words');
+  const edit = document.getElementById('edit-word');
+  const active = document.activeElement;
+  return {
+    en: one ? one.en.value : '',
+    ru: one ? one.ru.value : '',
+    example: one ? one.example.value : '',
+    list: many ? many.list.value : '',
+    editEn: edit ? edit.en.value : null,
+    editRu: edit ? edit.ru.value : null,
+    editExample: edit ? edit.example.value : null,
+    focus: active && active.id ? active.id : '',
+  };
+}
+
+function beginSessionIfPossible() {
+  if (session) return;
+  const words = currentPool();
+  if (!words.length) return;
+  session = {
+    ids: words.map((word) => word.id),
+    total: words.length,
+    done: 0,
+    flipped: false,
+  };
+}
+
+function render() {
+  kept = captureDraft();
+  if (isWide()) {
+    renderWide();
+    return;
+  }
+  const viewChanged = renderedView !== view;
+  renderedView = view;
+  document.body.classList.toggle('in-session', view === 'session');
+  const titles = {
+    list: 'Слова',
+    add: 'Добавить',
+    edit: 'Изменить',
+    practice: 'Практика',
+    session: 'Практика',
+  };
+  document.title = titles[view] + ' — Слова';
+  const root = el('main', { class: 'page', 'data-view': view });
+  if (view === 'list') root.append(renderList());
+  else if (view === 'add') root.append(renderAdd());
+  else if (view === 'edit') root.append(renderEdit());
+  else if (view === 'practice') root.append(renderPractice());
+  else root.append(renderSession());
+  const app = document.getElementById('app');
+  app.replaceChildren(root);
+  if (view !== 'session') app.append(renderNav());
+  afterRender(viewChanged);
+}
+
+function renderWide() {
+  beginSessionIfPossible();
+  const viewChanged = renderedView !== 'wide';
+  renderedView = 'wide';
+  document.body.classList.remove('in-session');
+  document.title = 'Слова';
+  const known = state.words.filter((word) => word.known).length;
+  const sub = state.words.length
+    ? ruCards(state.words.length) + (known ? ' · знаю ' + known : '')
+    : 'К уроку';
+  const root = el('main', { class: 'page desk', 'data-view': 'desk' });
+  root.append(renderHeader('Слова', sub));
+  const note = maybeNotice();
+  if (note) root.append(note);
+  const grid = el('div', { class: 'desk-grid' });
+  const mainCol = el('div', { class: 'desk-main' });
+  if (editingId) mainCol.append(renderEdit());
+  if (!state.words.length && !editingId) mainCol.append(renderEmpty());
+  if (state.words.length) {
+    const list = el('ul', { class: 'words' });
+    for (const word of state.words) list.append(renderWord(word));
+    mainCol.append(list);
+  }
+  mainCol.append(renderAdd(false));
+  grid.append(mainCol);
+  grid.append(renderDeskPractice());
+  root.append(grid);
+  document.getElementById('app').replaceChildren(root);
+  afterRender(viewChanged);
+}
+
+function afterRender(viewChanged) {
+  const focus = kept && kept.focus;
+  if (viewChanged) window.scrollTo(0, 0);
+  if (focusId) {
+    const node = document.querySelector('[data-id="' + focusId + '"]');
+    if (node) node.scrollIntoView({ block: 'center' });
+    focusId = null;
+  } else if (focus && document.getElementById(focus)) {
+    const node = document.getElementById(focus);
+    if (node.matches('input, textarea')) node.focus();
+  }
+}
+
+function dropMissingCards() {
+  if (!session) return;
+  while (session.ids.length && !state.words.some((word) => word.id === session.ids[0])) {
+    session.ids.shift();
+  }
+}
+
+function renderDeskPractice() {
+  dropMissingCards();
+  const aside = el('aside', { class: 'desk-practice' });
+  aside.append(el('h2', { text: 'Практика' }));
+  aside.append(el('div', { class: 'choice' }, [
+    el('span', { class: 'choice-label', text: 'Какие слова' }),
+    el('div', { class: 'seg' }, [
+      segButton('learning', 'Учу', state.mode === 'learning', () => setMode('learning')),
+      segButton('all', 'Все', state.mode === 'all', () => setMode('all')),
+    ]),
+  ]));
+  aside.append(el('div', { class: 'choice' }, [
+    el('span', { class: 'choice-label', text: 'Направление' }),
+    el('div', { class: 'seg' }, [
+      segButton('en-ru', 'EN → RU', state.direction === 'en-ru', () => setDirection('en-ru')),
+      segButton('ru-en', 'RU → EN', state.direction === 'ru-en', () => setDirection('ru-en')),
+    ]),
+  ]));
+  const pool = currentPool();
+  if (session && session.ids.length) {
+    aside.append(renderProgress());
+    const word = state.words.find((item) => item.id === session.ids[0]);
+    if (word) {
+      aside.append(renderCard(word));
+      aside.append(el('div', { class: 'btn-row' }, [
+        el('button', { class: 'btn secondary', text: 'Ещё раз', onclick: again }),
+        el('button', { class: 'btn primary', text: 'Знаю', onclick: know }),
+      ]));
+      aside.append(el('p', { class: 'keys', text: 'Пробел или Enter — перевернуть. ← ещё раз. → знаю.' }));
+    }
+  } else if (session && !session.ids.length) {
+    aside.append(renderProgress());
+    aside.append(renderDone());
+  } else if (!state.words.length) {
+    aside.append(el('p', { class: 'pool', text: 'Сначала добавьте слова от преподавателя.' }));
+  } else if (!pool.length) {
+    aside.append(el('p', { class: 'pool', text: 'Все слова уже с отметкой «знаю». Можно сбросить её или выбрать «Все».' }));
+  }
+  aside.append(renderReset());
+  return aside;
+}
+
+function renderList() {
+  const wrap = el('div');
+  const known = state.words.filter((word) => word.known).length;
+  const sub = state.words.length
+    ? ruCards(state.words.length) + (known ? ' · знаю ' + known : '')
+    : 'К уроку';
+  wrap.append(renderHeader('Слова', sub));
+  const note = maybeNotice();
+  if (note) wrap.append(note);
+  if (!state.words.length) {
+    wrap.append(renderEmpty());
+    return wrap;
+  }
+  const list = el('ul', { class: 'words' });
+  for (const word of state.words) list.append(renderWord(word));
+  wrap.append(list);
+  return wrap;
+}
+
+function renderHeader(title, subtitle) {
+  const header = el('header', { class: 'top' });
+  header.append(el('h1', { text: title }));
+  if (subtitle) header.append(el('p', { class: 'sub', text: subtitle }));
+  return header;
+}
+
+function renderEmpty() {
+  return el('div', { class: 'empty' }, [
+    el('p', { class: 'empty-title', text: 'Пока нет слов' }),
+    el('p', { class: 'empty-text', text: 'Добавьте первые слова от преподавателя: по одному или списком.' }),
+    el('button', {
+      class: 'btn primary',
+      text: 'Добавить слова',
+      onclick: () => openView('add'),
+    }),
+  ]);
+}
+
+function renderWord(word) {
+  const current = session && session.ids[0] === word.id;
+  const item = el('li', {
+    class: current ? 'word is-current' : 'word',
+    'data-id': word.id,
+    'data-en': word.en,
+    'data-known': word.known ? '1' : '0',
+  });
+  const title = el('div', { class: 'word-en', lang: 'en' });
+  title.append(document.createTextNode(word.en));
+  if (word.known) title.append(el('span', { class: 'badge', text: 'знаю' }));
+  item.append(title);
+  item.append(el('div', {
+    class: word.ru ? 'word-ru' : 'word-ru missing',
+    text: word.ru || 'нет перевода',
+  }));
+  if (word.example) item.append(el('div', { class: 'word-ex', lang: 'en', text: word.example }));
+  const actions = el('div', { class: 'actions' });
+  if (pendingDeleteId === word.id) {
+    actions.append(el('p', { class: 'confirm-q', text: 'Удалить это слово?' }));
+    actions.append(el('div', { class: 'btn-row' }, [
+      el('button', {
+        class: 'btn secondary',
+        text: 'Оставить',
+        onclick: () => { pendingDeleteId = null; render(); },
+      }),
+      el('button', {
+        class: 'btn danger',
+        text: 'Удалить',
+        onclick: () => removeWord(word.id),
+      }),
+    ]));
+  } else {
+    actions.append(el('div', { class: 'btn-row' }, [
+      el('button', {
+        class: 'btn secondary',
+        text: 'Изменить',
+        onclick: () => {
+          editingId = word.id;
+          if (isWide()) render();
+          else openView('edit');
+        },
+      }),
+      el('button', {
+        class: 'btn danger',
+        text: 'Удалить',
+        onclick: () => { pendingDeleteId = word.id; render(); },
+      }),
+    ]));
+  }
+  item.append(actions);
+  return item;
+}
+
+function removeWord(id) {
+  state.words = state.words.filter((word) => word.id !== id);
+  if (session) session.ids = session.ids.filter((item) => item !== id);
+  if (editingId === id) editingId = null;
+  save();
+  if (isWide()) {
+    notice = 'Слово удалено';
+    pendingDeleteId = null;
+    render();
+  } else {
+    openView('list', 'Слово удалено');
+  }
+}
+
+function renderAdd(showNotice) {
+  const wrap = el('div');
+  wrap.append(renderHeader('Добавить', 'Новые слова от преподавателя'));
+  if (showNotice !== false) {
+    const note = maybeNotice();
+    if (note) wrap.append(note);
+  }
+
+  const one = el('section');
+  one.append(el('h2', { text: 'Одно слово' }));
+  const form = el('form', { id: 'one-word' });
+  form.append(field('en', 'Английское слово', el('input', {
+    id: 'en',
+    name: 'en',
+    type: 'text',
+    autocomplete: 'off',
+    autocapitalize: 'none',
+    autocorrect: 'off',
+    spellcheck: 'false',
+    placeholder: 'apple',
+    value: kept ? kept.en : '',
+  })));
+  form.append(field('ru', 'Перевод', el('input', {
+    id: 'ru',
+    name: 'ru',
+    type: 'text',
+    autocomplete: 'off',
+    autocapitalize: 'off',
+    placeholder: 'яблоко',
+    value: kept ? kept.ru : '',
+  })));
+  form.append(field('example', 'Пример (необязательно)', el('input', {
+    id: 'example',
+    name: 'example',
+    type: 'text',
+    autocomplete: 'off',
+    autocapitalize: 'sentences',
+    placeholder: 'I eat an apple',
+    value: kept ? kept.example : '',
+  })));
+  const oneError = el('p', { class: 'form-error', 'aria-live': 'polite' });
+  form.append(oneError);
+  form.append(el('button', { class: 'btn primary', type: 'submit', text: 'Добавить слово' }));
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const en = form.en.value.trim();
+    const ru = form.ru.value.trim();
+    const example = form.example.value.trim();
+    if (!en) {
+      oneError.textContent = 'Напишите английское слово';
+      form.en.focus();
+      return;
+    }
+    const id = uid();
+    state.words.push({ id, en, ru, example, known: false });
+    save();
+    form.en.value = '';
+    form.ru.value = '';
+    form.example.value = '';
+    if (isWide()) {
+      notice = 'Слово добавлено';
+      focusId = id;
+      render();
+    } else {
+      openView('list', 'Слово добавлено', id);
+    }
+  });
+  one.append(form);
+
+  const many = el('section');
+  many.append(el('h2', { text: 'Список' }));
+  many.append(el('p', {
+    class: 'help',
+    text: 'Одна строка — одно слово. Подойдут apple — яблоко, дефис, двоеточие и слэш. Пустые строки пропускаются. Если перевода нет, сохранится английское слово.',
+  }));
+  const paste = el('form', { id: 'many-words' });
+  const area = el('textarea', {
+    id: 'list',
+    name: 'list',
+    'aria-label': 'Список от преподавателя',
+    value: kept ? kept.list : '',
+  });
+  area.placeholder = 'apple — яблоко\nbook - книга\ncat: кошка\ndog / собака';
+  paste.append(area);
+  const manyError = el('p', { class: 'form-error', 'aria-live': 'polite' });
+  paste.append(manyError);
+  paste.append(el('button', { class: 'btn primary', type: 'submit', text: 'Добавить список' }));
+  paste.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const items = parseList(area.value);
+    if (!items.length) {
+      manyError.textContent = 'Нет строк со словами';
+      area.focus();
+      return;
+    }
+    let lastId = null;
+    for (const item of items) {
+      lastId = uid();
+      state.words.push({
+        id: lastId,
+        en: item.en,
+        ru: item.ru,
+        example: '',
+        known: false,
+      });
+    }
+    save();
+    area.value = '';
+    if (isWide()) {
+      notice = 'Добавлено ' + ruCards(items.length);
+      focusId = lastId;
+      render();
+    } else {
+      openView('list', 'Добавлено ' + ruCards(items.length), lastId);
+    }
+  });
+  many.append(paste);
+
+  wrap.append(one, many);
+  return wrap;
+}
+
+function field(id, label, control) {
+  return el('div', { class: 'field' }, [
+    el('label', { for: id, text: label }),
+    control,
+  ]);
+}
+
+function renderEdit() {
+  const word = state.words.find((item) => item.id === editingId);
+  const wrap = el('div');
+  wrap.append(renderHeader('Изменить', ''));
+  if (!word) {
+    wrap.append(el('p', { text: 'Слово не найдено' }));
+    wrap.append(el('button', { class: 'btn primary', text: 'К списку', onclick: () => openView('list') }));
+    return wrap;
+  }
+  const form = el('form', { id: 'edit-word' });
+  form.append(field('edit-en', 'Английское слово', el('input', {
+    id: 'edit-en',
+    name: 'en',
+    type: 'text',
+    autocomplete: 'off',
+    autocapitalize: 'none',
+    autocorrect: 'off',
+    spellcheck: 'false',
+    value: kept && kept.editEn != null ? kept.editEn : word.en,
+  })));
+  form.append(field('edit-ru', 'Перевод', el('input', {
+    id: 'edit-ru',
+    name: 'ru',
+    type: 'text',
+    value: kept && kept.editRu != null ? kept.editRu : word.ru,
+    autocomplete: 'off',
+    autocapitalize: 'off',
+  })));
+  form.append(field('edit-example', 'Пример (необязательно)', el('input', {
+    id: 'edit-example',
+    name: 'example',
+    type: 'text',
+    value: kept && kept.editExample != null ? kept.editExample : word.example,
+    autocomplete: 'off',
+  })));
+  const error = el('p', { class: 'form-error', 'aria-live': 'polite' });
+  form.append(error);
+  form.append(el('div', { class: 'actions' }, [
+    el('button', { class: 'btn primary', type: 'submit', text: 'Сохранить' }),
+    el('button', {
+      class: 'btn secondary',
+      text: 'Назад',
+      onclick: () => {
+        if (isWide()) { editingId = null; render(); }
+        else openView('list');
+      },
+    }),
+  ]));
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const en = form.en.value.trim();
+    if (!en) {
+      error.textContent = 'Напишите английское слово';
+      form.en.focus();
+      return;
+    }
+    word.en = en;
+    word.ru = form.ru.value.trim();
+    word.example = form.example.value.trim();
+    save();
+    if (isWide()) {
+      editingId = null;
+      notice = 'Сохранено';
+      focusId = word.id;
+      render();
+    } else {
+      openView('list', 'Сохранено', word.id);
+    }
+  });
+  wrap.append(form);
+  return wrap;
+}
+
+function renderPractice() {
+  const wrap = el('div');
+  wrap.append(renderHeader('Практика', 'Перед уроком'));
+  const note = maybeNotice();
+  if (note) wrap.append(note);
+
+  wrap.append(el('div', { class: 'choice' }, [
+    el('span', { class: 'choice-label', text: 'Какие слова' }),
+    el('div', { class: 'seg' }, [
+      segButton('learning', 'Учу', state.mode === 'learning', () => setMode('learning')),
+      segButton('all', 'Все', state.mode === 'all', () => setMode('all')),
+    ]),
+  ]));
+  wrap.append(el('div', { class: 'choice' }, [
+    el('span', { class: 'choice-label', text: 'Направление' }),
+    el('div', { class: 'seg' }, [
+      segButton('en-ru', 'EN → RU', state.direction === 'en-ru', () => setDirection('en-ru')),
+      segButton('ru-en', 'RU → EN', state.direction === 'ru-en', () => setDirection('ru-en')),
+    ]),
+  ]));
+
+  const pool = currentPool();
+  let poolText;
+  if (!state.words.length) poolText = 'Сначала добавьте слова от преподавателя.';
+  else if (!pool.length) poolText = 'Все слова уже с отметкой «знаю». Можно сбросить её или выбрать «Все».';
+  else poolText = 'В сессии: ' + ruCards(pool.length);
+  wrap.append(el('p', { class: 'pool', text: poolText }));
+  wrap.append(el('button', {
+    class: 'btn primary',
+    text: 'Начать',
+    disabled: pool.length === 0,
+    onclick: startSession,
+  }));
+  if (!state.words.length) {
+    wrap.append(el('div', { class: 'actions' }, [
+      el('button', { class: 'btn secondary', text: 'Добавить слова', onclick: () => openView('add') }),
+    ]));
+  }
+
+  wrap.append(renderReset());
+  return wrap;
+}
+
+function renderReset() {
+  const knownCount = state.words.filter((word) => word.known).length;
+  const reset = el('div', { class: 'reset' });
+  if (confirmReset) {
+    reset.append(el('p', { class: 'confirm-q', text: 'Снять отметку «знаю» у всех слов?' }));
+    reset.append(el('div', { class: 'btn-row' }, [
+      el('button', { class: 'btn secondary', text: 'Нет', onclick: () => { confirmReset = false; render(); } }),
+      el('button', { class: 'btn danger', text: 'Сбросить', onclick: resetKnown }),
+    ]));
+  } else {
+    reset.append(el('button', {
+      class: 'btn secondary',
+      text: 'Сбросить «знаю»',
+      disabled: knownCount === 0,
+      onclick: () => { confirmReset = true; render(); },
+    }));
+  }
+  return reset;
+}
+
+function segButton(id, text, pressed, onclick) {
+  return el('button', {
+    text,
+    'aria-pressed': pressed ? 'true' : 'false',
+    onclick,
+  });
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  save();
+  if (isWide()) session = null;
+  render();
+}
+
+function setDirection(direction) {
+  state.direction = direction;
+  if (session) session.flipped = false;
+  save();
+  render();
+}
+
+function resetKnown() {
+  state.words.forEach((word) => { word.known = false; });
+  confirmReset = false;
+  save();
+  notice = 'Отметки «знаю» сняты';
+  if (isWide()) session = null;
+  render();
+}
+
+function startSession() {
+  const words = currentPool();
+  if (!words.length) return;
+  session = {
+    ids: words.map((word) => word.id),
+    total: words.length,
+    done: 0,
+    flipped: false,
+  };
+  view = 'session';
+  notice = '';
+  pendingDeleteId = null;
+  confirmReset = false;
+  render();
+}
+
+function renderSession() {
+  dropMissingCards();
+  const wrap = el('div', { class: 'session' });
+  const top = el('div', { class: 'session-top' });
+  top.append(el('h1', { text: 'Практика' }));
+  top.append(el('button', { class: 'text-btn', text: 'Закончить', onclick: () => openView('practice') }));
+  wrap.append(top);
+  wrap.append(renderProgress());
+  if (!session.ids.length) {
+    wrap.append(renderDone());
+    return wrap;
+  }
+  const word = state.words.find((item) => item.id === session.ids[0]);
+  wrap.append(renderCard(word));
+  wrap.append(el('div', { class: 'btn-row' }, [
+    el('button', { class: 'btn secondary', text: 'Ещё раз', onclick: again }),
+    el('button', { class: 'btn primary', text: 'Знаю', onclick: know }),
+  ]));
+  return wrap;
+}
+
+function renderProgress() {
+  const total = session.total;
+  const done = session.done;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const wrap = el('div', { class: 'progress-wrap' });
+  wrap.append(el('p', {
+    class: 'progress',
+    text: done + '/' + total,
+    'aria-label': 'Знаю ' + done + ' из ' + total,
+  }));
+  wrap.append(el('p', { class: 'progress-label', text: 'знаю' }));
+  const bar = el('div', { class: 'bar', 'aria-hidden': 'true' });
+  const fill = el('span');
+  fill.style.width = pct + '%';
+  bar.append(fill);
+  wrap.append(bar);
+  return wrap;
+}
+
+function cardSides(word) {
+  if (state.direction === 'ru-en') {
+    return {
+      front: { kicker: 'русский', text: word.ru || 'нет перевода', missing: !word.ru, lang: 'ru' },
+      back: { kicker: 'английский', text: word.en, missing: false, lang: 'en', example: word.example },
+    };
+  }
+  return {
+    front: { kicker: 'английский', text: word.en, missing: false, lang: 'en' },
+    back: { kicker: 'перевод', text: word.ru || 'нет перевода', missing: !word.ru, lang: 'ru', example: word.example },
+  };
+}
+
+function renderCard(word) {
+  const sides = cardSides(word);
+  const card = el('div', {
+    class: session.flipped ? 'card flipped' : 'card',
+    role: 'button',
+    tabindex: '0',
+    'aria-label': 'Нажмите, чтобы перевернуть карточку',
+    onclick: onFlip,
+    onkeydown: onFlip,
+  });
+  const inner = el('div', { class: 'card-inner' });
+  inner.append(makeFace('front', sides.front, !session.flipped));
+  inner.append(makeFace('back', sides.back, session.flipped));
+  card.append(inner);
+  return card;
+}
+
+function makeFace(kind, side, visible) {
+  const face = el('div', { class: 'face ' + kind, 'aria-hidden': visible ? 'false' : 'true' });
+  face.append(el('div', { class: 'kicker', text: side.kicker }));
+  face.append(el('div', {
+    class: side.missing ? 'word-text missing' : 'word-text',
+    lang: side.lang,
+    text: side.text,
+  }));
+  if (side.example) face.append(el('div', { class: 'example', lang: 'en', text: side.example }));
+  face.append(el('div', {
+    class: 'tap-hint',
+    text: kind === 'front' ? 'нажмите, чтобы перевернуть' : 'нажмите, чтобы вернуть',
+  }));
+  return face;
+}
+
+function onFlip(event) {
+  if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
+  if (event.type === 'keydown') event.preventDefault();
+  session.flipped = !session.flipped;
+  const card = event.currentTarget;
+  card.classList.toggle('flipped', session.flipped);
+  card.querySelector('.front').setAttribute('aria-hidden', session.flipped ? 'true' : 'false');
+  card.querySelector('.back').setAttribute('aria-hidden', session.flipped ? 'false' : 'true');
+  card.setAttribute('aria-label', session.flipped
+    ? 'Перевод открыт. Нажмите, чтобы вернуть.'
+    : 'Нажмите, чтобы перевернуть карточку');
+}
+
+function know() {
+  const word = state.words.find((item) => item.id === session.ids[0]);
+  if (word) word.known = true;
+  session.ids.shift();
+  session.done += 1;
+  session.flipped = false;
+  save();
+  render();
+}
+
+function again() {
+  if (!session.ids.length) return;
+  const id = session.ids.shift();
+  session.ids.push(id);
+  session.flipped = false;
+  render();
+}
+
+function renderDone() {
+  const actions = el('div', { class: 'actions' });
+  if (isWide()) {
+    actions.append(el('button', {
+      class: 'btn primary',
+      text: 'Начать снова',
+      onclick: () => { session = null; notice = ''; render(); },
+    }));
+  } else {
+    actions.append(el('button', { class: 'btn primary', text: 'К списку', onclick: () => openView('list') }));
+    actions.append(el('button', { class: 'btn secondary', text: 'К практике', onclick: () => openView('practice') }));
+  }
+  return el('div', { class: 'done' }, [
+    el('h2', { text: 'Готово' }),
+    el('p', { text: 'В этой сессии все карточки отмечены как «знаю».' }),
+    actions,
+  ]);
+}
+
+function renderNav() {
+  const nav = el('nav', { class: 'nav', 'aria-label': 'Разделы' });
+  const inner = el('div', { class: 'nav-inner' });
+  const items = [
+    ['list', 'Слова'],
+    ['add', 'Добавить'],
+    ['practice', 'Практика'],
+  ];
+  for (const [id, label] of items) {
+    const current = (id === 'list' && (view === 'list' || view === 'edit'))
+      || (id === 'add' && view === 'add')
+      || (id === 'practice' && view === 'practice');
+    const button = el('button', {
+      text: label,
+      onclick: () => openView(id),
+    });
+    if (current) button.setAttribute('aria-current', 'page');
+    inner.append(button);
+  }
+  nav.append(inner);
+  return nav;
+}
+
+document.addEventListener('keydown', (event) => {
+  if (!isWide()) return;
+  if (event.metaKey || event.ctrlKey || event.altKey) return;
+  const target = event.target;
+  if (target && target.closest && target.closest('input, textarea, select')) return;
+  if (!session || !session.ids.length) return;
+  if (event.key === 'ArrowRight') {
+    event.preventDefault();
+    know();
+    return;
+  }
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault();
+    again();
+    return;
+  }
+  if (event.key !== ' ' && event.key !== 'Enter') return;
+  if (target && target.closest && target.closest('button, .card')) return;
+  event.preventDefault();
+  const card = document.querySelector('.card');
+  if (card) onFlip({ type: 'click', currentTarget: card });
+});
+
+render();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
