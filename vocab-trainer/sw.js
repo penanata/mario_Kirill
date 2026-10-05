@@ -1,4 +1,4 @@
-const CACHE = 'slova-v2';
+const CACHE = 'slova-v3';
 const FILES = [
   './index.html',
   './manifest.webmanifest',

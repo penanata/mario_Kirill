@@ -335,6 +335,38 @@
     padding: 0 16px;
     font-family: system-ui, sans-serif;
   }
+  .keys {
+    margin: 12px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .word.is-current { border-color: #9ec9bb; }
+  @media (min-width: 1100px) {
+    html { scroll-padding-bottom: 28px; }
+    #app {
+      max-width: 1120px;
+      padding: 28px 32px 40px;
+    }
+    body.in-session #app { padding-bottom: 40px; }
+    .desk-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+      gap: 28px;
+      align-items: start;
+    }
+    .desk-practice {
+      position: sticky;
+      top: 20px;
+    }
+    .desk-practice .card { height: 260px; }
+    .desk-practice .choice { margin-bottom: 12px; }
+    .desk-practice .seg button { min-height: 44px; }
+    .desk-practice .reset { margin-top: 16px; }
+    .desk-practice h2 { margin-bottom: 10px; }
+    .empty { min-height: 0; align-items: flex-start; text-align: left; padding: 8px 0 20px; }
+    .word .btn { min-height: 44px; }
+  }
   @media (prefers-reduced-motion: reduce) {
     .card-inner { transition: none; }
     .btn:active { transform: none; }
@@ -402,6 +434,17 @@ let notice = '';
 let focusId = null;
 let session = null;
 let renderedView = '';
+let kept = null;
+
+const wideQuery = window.matchMedia('(min-width: 1100px)');
+function isWide() { return wideQuery.matches; }
+wideQuery.addEventListener('change', () => {
+  if (!isWide()) {
+    if (editingId) view = 'edit';
+    else if (session) view = 'session';
+  }
+  render();
+});
 
 function wordKey(text) {
   return String(text || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -539,7 +582,41 @@ function maybeNotice() {
   return el('div', { class: 'notice', role: 'status', text: notice });
 }
 
+function captureDraft() {
+  const one = document.getElementById('one-word');
+  const many = document.getElementById('many-words');
+  const edit = document.getElementById('edit-word');
+  const active = document.activeElement;
+  return {
+    en: one ? one.en.value : '',
+    ru: one ? one.ru.value : '',
+    example: one ? one.example.value : '',
+    list: many ? many.list.value : '',
+    editEn: edit ? edit.en.value : null,
+    editRu: edit ? edit.ru.value : null,
+    editExample: edit ? edit.example.value : null,
+    focus: active && active.id ? active.id : '',
+  };
+}
+
+function beginSessionIfPossible() {
+  if (session) return;
+  const words = currentPool();
+  if (!words.length) return;
+  session = {
+    ids: words.map((word) => word.id),
+    total: words.length,
+    done: 0,
+    flipped: false,
+  };
+}
+
 function render() {
+  kept = captureDraft();
+  if (isWide()) {
+    renderWide();
+    return;
+  }
   const viewChanged = renderedView !== view;
   renderedView = view;
   document.body.classList.toggle('in-session', view === 'session');
@@ -560,12 +637,100 @@ function render() {
   const app = document.getElementById('app');
   app.replaceChildren(root);
   if (view !== 'session') app.append(renderNav());
+  afterRender(viewChanged);
+}
+
+function renderWide() {
+  beginSessionIfPossible();
+  const viewChanged = renderedView !== 'wide';
+  renderedView = 'wide';
+  document.body.classList.remove('in-session');
+  document.title = 'Слова';
+  const known = state.words.filter((word) => word.known).length;
+  const sub = state.words.length
+    ? ruCards(state.words.length) + (known ? ' · знаю ' + known : '')
+    : 'К уроку';
+  const root = el('main', { class: 'page desk', 'data-view': 'desk' });
+  root.append(renderHeader('Слова', sub));
+  const note = maybeNotice();
+  if (note) root.append(note);
+  const grid = el('div', { class: 'desk-grid' });
+  const mainCol = el('div', { class: 'desk-main' });
+  if (editingId) mainCol.append(renderEdit());
+  if (!state.words.length && !editingId) mainCol.append(renderEmpty());
+  if (state.words.length) {
+    const list = el('ul', { class: 'words' });
+    for (const word of state.words) list.append(renderWord(word));
+    mainCol.append(list);
+  }
+  mainCol.append(renderAdd(false));
+  grid.append(mainCol);
+  grid.append(renderDeskPractice());
+  root.append(grid);
+  document.getElementById('app').replaceChildren(root);
+  afterRender(viewChanged);
+}
+
+function afterRender(viewChanged) {
+  const focus = kept && kept.focus;
   if (viewChanged) window.scrollTo(0, 0);
   if (focusId) {
     const node = document.querySelector('[data-id="' + focusId + '"]');
     if (node) node.scrollIntoView({ block: 'center' });
     focusId = null;
+  } else if (focus && document.getElementById(focus)) {
+    const node = document.getElementById(focus);
+    if (node.matches('input, textarea')) node.focus();
   }
+}
+
+function dropMissingCards() {
+  if (!session) return;
+  while (session.ids.length && !state.words.some((word) => word.id === session.ids[0])) {
+    session.ids.shift();
+  }
+}
+
+function renderDeskPractice() {
+  dropMissingCards();
+  const aside = el('aside', { class: 'desk-practice' });
+  aside.append(el('h2', { text: 'Практика' }));
+  aside.append(el('div', { class: 'choice' }, [
+    el('span', { class: 'choice-label', text: 'Какие слова' }),
+    el('div', { class: 'seg' }, [
+      segButton('learning', 'Учу', state.mode === 'learning', () => setMode('learning')),
+      segButton('all', 'Все', state.mode === 'all', () => setMode('all')),
+    ]),
+  ]));
+  aside.append(el('div', { class: 'choice' }, [
+    el('span', { class: 'choice-label', text: 'Направление' }),
+    el('div', { class: 'seg' }, [
+      segButton('en-ru', 'EN → RU', state.direction === 'en-ru', () => setDirection('en-ru')),
+      segButton('ru-en', 'RU → EN', state.direction === 'ru-en', () => setDirection('ru-en')),
+    ]),
+  ]));
+  const pool = currentPool();
+  if (session && session.ids.length) {
+    aside.append(renderProgress());
+    const word = state.words.find((item) => item.id === session.ids[0]);
+    if (word) {
+      aside.append(renderCard(word));
+      aside.append(el('div', { class: 'btn-row' }, [
+        el('button', { class: 'btn secondary', text: 'Ещё раз', onclick: again }),
+        el('button', { class: 'btn primary', text: 'Знаю', onclick: know }),
+      ]));
+      aside.append(el('p', { class: 'keys', text: 'Пробел или Enter — перевернуть. ← ещё раз. → знаю.' }));
+    }
+  } else if (session && !session.ids.length) {
+    aside.append(renderProgress());
+    aside.append(renderDone());
+  } else if (!state.words.length) {
+    aside.append(el('p', { class: 'pool', text: 'Сначала добавьте слова от преподавателя.' }));
+  } else if (!pool.length) {
+    aside.append(el('p', { class: 'pool', text: 'Все слова уже с отметкой «знаю». Можно сбросить её или выбрать «Все».' }));
+  }
+  aside.append(renderReset());
+  return aside;
 }
 
 function renderList() {
@@ -607,8 +772,9 @@ function renderEmpty() {
 }
 
 function renderWord(word) {
+  const current = session && session.ids[0] === word.id;
   const item = el('li', {
-    class: 'word',
+    class: current ? 'word is-current' : 'word',
     'data-id': word.id,
     'data-en': word.en,
     'data-known': word.known ? '1' : '0',
@@ -642,7 +808,11 @@ function renderWord(word) {
       el('button', {
         class: 'btn secondary',
         text: 'Изменить',
-        onclick: () => { editingId = word.id; openView('edit'); },
+        onclick: () => {
+          editingId = word.id;
+          if (isWide()) render();
+          else openView('edit');
+        },
       }),
       el('button', {
         class: 'btn danger',
@@ -657,15 +827,25 @@ function renderWord(word) {
 
 function removeWord(id) {
   state.words = state.words.filter((word) => word.id !== id);
+  if (session) session.ids = session.ids.filter((item) => item !== id);
+  if (editingId === id) editingId = null;
   save();
-  openView('list', 'Слово удалено');
+  if (isWide()) {
+    notice = 'Слово удалено';
+    pendingDeleteId = null;
+    render();
+  } else {
+    openView('list', 'Слово удалено');
+  }
 }
 
-function renderAdd() {
+function renderAdd(showNotice) {
   const wrap = el('div');
   wrap.append(renderHeader('Добавить', 'Новые слова от преподавателя'));
-  const note = maybeNotice();
-  if (note) wrap.append(note);
+  if (showNotice !== false) {
+    const note = maybeNotice();
+    if (note) wrap.append(note);
+  }
 
   const one = el('section');
   one.append(el('h2', { text: 'Одно слово' }));
@@ -679,6 +859,7 @@ function renderAdd() {
     autocorrect: 'off',
     spellcheck: 'false',
     placeholder: 'apple',
+    value: kept ? kept.en : '',
   })));
   form.append(field('ru', 'Перевод', el('input', {
     id: 'ru',
@@ -687,6 +868,7 @@ function renderAdd() {
     autocomplete: 'off',
     autocapitalize: 'off',
     placeholder: 'яблоко',
+    value: kept ? kept.ru : '',
   })));
   form.append(field('example', 'Пример (необязательно)', el('input', {
     id: 'example',
@@ -695,6 +877,7 @@ function renderAdd() {
     autocomplete: 'off',
     autocapitalize: 'sentences',
     placeholder: 'I eat an apple',
+    value: kept ? kept.example : '',
   })));
   const oneError = el('p', { class: 'form-error', 'aria-live': 'polite' });
   form.append(oneError);
@@ -712,7 +895,16 @@ function renderAdd() {
     const id = uid();
     state.words.push({ id, en, ru, example, known: false });
     save();
-    openView('list', 'Слово добавлено', id);
+    form.en.value = '';
+    form.ru.value = '';
+    form.example.value = '';
+    if (isWide()) {
+      notice = 'Слово добавлено';
+      focusId = id;
+      render();
+    } else {
+      openView('list', 'Слово добавлено', id);
+    }
   });
   one.append(form);
 
@@ -727,6 +919,7 @@ function renderAdd() {
     id: 'list',
     name: 'list',
     'aria-label': 'Список от преподавателя',
+    value: kept ? kept.list : '',
   });
   area.placeholder = 'apple — яблоко\nbook - книга\ncat: кошка\ndog / собака';
   paste.append(area);
@@ -753,7 +946,14 @@ function renderAdd() {
       });
     }
     save();
-    openView('list', 'Добавлено ' + ruCards(items.length), lastId);
+    area.value = '';
+    if (isWide()) {
+      notice = 'Добавлено ' + ruCards(items.length);
+      focusId = lastId;
+      render();
+    } else {
+      openView('list', 'Добавлено ' + ruCards(items.length), lastId);
+    }
   });
   many.append(paste);
 
@@ -782,17 +982,17 @@ function renderEdit() {
     id: 'edit-en',
     name: 'en',
     type: 'text',
-    value: word.en,
     autocomplete: 'off',
     autocapitalize: 'none',
     autocorrect: 'off',
     spellcheck: 'false',
+    value: kept && kept.editEn != null ? kept.editEn : word.en,
   })));
   form.append(field('edit-ru', 'Перевод', el('input', {
     id: 'edit-ru',
     name: 'ru',
     type: 'text',
-    value: word.ru,
+    value: kept && kept.editRu != null ? kept.editRu : word.ru,
     autocomplete: 'off',
     autocapitalize: 'off',
   })));
@@ -800,14 +1000,21 @@ function renderEdit() {
     id: 'edit-example',
     name: 'example',
     type: 'text',
-    value: word.example,
+    value: kept && kept.editExample != null ? kept.editExample : word.example,
     autocomplete: 'off',
   })));
   const error = el('p', { class: 'form-error', 'aria-live': 'polite' });
   form.append(error);
   form.append(el('div', { class: 'actions' }, [
     el('button', { class: 'btn primary', type: 'submit', text: 'Сохранить' }),
-    el('button', { class: 'btn secondary', text: 'Назад', onclick: () => openView('list') }),
+    el('button', {
+      class: 'btn secondary',
+      text: 'Назад',
+      onclick: () => {
+        if (isWide()) { editingId = null; render(); }
+        else openView('list');
+      },
+    }),
   ]));
   form.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -821,7 +1028,14 @@ function renderEdit() {
     word.ru = form.ru.value.trim();
     word.example = form.example.value.trim();
     save();
-    openView('list', 'Сохранено', word.id);
+    if (isWide()) {
+      editingId = null;
+      notice = 'Сохранено';
+      focusId = word.id;
+      render();
+    } else {
+      openView('list', 'Сохранено', word.id);
+    }
   });
   wrap.append(form);
   return wrap;
@@ -866,6 +1080,11 @@ function renderPractice() {
     ]));
   }
 
+  wrap.append(renderReset());
+  return wrap;
+}
+
+function renderReset() {
   const knownCount = state.words.filter((word) => word.known).length;
   const reset = el('div', { class: 'reset' });
   if (confirmReset) {
@@ -882,8 +1101,7 @@ function renderPractice() {
       onclick: () => { confirmReset = true; render(); },
     }));
   }
-  wrap.append(reset);
-  return wrap;
+  return reset;
 }
 
 function segButton(id, text, pressed, onclick) {
@@ -897,11 +1115,13 @@ function segButton(id, text, pressed, onclick) {
 function setMode(mode) {
   state.mode = mode;
   save();
+  if (isWide()) session = null;
   render();
 }
 
 function setDirection(direction) {
   state.direction = direction;
+  if (session) session.flipped = false;
   save();
   render();
 }
@@ -911,6 +1131,7 @@ function resetKnown() {
   confirmReset = false;
   save();
   notice = 'Отметки «знаю» сняты';
+  if (isWide()) session = null;
   render();
 }
 
@@ -931,9 +1152,7 @@ function startSession() {
 }
 
 function renderSession() {
-  while (session.ids.length && !state.words.some((word) => word.id === session.ids[0])) {
-    session.ids.shift();
-  }
+  dropMissingCards();
   const wrap = el('div', { class: 'session' });
   const top = el('div', { class: 'session-top' });
   top.append(el('h1', { text: 'Практика' }));
@@ -1050,13 +1269,21 @@ function again() {
 }
 
 function renderDone() {
+  const actions = el('div', { class: 'actions' });
+  if (isWide()) {
+    actions.append(el('button', {
+      class: 'btn primary',
+      text: 'Начать снова',
+      onclick: () => { session = null; notice = ''; render(); },
+    }));
+  } else {
+    actions.append(el('button', { class: 'btn primary', text: 'К списку', onclick: () => openView('list') }));
+    actions.append(el('button', { class: 'btn secondary', text: 'К практике', onclick: () => openView('practice') }));
+  }
   return el('div', { class: 'done' }, [
     el('h2', { text: 'Готово' }),
     el('p', { text: 'В этой сессии все карточки отмечены как «знаю».' }),
-    el('div', { class: 'actions' }, [
-      el('button', { class: 'btn primary', text: 'К списку', onclick: () => openView('list') }),
-      el('button', { class: 'btn secondary', text: 'К практике', onclick: () => openView('practice') }),
-    ]),
+    actions,
   ]);
 }
 
@@ -1082,6 +1309,29 @@ function renderNav() {
   nav.append(inner);
   return nav;
 }
+
+document.addEventListener('keydown', (event) => {
+  if (!isWide()) return;
+  if (event.metaKey || event.ctrlKey || event.altKey) return;
+  const target = event.target;
+  if (target && target.closest && target.closest('input, textarea, select')) return;
+  if (!session || !session.ids.length) return;
+  if (event.key === 'ArrowRight') {
+    event.preventDefault();
+    know();
+    return;
+  }
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault();
+    again();
+    return;
+  }
+  if (event.key !== ' ' && event.key !== 'Enter') return;
+  if (target && target.closest && target.closest('button, .card')) return;
+  event.preventDefault();
+  const card = document.querySelector('.card');
+  if (card) onFlip({ type: 'click', currentTarget: card });
+});
 
 render();
 
