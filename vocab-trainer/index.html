@@ -221,11 +221,12 @@
   .btn:disabled { opacity: 0.4; }
   .btn:active { transform: translateY(1px); }
   .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .quiet-note {
+  .quiet-note,
+  .return-note {
     margin: 0;
     text-align: center;
     color: var(--muted);
-    font-size: 18px;
+    font-size: 15px;
   }
   .done, .empty {
     min-height: 280px;
@@ -437,6 +438,11 @@ function load() {
   return next;
 }
 
+function normalizeRep(word) {
+  if (word && (word.rep === 'hard' || word.rep === 'due' || word.rep === 'rest' || word.rep === 'new')) return word.rep;
+  return word && word.known ? 'rest' : 'new';
+}
+
 function sanitizeWord(word) {
   if (!word || typeof word.en !== 'string' || !word.en.trim()) return null;
   return {
@@ -445,6 +451,7 @@ function sanitizeWord(word) {
     ru: typeof word.ru === 'string' ? word.ru.trim() : '',
     example: typeof word.example === 'string' ? word.example.trim() : '',
     known: !!word.known,
+    rep: normalizeRep(word),
   };
 }
 
@@ -496,9 +503,27 @@ function ruCards(n) {
   return n + ' ' + word;
 }
 
+function repOf(word) {
+  return normalizeRep(word);
+}
+
+function orderedPool(words) {
+  const rank = (word) => {
+    const rep = repOf(word);
+    if (rep === 'hard') return 0;
+    if (rep === 'due') return 2;
+    return 1;
+  };
+  return words.map((word, index) => ({ word, index }))
+    .sort((a, b) => rank(a.word) - rank(b.word) || a.index - b.index)
+    .map((item) => item.word);
+}
+
 function currentPool() {
-  if (state.mode === 'all') return state.words.slice();
-  return state.words.filter((word) => !word.known);
+  const source = state.mode === 'all'
+    ? state.words.slice()
+    : state.words.filter((word) => repOf(word) !== 'rest');
+  return orderedPool(source);
 }
 
 function el(tag, attrs, kids) {
@@ -571,7 +596,29 @@ function beginSessionIfPossible() {
     total: words.length,
     done: 0,
     flipped: false,
+    note: '',
+    lookOpen: false,
+    shownAt: 0,
   };
+}
+
+function beginLook() {
+  if (!session || !session.ids.length) return;
+  const id = session.ids[0];
+  if (!session.lookOpen || session.lookId !== id) {
+    session.lookOpen = true;
+    session.lookId = id;
+    session.shownAt = Date.now();
+  }
+}
+
+function placeSoon(id) {
+  const at = Math.min(1, session.ids.length);
+  session.ids.splice(at, 0, id);
+}
+
+function placeLater(id) {
+  session.ids.push(id);
 }
 
 function dropMissingCards() {
@@ -623,14 +670,16 @@ function renderStudy() {
         el('button', { id: 'again', class: 'btn secondary', text: 'Ещё раз', onclick: again }),
         el('button', { id: 'know', class: 'btn primary', text: 'Знаю', onclick: know }),
       ]));
+      if (session.note) stage.append(el('p', { id: 'return-note', class: 'return-note', text: session.note }));
+      beginLook();
     }
   } else if (session && !session.ids.length) {
     stage.append(renderDone());
   } else {
     stage.append(el('div', { class: 'empty' }, [
-      el('p', { class: 'empty-title', text: 'На сегодня всё' }),
-      el('p', { class: 'empty-text', text: 'Все слова уже с отметкой «знаю». В списке можно сбросить её или учить все.' }),
-      el('button', { class: 'btn return', text: 'Открыть список', onclick: openWords }),
+      el('p', { class: 'empty-title', text: 'Пока хватит' }),
+      el('p', { class: 'empty-text', text: 'Трудные слова уже пройдены. Можно учить всё сначала.' }),
+      el('button', { class: 'btn primary', text: 'Учить снова', onclick: studyAgain }),
     ]));
   }
   root.append(stage);
@@ -719,8 +768,8 @@ function renderDone() {
   } else {
     actions.append(el('button', {
       class: 'btn primary',
-      text: 'Повторить все',
-      onclick: () => { state.mode = 'all'; session = null; save(); render(); },
+      text: 'Учить снова',
+      onclick: studyAgain,
     }));
   }
   actions.append(el('button', { class: 'btn return', text: 'Список', onclick: openWords }));
@@ -1045,11 +1094,29 @@ function setDirection(direction) {
 }
 
 function resetKnown() {
-  state.words.forEach((word) => { word.known = false; });
+  state.words.forEach((word) => {
+    word.known = false;
+    if (word.rep === 'rest') word.rep = 'new';
+  });
   confirmReset = false;
   session = null;
   save();
   notice = 'Отметки «знаю» сняты';
+  render();
+}
+
+function studyAgain() {
+  state.words.forEach((word) => {
+    if (repOf(word) === 'rest') {
+      word.rep = 'new';
+      word.known = false;
+    }
+  });
+  state.mode = 'learning';
+  session = null;
+  save();
+  view = 'study';
+  notice = '';
   render();
 }
 
@@ -1112,23 +1179,47 @@ function onFlip(event) {
     : 'Нажмите, чтобы перевернуть карточку');
 }
 
-function know() {
+const QUICK_MS = 8000;
+
+function grade(kind) {
   if (!session || !session.ids.length) return;
   const word = state.words.find((item) => item.id === session.ids[0]);
-  if (word) word.known = true;
+  const elapsed = Date.now() - (session.shownAt || Date.now());
+  const quick = elapsed < QUICK_MS;
   session.ids.shift();
-  session.done += 1;
   session.flipped = false;
+  session.lookOpen = false;
+  if (!word) {
+    render();
+    return;
+  }
+  const leaving = kind === 'know' && quick && repOf(word) === 'due';
+  if (leaving) {
+    word.rep = 'rest';
+    word.known = true;
+    session.done += 1;
+    session.note = '';
+  } else if (kind === 'know' && quick) {
+    word.rep = 'due';
+    word.known = false;
+    placeLater(word.id);
+    session.note = 'Ещё один раз позже';
+  } else {
+    word.rep = 'hard';
+    word.known = false;
+    placeSoon(word.id);
+    session.note = 'Скоро вернётся';
+  }
   save();
   render();
 }
 
+function know() {
+  grade('know');
+}
+
 function again() {
-  if (!session || !session.ids.length) return;
-  const id = session.ids.shift();
-  session.ids.push(id);
-  session.flipped = false;
-  render();
+  grade('again');
 }
 
 document.addEventListener('keydown', (event) => {
