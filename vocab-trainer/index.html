@@ -347,7 +347,53 @@
 <script>
 const KEY = 'slova-v1';
 
+const STARTER = [
+  ['up', 'вверх'],
+  ['down', 'вниз'],
+  ['over', 'через'],
+  ['under', 'под'],
+  ['into', 'внутрь'],
+  ['out of', 'из'],
+  ['onto', 'на поверхность'],
+  ['off', 'с поверхности'],
+  ['towards', 'по направлению к'],
+  ['away from', 'прочь от'],
+  ['across', 'поперёк'],
+  ['along', 'вдоль'],
+  ['around', 'вокруг'],
+  ['past', 'мимо'],
+  ['through', 'сквозь'],
+  ['at', 'у'],
+  ['on', 'на'],
+  ['opposite', 'напротив'],
+  ['to', 'к'],
+  ['somehow', 'каким-то образом'],
+  ['to have a lot on my plate', 'дел по горло'],
+  ['to juggle it all', 'успевать всё сразу'],
+  ['loans', 'кредиты'],
+  ['to wear different hats', 'выполнять разные роли'],
+  ['individual entrepreneurship', 'индивидуальное предпринимательство'],
+  ['income', 'доход'],
+  ['to influence / have an impact', 'влиять'],
+  ['bridge', 'мост'],
+  ['church', 'церковь'],
+  ['crossing', 'переход'],
+  ['crossroads', 'перекрёсток'],
+  ['monument', 'памятник'],
+  ['playground', 'детская площадка'],
+  ['police station', 'полицейский участок'],
+  ['roundabout', 'круговая развязка'],
+  ['stadium', 'стадион'],
+  ['subway', 'метро'],
+  ['town hall', 'мэрия'],
+  ['traffic lights', 'светофор'],
+];
+
 const state = load();
+if (state.pendingSeedSave) {
+  delete state.pendingSeedSave;
+  save();
+}
 let view = 'list';
 let editingId = null;
 let pendingDeleteId = null;
@@ -357,19 +403,38 @@ let focusId = null;
 let session = null;
 let renderedView = '';
 
-function load() {
-  const empty = { words: [], direction: 'en-ru', mode: 'learning' };
-  try {
-    const data = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (!data || !Array.isArray(data.words)) return empty;
-    return {
-      words: data.words.map(sanitizeWord).filter(Boolean),
-      direction: data.direction === 'ru-en' ? 'ru-en' : 'en-ru',
-      mode: data.mode === 'all' ? 'all' : 'learning',
-    };
-  } catch (err) {
-    return empty;
+function wordKey(text) {
+  return String(text || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function mergeStarter(words) {
+  const seen = new Set(words.map((word) => wordKey(word.en)));
+  for (const [en, ru] of STARTER) {
+    const key = wordKey(en);
+    if (seen.has(key)) continue;
+    words.push({ id: uid(), en, ru, example: '', known: false });
+    seen.add(key);
   }
+}
+
+function load() {
+  let data = null;
+  try {
+    data = JSON.parse(localStorage.getItem(KEY) || 'null');
+  } catch (err) {
+    data = null;
+  }
+  const next = {
+    words: data && Array.isArray(data.words) ? data.words.map(sanitizeWord).filter(Boolean) : [],
+    direction: data && data.direction === 'ru-en' ? 'ru-en' : 'en-ru',
+    mode: data && data.mode === 'all' ? 'all' : 'learning',
+    pendingSeedSave: false,
+  };
+  if (!data || data.starterSeeded !== true) {
+    mergeStarter(next.words);
+    next.pendingSeedSave = true;
+  }
+  return next;
 }
 
 function sanitizeWord(word) {
@@ -389,6 +454,7 @@ function save() {
       words: state.words,
       direction: state.direction,
       mode: state.mode,
+      starterSeeded: true,
     }));
     return true;
   } catch (err) {
