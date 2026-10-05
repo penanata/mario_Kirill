@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f3efe8">
+<meta name="theme-color" content="#f6f1f8">
 <meta name="description" content="Английские слова к уроку. Список хранится только на этом телефоне.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -15,30 +15,30 @@
 <link rel="apple-touch-icon" href="./icon-192.png">
 <style>
   :root {
-    --bg: #f3efe8;
-    --card: #fffdfb;
-    --ink: #221e1a;
-    --muted: #5c564f;
-    --line: #e5ddd3;
-    --accent: #246b58;
-    --accent-ink: #1c4a3d;
-    --accent-soft: #e5f2ec;
-    --on-accent: #f7fffb;
-    --danger: #7a332b;
-    --danger-line: #efd2cd;
-    --back: #f3f8f6;
-    --shadow: 0 10px 30px rgba(60, 44, 28, 0.06);
-    --nav: calc(72px + env(safe-area-inset-bottom));
+    --bg: #f6f1f8;
+    --card: #fffcfe;
+    --ink: #2c2433;
+    --muted: #6f657c;
+    --line: #e3d8ec;
+    --lilac: #c9b6dc;
+    --lilac-deep: #6d5a86;
+    --lilac-soft: #f3eaf8;
+    --tiffany: #81d8d0;
+    --tiffany-deep: #2f6f69;
+    --tiffany-ink: #143834;
+    --tiffany-soft: #e7f6f4;
+    --danger: #8a3d55;
+    --danger-line: #f0d4dc;
+    --shadow: 0 22px 50px rgba(92, 70, 120, 0.08);
   }
   * { box-sizing: border-box; }
-  html {
-    scroll-padding-top: 12px;
-    scroll-padding-bottom: calc(var(--nav) + 16px);
-  }
   html, body { margin: 0; padding: 0; }
   body {
     min-height: 100dvh;
-    background: var(--bg);
+    background:
+      radial-gradient(900px 480px at 0% -10%, #efe4f7 0%, transparent 60%),
+      radial-gradient(720px 420px at 100% 0%, #e5f6f4 0%, transparent 55%),
+      var(--bg);
     color: var(--ink);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-size: 18px;
@@ -53,17 +53,14 @@
   }
   :focus { outline: none; }
   :focus-visible {
-    outline: 3px solid var(--accent);
+    outline: 3px solid var(--tiffany);
     outline-offset: 2px;
   }
   #app {
-    max-width: 480px;
+    max-width: 440px;
     margin: 0 auto;
     min-height: 100dvh;
-    padding: calc(18px + env(safe-area-inset-top)) 16px calc(var(--nav) + 20px);
-  }
-  body.in-session #app {
-    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+    padding: calc(16px + env(safe-area-inset-top)) 18px calc(28px + env(safe-area-inset-bottom));
   }
   h1 {
     margin: 0;
@@ -74,152 +71,58 @@
   }
   h2 { margin: 0 0 12px; font-size: 20px; font-weight: 650; }
   .sub { margin: 6px 0 0; color: var(--muted); font-size: 16px; }
-  .top { margin-bottom: 18px; }
+  .top { margin: 8px 0 18px; }
   .notice {
-    background: var(--accent-soft);
-    color: var(--accent-ink);
+    background: var(--lilac-soft);
+    color: var(--lilac-deep);
     border-radius: 14px;
     padding: 12px 14px;
     margin-bottom: 14px;
     font-size: 16px;
   }
-  .empty {
-    min-height: calc(100dvh - 240px);
+  .study {
+    min-height: calc(100dvh - 44px);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    gap: 8px;
   }
-  .empty-title { margin: 0; font-size: 26px; font-weight: 700; }
-  .empty-text {
-    margin: 0 0 12px;
-    color: var(--muted);
-    font-size: 18px;
-    max-width: 26ch;
-  }
-  .empty .btn { width: min(100%, 320px); }
-  .words { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-  .word {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    padding: 16px;
-    box-shadow: var(--shadow);
-  }
-  .word-en {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    overflow-wrap: anywhere;
-  }
-  .badge {
-    display: inline-block;
-    margin-left: 8px;
-    padding: 3px 8px;
-    border-radius: 999px;
-    background: var(--accent-soft);
-    color: var(--accent-ink);
-    font-size: 13px;
-    font-weight: 600;
-    vertical-align: 3px;
-  }
-  .word-ru { margin-top: 4px; font-size: 18px; overflow-wrap: anywhere; }
-  .word-ex { margin-top: 6px; color: var(--muted); font-size: 15px; overflow-wrap: anywhere; }
-  .missing { color: var(--muted); }
-  .actions { margin-top: 14px; display: grid; gap: 10px; }
-  .confirm-q { margin: 0; font-size: 16px; }
-  section + section { margin-top: 28px; }
-  .field { display: grid; gap: 6px; margin-bottom: 12px; }
-  label { font-size: 15px; color: var(--muted); }
-  input, textarea {
-    width: 100%;
-    border: 1px solid var(--line);
-    background: var(--card);
-    border-radius: 14px;
-    padding: 14px 16px;
-    font-size: 18px;
-    line-height: 1.35;
-    min-height: 56px;
-    color: var(--ink);
-    -webkit-appearance: none;
-    appearance: none;
-  }
-  textarea { min-height: 168px; resize: vertical; }
-  .help { margin: 0 0 10px; color: var(--muted); font-size: 15px; line-height: 1.45; }
-  .form-error { margin: 0 0 8px; color: var(--danger); font-size: 16px; }
-  .form-error:empty { display: none; }
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-height: 56px;
-    padding: 12px 16px;
-    border-radius: 14px;
-    border: 1px solid transparent;
-    font-size: 18px;
-    font-weight: 650;
-    background: var(--card);
-  }
-  .btn.primary { background: var(--accent); color: var(--on-accent); }
-  .btn.secondary { background: var(--card); color: var(--ink); border-color: var(--line); }
-  .btn.danger { background: var(--card); color: var(--danger); border-color: var(--danger-line); }
-  .btn:disabled { opacity: 0.4; }
-  .btn { scroll-margin-bottom: 24px; }
-  .btn:active { transform: translateY(1px); }
-  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .choice { margin-bottom: 18px; }
-  .choice-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 15px; }
-  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .seg button {
-    min-height: 52px;
-    border-radius: 14px;
-    border: 1px solid var(--line);
-    background: var(--card);
-    font-weight: 650;
-  }
-  .seg button[aria-pressed="true"] {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--on-accent);
-  }
-  .pool { margin: 4px 0 16px; font-size: 18px; }
-  .reset { margin-top: 28px; }
-  .session-top {
+  .study-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 8px;
-  }
-  .session-top h1 { font-size: 28px; }
-  .text-btn {
     min-height: 48px;
-    padding: 8px 4px;
-    border: 0;
-    background: transparent;
-    color: var(--accent);
-    font-weight: 650;
-    font-size: 17px;
   }
-  .progress-wrap { margin: 4px 0 14px; }
+  .link-list {
+    min-height: 48px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid #e0d3ea;
+    background: rgba(255, 252, 254, 0.8);
+    color: var(--lilac-deep);
+    font-size: 16px;
+    font-weight: 650;
+  }
+  .progress-wrap { text-align: right; }
   .progress {
     margin: 0;
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: 0.04em;
     font-variant-numeric: tabular-nums;
+    color: var(--lilac-deep);
   }
-  .progress-label { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
-  .bar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
-  .bar span { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 18px;
+    padding: 12px 0 8px;
+  }
   .card {
     display: block;
     width: 100%;
-    height: 320px;
-    margin-bottom: 16px;
+    height: min(400px, 48dvh);
     perspective: 1200px;
     cursor: pointer;
     user-select: none;
@@ -242,9 +145,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 28px 20px 52px;
-    border-radius: 22px;
-    border: 1px solid var(--line);
+    padding: 32px 24px 56px;
+    border-radius: 28px;
+    border: 1px solid #e4d7ee;
+    border-top: 4px solid var(--lilac);
     background: var(--card);
     box-shadow: var(--shadow);
     backface-visibility: hidden;
@@ -254,18 +158,27 @@
   }
   .face.back {
     transform: rotateY(180deg);
-    background: var(--back);
+    background: #f4fbfa;
+    border-color: #d5efec;
+    border-top-color: var(--tiffany);
   }
-  .kicker { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  .kicker {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
   .word-text {
-    font-size: clamp(32px, 9vw, 44px);
+    font-size: clamp(30px, 8vw, 44px);
     font-weight: 700;
     letter-spacing: -0.03em;
     line-height: 1.15;
     overflow-wrap: anywhere;
   }
-  .face.back .word-text { color: var(--accent); }
-  .face.back .word-text.missing { color: var(--muted); }
+  .face.back .word-text { color: var(--tiffany-deep); }
+  .face.back .word-text.missing,
+  .missing { color: var(--muted); }
   .example {
     margin-top: 14px;
     font-size: 17px;
@@ -274,98 +187,152 @@
   }
   .tap-hint {
     position: absolute;
-    left: 16px;
-    right: 16px;
-    bottom: 14px;
+    left: 20px;
+    right: 20px;
+    bottom: 16px;
     font-size: 14px;
     color: var(--muted);
   }
-  .done {
-    min-height: 260px;
-    margin-bottom: 8px;
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 56px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    border: 1px solid transparent;
+    font-size: 18px;
+    font-weight: 650;
+    background: var(--card);
+  }
+  .btn.primary { background: var(--tiffany); color: var(--tiffany-ink); }
+  .btn.secondary {
+    background: var(--card);
+    color: var(--lilac-deep);
+    border-color: #e0d3ea;
+  }
+  .btn.return {
+    background: var(--tiffany-soft);
+    color: var(--tiffany-ink);
+    border-color: #cfeae6;
+  }
+  .btn.danger { background: var(--card); color: var(--danger); border-color: var(--danger-line); }
+  .btn:disabled { opacity: 0.4; }
+  .btn:active { transform: translateY(1px); }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .quiet-note {
+    margin: 0;
+    text-align: center;
+    color: var(--muted);
+    font-size: 18px;
+  }
+  .done, .empty {
+    min-height: 280px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    gap: 8px;
+    gap: 10px;
     background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 22px;
-    padding: 28px 20px;
+    border: 1px solid #e4d7ee;
+    border-top: 4px solid var(--lilac);
+    border-radius: 28px;
+    padding: 32px 22px;
     box-shadow: var(--shadow);
   }
-  .done h2 { margin: 0; font-size: 28px; }
-  .done p { margin: 0 0 8px; color: var(--muted); }
-  .nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 5;
-    display: flex;
-    justify-content: center;
-    background: rgba(255, 253, 251, 0.96);
-    border-top: 1px solid var(--line);
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  .done h2, .empty-title { margin: 0; font-size: 28px; }
+  .done p, .empty-text { margin: 0 0 8px; color: var(--muted); max-width: 28ch; }
+  .done .btn, .empty .btn { width: min(100%, 280px); }
+  .return-bar {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    padding: 4px 0 12px;
+    background: linear-gradient(#f6f1f8 75%, rgba(246, 241, 248, 0));
   }
-  .nav-inner {
+  .words-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .word {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 16px;
+  }
+  .word.is-current { border-color: #b7e6e1; }
+  .word-en {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+  }
+  .badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--tiffany-soft);
+    color: var(--tiffany-deep);
+    font-size: 13px;
+    font-weight: 600;
+    vertical-align: 3px;
+  }
+  .word-ru { margin-top: 4px; font-size: 18px; overflow-wrap: anywhere; }
+  .word-ex { margin-top: 6px; color: var(--muted); font-size: 15px; overflow-wrap: anywhere; }
+  .actions { margin-top: 14px; display: grid; gap: 10px; }
+  .confirm-q { margin: 0; font-size: 16px; }
+  section + section { margin-top: 28px; }
+  .field { display: grid; gap: 6px; margin-bottom: 12px; }
+  label { font-size: 15px; color: var(--muted); }
+  input, textarea {
     width: 100%;
-    max-width: 480px;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 6px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 18px;
+    line-height: 1.35;
+    min-height: 56px;
+    color: var(--ink);
+    -webkit-appearance: none;
+    appearance: none;
   }
-  .nav button {
+  textarea { min-height: 148px; resize: vertical; }
+  .help { margin: 0 0 10px; color: var(--muted); font-size: 15px; line-height: 1.45; }
+  .form-error { margin: 0 0 8px; color: var(--danger); font-size: 16px; }
+  .form-error:empty { display: none; }
+  .choice { margin-bottom: 16px; }
+  .choice-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button {
     min-height: 52px;
-    border: 0;
-    border-radius: 12px;
-    background: transparent;
-    color: var(--muted);
-    font-size: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--card);
     font-weight: 650;
   }
-  .nav button[aria-current="page"] {
-    background: var(--accent-soft);
-    color: var(--accent-ink);
+  .seg button[aria-pressed="true"] {
+    background: var(--lilac-soft);
+    border-color: var(--lilac);
+    color: var(--lilac-deep);
   }
+  .pool { margin: 8px 0 16px; color: var(--muted); }
+  .reset { margin-top: 8px; }
   .noscript {
-    max-width: 480px;
+    max-width: 440px;
     margin: 24px auto;
     padding: 0 16px;
     font-family: system-ui, sans-serif;
   }
-  .keys {
-    margin: 12px 0 0;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.4;
-  }
-  .word.is-current { border-color: #9ec9bb; }
-  @media (min-width: 1100px) {
-    html { scroll-padding-bottom: 28px; }
+  @media (min-width: 900px) {
     #app {
-      max-width: 1120px;
-      padding: 28px 32px 40px;
+      max-width: 680px;
+      padding: 36px 28px 64px;
     }
-    body.in-session #app { padding-bottom: 40px; }
-    .desk-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
-      gap: 28px;
-      align-items: start;
-    }
-    .desk-practice {
-      position: sticky;
-      top: 20px;
-    }
-    .desk-practice .card { height: 260px; }
-    .desk-practice .choice { margin-bottom: 12px; }
-    .desk-practice .seg button { min-height: 44px; }
-    .desk-practice .reset { margin-top: 16px; }
-    .desk-practice h2 { margin-bottom: 10px; }
-    .empty { min-height: 0; align-items: flex-start; text-align: left; padding: 8px 0 20px; }
-    .word .btn { min-height: 44px; }
+    .study { min-height: calc(100dvh - 100px); }
+    .card { height: 460px; }
+    .word-text { font-size: 52px; }
+    .stage { padding: 28px 8px 12px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .card-inner { transition: none; }
@@ -426,7 +393,7 @@ if (state.pendingSeedSave) {
   delete state.pendingSeedSave;
   save();
 }
-let view = 'list';
+let view = 'study';
 let editingId = null;
 let pendingDeleteId = null;
 let confirmReset = false;
@@ -435,16 +402,6 @@ let focusId = null;
 let session = null;
 let renderedView = '';
 let kept = null;
-
-const wideQuery = window.matchMedia('(min-width: 1100px)');
-function isWide() { return wideQuery.matches; }
-wideQuery.addEventListener('change', () => {
-  if (!isWide()) {
-    if (editingId) view = 'edit';
-    else if (session) view = 'session';
-  }
-  render();
-});
 
 function wordKey(text) {
   return String(text || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -566,14 +523,20 @@ function el(tag, attrs, kids) {
   return node;
 }
 
-function openView(name, nextNotice, nextFocus) {
-  view = name;
-  notice = nextNotice || '';
-  focusId = nextFocus || null;
+function openStudy() {
+  view = 'study';
+  editingId = null;
   pendingDeleteId = null;
   confirmReset = false;
-  if (name !== 'edit') editingId = null;
-  if (name !== 'session') session = null;
+  notice = '';
+  render();
+}
+
+function openWords() {
+  view = 'words';
+  pendingDeleteId = null;
+  confirmReset = false;
+  notice = '';
   render();
 }
 
@@ -611,62 +574,103 @@ function beginSessionIfPossible() {
   };
 }
 
+function dropMissingCards() {
+  if (!session) return;
+  session.ids = session.ids.filter((id) => state.words.some((word) => word.id === id));
+}
+
+function rememberInSession(id) {
+  if (!session) return;
+  session.ids.push(id);
+  session.total += 1;
+}
+
 function render() {
   kept = captureDraft();
-  if (isWide()) {
-    renderWide();
-    return;
+  if (view === 'words') renderWords();
+  else renderStudy();
+}
+
+function renderStudy() {
+  view = 'study';
+  const viewChanged = renderedView !== 'study';
+  renderedView = 'study';
+  document.title = 'Слова';
+  beginSessionIfPossible();
+  dropMissingCards();
+  const root = el('main', { class: 'page study', 'data-view': 'study' });
+  const bar = el('div', { class: 'study-bar' });
+  bar.append(el('button', {
+    id: 'open-list',
+    class: 'link-list',
+    text: 'Список',
+    onclick: openWords,
+  }));
+  if (session && session.total) bar.append(renderProgress());
+  root.append(bar);
+  const stage = el('div', { class: 'stage' });
+  if (!state.words.length) {
+    stage.append(el('div', { class: 'empty' }, [
+      el('p', { class: 'empty-title', text: 'Пока нет слов' }),
+      el('p', { class: 'empty-text', text: 'Откройте список и добавьте слова от преподавателя.' }),
+      el('button', { class: 'btn return', text: 'Открыть список', onclick: openWords }),
+    ]));
+  } else if (session && session.ids.length) {
+    const word = state.words.find((item) => item.id === session.ids[0]);
+    if (word) {
+      stage.append(renderCard(word));
+      stage.append(el('div', { class: 'btn-row' }, [
+        el('button', { id: 'again', class: 'btn secondary', text: 'Ещё раз', onclick: again }),
+        el('button', { id: 'know', class: 'btn primary', text: 'Знаю', onclick: know }),
+      ]));
+    }
+  } else if (session && !session.ids.length) {
+    stage.append(renderDone());
+  } else {
+    stage.append(el('div', { class: 'empty' }, [
+      el('p', { class: 'empty-title', text: 'На сегодня всё' }),
+      el('p', { class: 'empty-text', text: 'Все слова уже с отметкой «знаю». В списке можно сбросить её или учить все.' }),
+      el('button', { class: 'btn return', text: 'Открыть список', onclick: openWords }),
+    ]));
   }
-  const viewChanged = renderedView !== view;
-  renderedView = view;
-  document.body.classList.toggle('in-session', view === 'session');
-  const titles = {
-    list: 'Слова',
-    add: 'Добавить',
-    edit: 'Изменить',
-    practice: 'Практика',
-    session: 'Практика',
-  };
-  document.title = titles[view] + ' — Слова';
-  const root = el('main', { class: 'page', 'data-view': view });
-  if (view === 'list') root.append(renderList());
-  else if (view === 'add') root.append(renderAdd());
-  else if (view === 'edit') root.append(renderEdit());
-  else if (view === 'practice') root.append(renderPractice());
-  else root.append(renderSession());
-  const app = document.getElementById('app');
-  app.replaceChildren(root);
-  if (view !== 'session') app.append(renderNav());
+  root.append(stage);
+  document.getElementById('app').replaceChildren(root);
   afterRender(viewChanged);
 }
 
-function renderWide() {
-  beginSessionIfPossible();
-  const viewChanged = renderedView !== 'wide';
-  renderedView = 'wide';
-  document.body.classList.remove('in-session');
-  document.title = 'Слова';
+function renderWords() {
+  const viewChanged = renderedView !== 'words';
+  renderedView = 'words';
+  document.title = 'Список — Слова';
+  const root = el('main', { class: 'page words', 'data-view': 'words' });
+  const bar = el('div', { class: 'return-bar' });
+  bar.append(el('button', {
+    id: 'back-to-card',
+    class: 'btn return',
+    text: 'К карточке',
+    onclick: openStudy,
+  }));
+  root.append(bar);
   const known = state.words.filter((word) => word.known).length;
   const sub = state.words.length
     ? ruCards(state.words.length) + (known ? ' · знаю ' + known : '')
     : 'К уроку';
-  const root = el('main', { class: 'page desk', 'data-view': 'desk' });
   root.append(renderHeader('Слова', sub));
   const note = maybeNotice();
   if (note) root.append(note);
-  const grid = el('div', { class: 'desk-grid' });
-  const mainCol = el('div', { class: 'desk-main' });
-  if (editingId) mainCol.append(renderEdit());
-  if (!state.words.length && !editingId) mainCol.append(renderEmpty());
-  if (state.words.length) {
-    const list = el('ul', { class: 'words' });
-    for (const word of state.words) list.append(renderWord(word));
-    mainCol.append(list);
+  if (editingId) {
+    root.append(renderEdit());
+  } else {
+    if (state.words.length) {
+      const list = el('ul', { class: 'words-list' });
+      for (const word of state.words) list.append(renderWord(word));
+      root.append(list);
+    } else {
+      root.append(el('p', { class: 'pool', text: 'Пока нет слов. Добавьте первое ниже.' }));
+    }
+    root.append(renderAddForms());
+    root.append(renderSettings());
   }
-  mainCol.append(renderAdd(false));
-  grid.append(mainCol);
-  grid.append(renderDeskPractice());
-  root.append(grid);
   document.getElementById('app').replaceChildren(root);
   afterRender(viewChanged);
 }
@@ -684,74 +688,6 @@ function afterRender(viewChanged) {
   }
 }
 
-function dropMissingCards() {
-  if (!session) return;
-  while (session.ids.length && !state.words.some((word) => word.id === session.ids[0])) {
-    session.ids.shift();
-  }
-}
-
-function renderDeskPractice() {
-  dropMissingCards();
-  const aside = el('aside', { class: 'desk-practice' });
-  aside.append(el('h2', { text: 'Практика' }));
-  aside.append(el('div', { class: 'choice' }, [
-    el('span', { class: 'choice-label', text: 'Какие слова' }),
-    el('div', { class: 'seg' }, [
-      segButton('learning', 'Учу', state.mode === 'learning', () => setMode('learning')),
-      segButton('all', 'Все', state.mode === 'all', () => setMode('all')),
-    ]),
-  ]));
-  aside.append(el('div', { class: 'choice' }, [
-    el('span', { class: 'choice-label', text: 'Направление' }),
-    el('div', { class: 'seg' }, [
-      segButton('en-ru', 'EN → RU', state.direction === 'en-ru', () => setDirection('en-ru')),
-      segButton('ru-en', 'RU → EN', state.direction === 'ru-en', () => setDirection('ru-en')),
-    ]),
-  ]));
-  const pool = currentPool();
-  if (session && session.ids.length) {
-    aside.append(renderProgress());
-    const word = state.words.find((item) => item.id === session.ids[0]);
-    if (word) {
-      aside.append(renderCard(word));
-      aside.append(el('div', { class: 'btn-row' }, [
-        el('button', { class: 'btn secondary', text: 'Ещё раз', onclick: again }),
-        el('button', { class: 'btn primary', text: 'Знаю', onclick: know }),
-      ]));
-      aside.append(el('p', { class: 'keys', text: 'Пробел или Enter — перевернуть. ← ещё раз. → знаю.' }));
-    }
-  } else if (session && !session.ids.length) {
-    aside.append(renderProgress());
-    aside.append(renderDone());
-  } else if (!state.words.length) {
-    aside.append(el('p', { class: 'pool', text: 'Сначала добавьте слова от преподавателя.' }));
-  } else if (!pool.length) {
-    aside.append(el('p', { class: 'pool', text: 'Все слова уже с отметкой «знаю». Можно сбросить её или выбрать «Все».' }));
-  }
-  aside.append(renderReset());
-  return aside;
-}
-
-function renderList() {
-  const wrap = el('div');
-  const known = state.words.filter((word) => word.known).length;
-  const sub = state.words.length
-    ? ruCards(state.words.length) + (known ? ' · знаю ' + known : '')
-    : 'К уроку';
-  wrap.append(renderHeader('Слова', sub));
-  const note = maybeNotice();
-  if (note) wrap.append(note);
-  if (!state.words.length) {
-    wrap.append(renderEmpty());
-    return wrap;
-  }
-  const list = el('ul', { class: 'words' });
-  for (const word of state.words) list.append(renderWord(word));
-  wrap.append(list);
-  return wrap;
-}
-
 function renderHeader(title, subtitle) {
   const header = el('header', { class: 'top' });
   header.append(el('h1', { text: title }));
@@ -759,15 +695,39 @@ function renderHeader(title, subtitle) {
   return header;
 }
 
-function renderEmpty() {
-  return el('div', { class: 'empty' }, [
-    el('p', { class: 'empty-title', text: 'Пока нет слов' }),
-    el('p', { class: 'empty-text', text: 'Добавьте первые слова от преподавателя: по одному или списком.' }),
-    el('button', {
+function renderProgress() {
+  const done = session.done;
+  const total = session.total;
+  const wrap = el('div', { class: 'progress-wrap' });
+  wrap.append(el('p', {
+    class: 'progress',
+    text: done + '/' + total,
+    'aria-label': 'Знаю ' + done + ' из ' + total,
+  }));
+  return wrap;
+}
+
+function renderDone() {
+  const pool = currentPool();
+  const actions = el('div', { class: 'actions' });
+  if (pool.length) {
+    actions.append(el('button', {
       class: 'btn primary',
-      text: 'Добавить слова',
-      onclick: () => openView('add'),
-    }),
+      text: 'Ещё круг',
+      onclick: () => { session = null; render(); },
+    }));
+  } else {
+    actions.append(el('button', {
+      class: 'btn primary',
+      text: 'Повторить все',
+      onclick: () => { state.mode = 'all'; session = null; save(); render(); },
+    }));
+  }
+  actions.append(el('button', { class: 'btn return', text: 'Список', onclick: openWords }));
+  return el('div', { class: 'done' }, [
+    el('h2', { text: 'Готово' }),
+    el('p', { text: 'В этом круге все карточки отмечены как «знаю».' }),
+    actions,
   ]);
 }
 
@@ -808,11 +768,7 @@ function renderWord(word) {
       el('button', {
         class: 'btn secondary',
         text: 'Изменить',
-        onclick: () => {
-          editingId = word.id;
-          if (isWide()) render();
-          else openView('edit');
-        },
+        onclick: () => { editingId = word.id; render(); },
       }),
       el('button', {
         class: 'btn danger',
@@ -829,26 +785,17 @@ function removeWord(id) {
   state.words = state.words.filter((word) => word.id !== id);
   if (session) session.ids = session.ids.filter((item) => item !== id);
   if (editingId === id) editingId = null;
+  pendingDeleteId = null;
+  notice = 'Слово удалено';
   save();
-  if (isWide()) {
-    notice = 'Слово удалено';
-    pendingDeleteId = null;
-    render();
-  } else {
-    openView('list', 'Слово удалено');
-  }
+  view = 'words';
+  render();
 }
 
-function renderAdd(showNotice) {
+function renderAddForms() {
   const wrap = el('div');
-  wrap.append(renderHeader('Добавить', 'Новые слова от преподавателя'));
-  if (showNotice !== false) {
-    const note = maybeNotice();
-    if (note) wrap.append(note);
-  }
-
   const one = el('section');
-  one.append(el('h2', { text: 'Одно слово' }));
+  one.append(el('h2', { text: 'Новое слово' }));
   const form = el('form', { id: 'one-word' });
   form.append(field('en', 'Английское слово', el('input', {
     id: 'en',
@@ -894,22 +841,20 @@ function renderAdd(showNotice) {
     }
     const id = uid();
     state.words.push({ id, en, ru, example, known: false });
+    rememberInSession(id);
     save();
     form.en.value = '';
     form.ru.value = '';
     form.example.value = '';
-    if (isWide()) {
-      notice = 'Слово добавлено';
-      focusId = id;
-      render();
-    } else {
-      openView('list', 'Слово добавлено', id);
-    }
+    notice = 'Слово добавлено';
+    focusId = id;
+    view = 'words';
+    render();
   });
   one.append(form);
 
   const many = el('section');
-  many.append(el('h2', { text: 'Список' }));
+  many.append(el('h2', { text: 'Вставить список' }));
   many.append(el('p', {
     class: 'help',
     text: 'Одна строка — одно слово. Подойдут apple — яблоко, дефис, двоеточие и слэш. Пустые строки пропускаются. Если перевода нет, сохранится английское слово.',
@@ -944,19 +889,16 @@ function renderAdd(showNotice) {
         example: '',
         known: false,
       });
+      rememberInSession(lastId);
     }
     save();
     area.value = '';
-    if (isWide()) {
-      notice = 'Добавлено ' + ruCards(items.length);
-      focusId = lastId;
-      render();
-    } else {
-      openView('list', 'Добавлено ' + ruCards(items.length), lastId);
-    }
+    notice = 'Добавлено ' + ruCards(items.length);
+    focusId = lastId;
+    view = 'words';
+    render();
   });
   many.append(paste);
-
   wrap.append(one, many);
   return wrap;
 }
@@ -974,7 +916,11 @@ function renderEdit() {
   wrap.append(renderHeader('Изменить', ''));
   if (!word) {
     wrap.append(el('p', { text: 'Слово не найдено' }));
-    wrap.append(el('button', { class: 'btn primary', text: 'К списку', onclick: () => openView('list') }));
+    wrap.append(el('button', {
+      class: 'btn secondary',
+      text: 'К списку',
+      onclick: () => { editingId = null; render(); },
+    }));
     return wrap;
   }
   const form = el('form', { id: 'edit-word' });
@@ -1009,11 +955,8 @@ function renderEdit() {
     el('button', { class: 'btn primary', type: 'submit', text: 'Сохранить' }),
     el('button', {
       class: 'btn secondary',
-      text: 'Назад',
-      onclick: () => {
-        if (isWide()) { editingId = null; render(); }
-        else openView('list');
-      },
+      text: 'Назад к списку',
+      onclick: () => { editingId = null; render(); },
     }),
   ]));
   form.addEventListener('submit', (event) => {
@@ -1028,25 +971,19 @@ function renderEdit() {
     word.ru = form.ru.value.trim();
     word.example = form.example.value.trim();
     save();
-    if (isWide()) {
-      editingId = null;
-      notice = 'Сохранено';
-      focusId = word.id;
-      render();
-    } else {
-      openView('list', 'Сохранено', word.id);
-    }
+    editingId = null;
+    notice = 'Сохранено';
+    focusId = word.id;
+    view = 'words';
+    render();
   });
   wrap.append(form);
   return wrap;
 }
 
-function renderPractice() {
-  const wrap = el('div');
-  wrap.append(renderHeader('Практика', 'Перед уроком'));
-  const note = maybeNotice();
-  if (note) wrap.append(note);
-
+function renderSettings() {
+  const wrap = el('section');
+  wrap.append(el('h2', { text: 'Как учить' }));
   wrap.append(el('div', { class: 'choice' }, [
     el('span', { class: 'choice-label', text: 'Какие слова' }),
     el('div', { class: 'seg' }, [
@@ -1061,25 +998,6 @@ function renderPractice() {
       segButton('ru-en', 'RU → EN', state.direction === 'ru-en', () => setDirection('ru-en')),
     ]),
   ]));
-
-  const pool = currentPool();
-  let poolText;
-  if (!state.words.length) poolText = 'Сначала добавьте слова от преподавателя.';
-  else if (!pool.length) poolText = 'Все слова уже с отметкой «знаю». Можно сбросить её или выбрать «Все».';
-  else poolText = 'В сессии: ' + ruCards(pool.length);
-  wrap.append(el('p', { class: 'pool', text: poolText }));
-  wrap.append(el('button', {
-    class: 'btn primary',
-    text: 'Начать',
-    disabled: pool.length === 0,
-    onclick: startSession,
-  }));
-  if (!state.words.length) {
-    wrap.append(el('div', { class: 'actions' }, [
-      el('button', { class: 'btn secondary', text: 'Добавить слова', onclick: () => openView('add') }),
-    ]));
-  }
-
   wrap.append(renderReset());
   return wrap;
 }
@@ -1114,8 +1032,8 @@ function segButton(id, text, pressed, onclick) {
 
 function setMode(mode) {
   state.mode = mode;
+  session = null;
   save();
-  if (isWide()) session = null;
   render();
 }
 
@@ -1129,66 +1047,10 @@ function setDirection(direction) {
 function resetKnown() {
   state.words.forEach((word) => { word.known = false; });
   confirmReset = false;
+  session = null;
   save();
   notice = 'Отметки «знаю» сняты';
-  if (isWide()) session = null;
   render();
-}
-
-function startSession() {
-  const words = currentPool();
-  if (!words.length) return;
-  session = {
-    ids: words.map((word) => word.id),
-    total: words.length,
-    done: 0,
-    flipped: false,
-  };
-  view = 'session';
-  notice = '';
-  pendingDeleteId = null;
-  confirmReset = false;
-  render();
-}
-
-function renderSession() {
-  dropMissingCards();
-  const wrap = el('div', { class: 'session' });
-  const top = el('div', { class: 'session-top' });
-  top.append(el('h1', { text: 'Практика' }));
-  top.append(el('button', { class: 'text-btn', text: 'Закончить', onclick: () => openView('practice') }));
-  wrap.append(top);
-  wrap.append(renderProgress());
-  if (!session.ids.length) {
-    wrap.append(renderDone());
-    return wrap;
-  }
-  const word = state.words.find((item) => item.id === session.ids[0]);
-  wrap.append(renderCard(word));
-  wrap.append(el('div', { class: 'btn-row' }, [
-    el('button', { class: 'btn secondary', text: 'Ещё раз', onclick: again }),
-    el('button', { class: 'btn primary', text: 'Знаю', onclick: know }),
-  ]));
-  return wrap;
-}
-
-function renderProgress() {
-  const total = session.total;
-  const done = session.done;
-  const pct = total ? Math.round((done / total) * 100) : 0;
-  const wrap = el('div', { class: 'progress-wrap' });
-  wrap.append(el('p', {
-    class: 'progress',
-    text: done + '/' + total,
-    'aria-label': 'Знаю ' + done + ' из ' + total,
-  }));
-  wrap.append(el('p', { class: 'progress-label', text: 'знаю' }));
-  const bar = el('div', { class: 'bar', 'aria-hidden': 'true' });
-  const fill = el('span');
-  fill.style.width = pct + '%';
-  bar.append(fill);
-  wrap.append(bar);
-  return wrap;
 }
 
 function cardSides(word) {
@@ -1232,7 +1094,7 @@ function makeFace(kind, side, visible) {
   if (side.example) face.append(el('div', { class: 'example', lang: 'en', text: side.example }));
   face.append(el('div', {
     class: 'tap-hint',
-    text: kind === 'front' ? 'нажмите, чтобы перевернуть' : 'нажмите, чтобы вернуть',
+    text: kind === 'front' ? 'Нажмите или пробел / Enter' : 'Нажмите, чтобы вернуть',
   }));
   return face;
 }
@@ -1251,6 +1113,7 @@ function onFlip(event) {
 }
 
 function know() {
+  if (!session || !session.ids.length) return;
   const word = state.words.find((item) => item.id === session.ids[0]);
   if (word) word.known = true;
   session.ids.shift();
@@ -1261,57 +1124,16 @@ function know() {
 }
 
 function again() {
-  if (!session.ids.length) return;
+  if (!session || !session.ids.length) return;
   const id = session.ids.shift();
   session.ids.push(id);
   session.flipped = false;
   render();
 }
 
-function renderDone() {
-  const actions = el('div', { class: 'actions' });
-  if (isWide()) {
-    actions.append(el('button', {
-      class: 'btn primary',
-      text: 'Начать снова',
-      onclick: () => { session = null; notice = ''; render(); },
-    }));
-  } else {
-    actions.append(el('button', { class: 'btn primary', text: 'К списку', onclick: () => openView('list') }));
-    actions.append(el('button', { class: 'btn secondary', text: 'К практике', onclick: () => openView('practice') }));
-  }
-  return el('div', { class: 'done' }, [
-    el('h2', { text: 'Готово' }),
-    el('p', { text: 'В этой сессии все карточки отмечены как «знаю».' }),
-    actions,
-  ]);
-}
-
-function renderNav() {
-  const nav = el('nav', { class: 'nav', 'aria-label': 'Разделы' });
-  const inner = el('div', { class: 'nav-inner' });
-  const items = [
-    ['list', 'Слова'],
-    ['add', 'Добавить'],
-    ['practice', 'Практика'],
-  ];
-  for (const [id, label] of items) {
-    const current = (id === 'list' && (view === 'list' || view === 'edit'))
-      || (id === 'add' && view === 'add')
-      || (id === 'practice' && view === 'practice');
-    const button = el('button', {
-      text: label,
-      onclick: () => openView(id),
-    });
-    if (current) button.setAttribute('aria-current', 'page');
-    inner.append(button);
-  }
-  nav.append(inner);
-  return nav;
-}
-
 document.addEventListener('keydown', (event) => {
-  if (!isWide()) return;
+  if (view !== 'study') return;
+  if (event.repeat) return;
   if (event.metaKey || event.ctrlKey || event.altKey) return;
   const target = event.target;
   if (target && target.closest && target.closest('input, textarea, select')) return;
