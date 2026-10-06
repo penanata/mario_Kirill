@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='10' cy='10' r='7' fill='%2300aaff'/%3E%3Ccircle cx='23' cy='9' r='5' fill='%2397cf26'/%3E%3Ccircle cx='9' cy='23' r='5' fill='%23ff4053'/%3E%3Ccircle cx='22' cy='22' r='7' fill='%23a169f7'/%3E%3C/svg%3E">
+<title>Авито · Аналитика заказов</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#111a2e; --panel2:#16223a; --line:#223052;
+    --text:#e6edf7; --muted:#8b9ab5; --accent:#00aaff; --green:#97cf26;
+    --red:#ff4053; --purple:#a169f7; --yellow:#ffd24d; --orange:#ff8a3d; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.4}
+  a{color:var(--accent)}
+  button,select,input{font:inherit;color:inherit}
+  .wrap{max-width:1400px;margin:0 auto;padding:22px 18px 60px}
+  header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  header h1{margin:0;font-size:26px;font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
+  header h1 .logo{width:34px;height:34px;border-radius:9px;background:conic-gradient(from 200deg,var(--accent),var(--green),var(--red),var(--purple),var(--accent));display:inline-block;box-shadow:0 6px 20px rgba(0,170,255,.25)}
+  .sub{color:var(--muted);font-size:13px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  .panel h2{margin:0 0 12px;font-size:15px;font-weight:700;color:#c8d3ea;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .panel h2 .hint{font-weight:400;color:var(--muted);font-size:12px}
+  .source{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:10px}
+  .source .fields{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+  label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}
+  label.f input,label.f select,.filters select,.filters input{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;color:var(--text);outline:none;min-width:0}
+  label.f input:focus,.filters select:focus,.filters input:focus{border-color:var(--accent)}
+  .actions{display:flex;flex-wrap:wrap;gap:8px}
+  .btn{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 14px;cursor:pointer;font-weight:600;white-space:nowrap;transition:.15s}
+  .btn:hover{border-color:var(--accent);color:#fff}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#04121f}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.sm{padding:5px 10px;font-size:12px}
+  .btn:disabled{opacity:.5;cursor:default}
+  .status{margin-top:8px;font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .status.err{color:#ff8d99}
+  .status.ok{color:var(--green)}
+  .notice{background:rgba(255,210,77,.08);border:1px solid rgba(255,210,77,.35);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13px;color:#ffe9a8}
+  .notice ol{margin:8px 0 0 18px;padding:0}
+  .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}
+  .filters .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;overflow-x:auto;max-width:100%;scrollbar-width:none}
+  .filters .seg button{background:transparent;border:0;padding:8px 12px;cursor:pointer;color:var(--muted);font-weight:600;white-space:nowrap}
+  .filters .seg button.active{background:rgba(0,170,255,.18);color:#fff}
+  .filters .spacer{flex:1}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-bottom:14px}
+  .kpi{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
+  .kpi::after{content:"";position:absolute;inset:auto -30px -40px auto;width:110px;height:110px;border-radius:50%;background:var(--kc,var(--accent));opacity:.09}
+  .kpi .l{color:var(--muted);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .kpi .v{font-size:23px;font-weight:800;margin-top:6px;letter-spacing:-.3px}
+  .kpi .d{font-size:12px;margin-top:4px;color:var(--muted)}
+  .kpi .d.up{color:var(--green)} .kpi .d.down{color:#ff8d99}
+  .charts{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+  .charts .panel{min-height:320px;display:flex;flex-direction:column}
+  .charts .panel .ch{flex:1;position:relative;min-height:250px}
+  .charts .panel .ch canvas{position:absolute;inset:0}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .three{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel);z-index:1}
+  th.sorted{color:#fff}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.tot td{font-weight:700;color:#fff;border-top:2px solid var(--line)}
+  tr.clickable{cursor:pointer}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  tr.detail td{background:rgba(0,170,255,.05);white-space:normal;padding:6px 10px 10px 28px}
+  .items{width:auto;font-size:12px} .items td,.items th{padding:3px 10px;border:0;background:transparent!important}
+  .tbl{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:10px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+  .badge.done{background:rgba(151,207,38,.15);color:var(--green)}
+  .badge.cancel{background:rgba(255,64,83,.15);color:#ff8d99}
+  .badge.progress{background:rgba(0,170,255,.15);color:var(--accent)}
+  .badge.lead{background:rgba(161,105,247,.18);color:#c9a8ff}
+  .badge.other{background:rgba(255,255,255,.08);color:var(--muted)}
+  .pager{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:10px;color:var(--muted);font-size:13px}
+  .bar{height:6px;border-radius:3px;background:rgba(0,170,255,.18);position:relative;min-width:60px;display:inline-block;vertical-align:middle}
+  .bar>i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:3px}
+  details.map{margin-top:12px}
+  details.map summary{cursor:pointer;color:var(--muted);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.map summary::before{content:"▸";transition:.15s;display:inline-block}
+  details.map[open] summary::before{transform:rotate(90deg)}
+  .mapgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:12px}
+  .calc-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .calc-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .calc-card .l{color:var(--muted);font-size:12px} .calc-card .v{font-weight:700;font-size:18px;margin-top:3px}
+  .empty{color:var(--muted);text-align:center;padding:40px 10px}
+  .muted{color:var(--muted)} .small{font-size:12px}
+  .hidden{display:none!important}
+  .drop{outline:2px dashed var(--accent);outline-offset:-6px}
+  .approx{color:var(--muted)}
+  footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center}
+  @media (max-width:1100px){.three{grid-template-columns:1fr 1fr}}
+  @media (max-width:980px){.charts,.two,.three{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <div>
+      <h1><span class="logo"></span>Авито · Аналитика заказов</h1>
+      <div class="sub">Лист «Заказы и расчеты» из Google Таблицы. Таблица только читается, ничего в ней не меняется.</div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnDemo" title="Показать дашборд на сгенерированных данных">Демо-данные</button>
+      <button class="btn" id="btnFile">Загрузить файл (XLSX / CSV)</button>
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,text/csv" class="hidden">
+    </div>
+  </header>
+
+  <section class="panel">
+    <div class="source">
+      <div class="fields">
+        <label class="f">Ссылка или ID Google Таблицы
+          <input id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/…">
+        </label>
+        <label class="f">Лист
+          <select id="tabSelect"><option value="Заказы и расчеты">Заказы и расчеты</option></select>
+        </label>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="btnLoad">Загрузить / обновить</button>
+      </div>
+    </div>
+    <div class="status" id="status">Данные не загружены.</div>
+    <div class="notice hidden" id="accessNotice">
+      Google не отдаёт таблицу без входа в аккаунт. Чтобы дашборд мог читать данные, откройте доступ по ссылке (только чтение):
+      <ol>
+        <li>В таблице нажмите <b>Настройки доступа</b> (кнопка «Поделиться» справа сверху).</li>
+        <li>В блоке «Общий доступ» выберите <b>«Все, у кого есть ссылка»</b>, роль — <b>Читатель</b>.</li>
+        <li>Вернитесь сюда и нажмите «Загрузить / обновить».</li>
+      </ol>
+      Либо скачайте таблицу как XLSX (Файл → Скачать → Microsoft Excel) и загрузите её кнопкой «Загрузить файл».
+    </div>
+    <details class="map hidden" id="mapDetails">
+      <summary>Сопоставление колонок <span class="hint muted" id="mapHint"></span></summary>
+      <div class="mapgrid" id="mapGrid"></div>
+    </details>
+  </section>
+
+  <div id="dash" class="hidden">
+    <div class="filters panel" style="padding:10px 14px">
+      <div class="seg" id="presets">
+        <button data-p="all" class="active">Всё время</button>
+        <button data-p="7">7 дней</button>
+        <button data-p="30">30 дней</button>
+        <button data-p="90">90 дней</button>
+        <button data-p="month">Этот месяц</button>
+        <button data-p="prevmonth">Прошлый месяц</button>
+      </div>
+      <input type="date" id="dateFrom" title="С"> <span class="muted">—</span> <input type="date" id="dateTo" title="По">
+      <select id="statusFilter">
+        <option value="all">Все статусы</option>
+        <option value="done">Оплачен</option>
+        <option value="progress">План</option>
+        <option value="lead">Расчёт</option>
+        <option value="cancel">Слился / отменён</option>
+      </select>
+      <select id="managerFilter"><option value="">Все ответственные</option></select>
+      <select id="productFilter"><option value="">Все растения</option></select>
+      <input id="search" placeholder="Поиск по заказам…" style="min-width:180px">
+      <span class="spacer"></span>
+      <div class="seg" id="gran">
+        <button data-g="day">Дни</button>
+        <button data-g="week" class="active">Недели</button>
+        <button data-g="month">Месяцы</button>
+      </div>
+      <button class="btn sm" id="btnExport">Экспорт CSV</button>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="charts">
+      <div class="panel"><h2>Динамика по дате заказа <span class="hint" id="tsHint"></span></h2><div class="ch"><canvas id="chTs"></canvas></div></div>
+      <div class="panel"><h2>Воронка по статусам <span class="hint">заказов / сумма</span></h2><div class="ch"><canvas id="chStatus"></canvas></div></div>
+    </div>
+    <div class="charts">
+      <div class="panel"><h2>Топ растений по выручке <span class="hint">без доставки и посадки</span></h2><div class="ch"><canvas id="chProducts"></canvas></div></div>
+      <div class="panel"><h2 id="chDimTitle">По ответственным</h2><div class="ch"><canvas id="chDim"></canvas></div></div>
+    </div>
+
+    <div class="three">
+      <div class="panel" id="mgrPanel">
+        <h2>Ответственные <span class="hint">факт = оплаченные</span></h2>
+        <div class="tbl" id="mgrTable" style="max-height:360px"></div>
+      </div>
+      <div class="panel" id="payPanel">
+        <h2>Куда оплата <span class="hint">оплаченные заказы</span></h2>
+        <div class="tbl" id="payTable" style="max-height:360px"></div>
+      </div>
+      <div class="panel" id="svcPanel">
+        <h2>Услуги и сводка <span class="hint" id="calcHint"></span></h2>
+        <div class="tbl" id="svcTable" style="max-height:160px;margin-bottom:10px"></div>
+        <div id="calcCards" class="calc-cards"></div>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="panel">
+        <h2>Растения <span class="hint" id="prodHint"></span></h2>
+        <div class="tbl" id="prodTable"></div>
+      </div>
+      <div class="panel">
+        <h2>Клиенты <span class="hint" id="cliHint"></span></h2>
+        <div class="tbl" id="cliTable"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Заказы <span class="hint" id="ordHint"></span></h2>
+      <div class="tbl" id="ordTable"></div>
+      <div class="pager" id="pager"></div>
+    </div>
+  </div>
+
+  <div class="panel empty" id="emptyState">
+    Укажите ссылку на Google Таблицу и нажмите «Загрузить», либо загрузите файл XLSX/CSV.<br>
+    <span class="muted">Чтобы посмотреть, как выглядит дашборд, нажмите «Демо-данные».</span>
+  </div>
+
+  <footer>Дашборд работает полностью в браузере: данные никуда не отправляются, кроме запроса к Google Таблице на чтение.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+'use strict';
+/* ---------- constants ---------- */
+const DEFAULT_SHEET_ID = '1hAYm1dtDdHI7o6r2Y9ebd4Ur0PHoy-yYWI_y-V9rZ_Q';
+const DEFAULT_TAB = 'Заказы и расчеты';
+const LS_KEY = 'avitoDash.v2';
+const XLSX_CDN = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+const COLORS = ['#00aaff','#97cf26','#ff4053','#a169f7','#ffd24d','#ff8a3d','#2dd4bf','#f472b6','#60a5fa','#c084fc'];
+const STAGE = {
+  done:{label:'Оплачен',color:'#97cf26'},
+  progress:{label:'План',color:'#00aaff'},
+  lead:{label:'Расчёт',color:'#a169f7'},
+  cancel:{label:'Слился',color:'#ff4053'},
+  other:{label:'Другое',color:'#8b9ab5'},
+};
+const STAGE_ORDER = ['lead','progress','done','cancel','other'];
+const RU_MONTHS = {'янв':0,'фев':1,'мар':2,'апр':3,'май':4,'мая':4,'июн':5,'июл':6,'авг':7,'сен':8,'окт':9,'ноя':10,'дек':11};
+const WEEKDAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+// generic (flat table) fallback: role → header regex
+const ROLES = [
+  ['date','Дата заказа',/дата|date|день|создан|оформл/i],
+  ['id','Номер заказа',/номер|№|^id$|order/i],
+  ['product','Товар',/товар|наименован|название|растени|объявлен|product|item|модель|позици/i],
+  ['status','Статус',/статус|status|состояни|этап/i],
+  ['manager','Ответственный',/ответ|менедж|manager/i],
+  ['qty','Количество',/к-во|кол-?во|количеств|^шт|qty|count/i],
+  ['price','Цена за ед.',/цена|price/i],
+  ['revenue','Сумма заказа (выручка)',/сумма|выручк|стоимость\s*заказ|итого|amount|total|оплат/i],
+  ['cost','Себестоимость / закупка',/себестоим|закуп|цена\s*бу|cost|расход/i],
+  ['profit','Прибыль / маржа',/прибыл|марж|profit/i],
+  ['buyer','Клиент',/клиент|покупател|buyer|customer/i],
+  ['payTo','Куда оплата',/куда\s*оплат|оплата/i],
+  ['city','Город',/город|регион|адрес|city/i],
+];
+const NUMERIC_ROLES = new Set(['qty','price','revenue','cost','profit']);
+
+/* ---------- state ---------- */
+const state = {
+  sheetId: DEFAULT_SHEET_ID, workbook:null, tabNames:[], tab:DEFAULT_TAB, matrix:null,
+  mode:'blocks', orders:[], filtered:[], summary:[], headers:[], headerIdx:0, mapping:{}, autoMapping:{},
+  filter:{ preset:'all', from:null, to:null, status:'all', manager:'', product:'', q:'' },
+  gran:'week', sort:{col:'date',dir:-1}, page:0, pageSize:25, expanded:new Set(), charts:{}, sourceLabel:'',
+};
+const $ = id => document.getElementById(id);
+
+/* ---------- parsing helpers ---------- */
+function parseCSV(text){
+  const rows=[]; let row=[], cell='', q=false;
+  text=text.replace(/^\uFEFF/,'');
+  const nl=text.indexOf('\n'); const firstLine=text.slice(0,nl>0?nl:text.length);
+  const delim=(firstLine.split(';').length>firstLine.split(',').length)?';':',';
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+    else if(c==='"') q=true;
+    else if(c===delim){ row.push(cell); cell=''; }
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(cell); rows.push(row); row=[]; cell=''; }
+    else cell+=c;
+  }
+  if(cell!==''||row.length){ row.push(cell); rows.push(row); }
+  return trimMatrix(rows);
+}
+function trimMatrix(rows){
+  rows=rows.map(r=>r.map(v=>v==null?'':String(v).trim()));
+  let maxCol=0;
+  rows.forEach(r=>{ let last=-1; r.forEach((v,i)=>{ if(v!=='') last=i; }); maxCol=Math.max(maxCol,last+1); });
+  // keep row positions (blocks depend on order), but drop trailing empty rows
+  let lastRow=rows.length-1; while(lastRow>=0 && !rows[lastRow].some(v=>v!=='')) lastRow--;
+  return rows.slice(0,lastRow+1).map(r=>{ const o=r.slice(0,maxCol); while(o.length<maxCol) o.push(''); return o; });
+}
+function toNum(v){
+  if(v==null) return null;
+  if(typeof v==='number') return isFinite(v)?v:null;
+  let s=String(v).trim(); if(!s||s==='-'||s==='—') return null;
+  s=s.replace(/[\s\u00a0\u202f]/g,'').replace(/^(р\.|руб\.?|rub)/i,'').replace(/(₽|руб\.?|р\.|rub|%)$/i,'');
+  if(/^\(.*\)$/.test(s)) s='-'+s.slice(1,-1);
+  if(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s=s.replace(/\./g,'').replace(',','.');
+  else if(/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) s=s.replace(/,/g,'');
+  else s=s.replace(',','.');
+  if(!/^-?\d*\.?\d+$/.test(s)) return null;
+  const n=parseFloat(s); return isFinite(n)?n:null;
+}
+function toDate(v,refYear){
+  if(v==null||v==='') return null;
+  if(v instanceof Date) return isNaN(v)?null:v;
+  if(typeof v==='number'){ if(v>20000&&v<80000){ const d=new Date(Math.round((v-25569)*86400000)); return isNaN(d)?null:d; } return null; }
+  const s=String(v).trim(); let m;
+  const valid=(y,mo,d)=>mo>=1&&mo<=12&&d>=1&&d<=31&&y>=2000&&y<=2100;
+  if((m=s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})(?:[ T,]+(\d{1,2}):(\d{2}))?$/))){
+    let y=+m[3]; if(y<100) y+=2000;
+    if(valid(y,+m[2],+m[1])) return new Date(y,+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0));
+  }
+  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?/))){
+    if(valid(+m[1],+m[2],+m[3])) return new Date(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0));
+  }
+  // "26-27.09" / "26.09" — day range or day.month without year
+  if((m=s.match(/^(\d{1,2})(?:\s*[-–]\s*\d{1,2})?\.(\d{1,2})(?:\.(\d{2,4}))?$/))){
+    let y=m[3]?+m[3]:(refYear||new Date().getFullYear()); if(y<100) y+=2000;
+    const d=new Date(y,+m[2]-1,+m[1]); return isNaN(d)?null:d;
+  }
+  if((m=s.match(/^(\d{1,2})\s+([а-яё]+)\.?\s*(\d{4})?/i))){
+    const mon=RU_MONTHS[m[2].slice(0,3).toLowerCase()];
+    if(mon!=null){ const d=new Date(m[3]?+m[3]:(refYear||new Date().getFullYear()),mon,+m[1]); return isNaN(d)?null:d; }
+  }
+  if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/))){ let y=+m[3]; if(y<100) y+=2000; if(valid(y,+m[1],+m[2])) return new Date(y,+m[1]-1,+m[2]); }
+  if(!/[a-zA-Z]{3}/.test(s)) return null;
+  const d=new Date(s); return isNaN(d)?null:d;
+}
+function classifyStage(s){
+  if(!s) return 'other';
+  const t=String(s).toLowerCase();
+  if(/слил|отказ|отмен|возврат|cancel|refund|не\s*выкуп|спор/.test(t)) return 'cancel';
+  if(/оплач|выполн|доставлен|получен|заверш|выдан|complete|done|закрыт|продан|успеш/.test(t)) return 'done';
+  if(/план|в\s*работе|ожид|в\s*пути|собир|отправ|достав|обраб|pending|process|ship|принят|упаков|согласов/.test(t)) return 'progress';
+  if(/расч|лид|запрос|нов|созд|оформ|обращ|консульт|lead|quote/.test(t)) return 'lead';
+  return 'other';
+}
+const isService = name => /^\s*(доставк|посадк|манипулят|подъем|разгруз|услуг)/i.test(name||'') || /доставка\s*[:—-]/i.test(name||'');
+const isDelivery = name => isService(name) && /доставк|манипулят/i.test(name||'');
+
+/* ---------- formatting ---------- */
+const fmtInt = n => n==null||!isFinite(n)?'—':Math.round(n).toLocaleString('ru-RU');
+const fmtMoney = n => n==null||!isFinite(n)?'—':Math.round(n).toLocaleString('ru-RU')+' ₽';
+const fmtPct = n => n==null||!isFinite(n)?'—':(Math.round(n*10)/10).toLocaleString('ru-RU')+' %';
+const fmtDate = d => d?d.toLocaleDateString('ru-RU'):'—';
+const isoDay = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cut = (s,n) => { s=String(s??''); return s.length>n?s.slice(0,n-2)+'…':s; };
+const uniq = a => [...new Set(a.filter(Boolean))];
+
+/* ================= BLOCK FORMAT ("Заказы и расчеты") ================= */
+function detectBlockHeader(rows){
+  for(let i=0;i<Math.min(rows.length,15);i++){
+    const r=rows[i].map(v=>v.toLowerCase());
+    if(r.some(v=>/^статус/.test(v)) && r.some(v=>/растени|товар|наимен/.test(v)) && r.some(v=>/^дата/.test(v))) return i;
+  }
+  return -1;
+}
+function parseBlocks(rows,hi){
+  const H=rows[hi].map(h=>h.toLowerCase().trim());
+  const find=(re,from=0)=>{ for(let i=from;i<H.length;i++) if(re.test(H[i])) return i; return -1; };
+  const c={
+    status:find(/^статус/), date:find(/^дата/), mgr:find(/ответ|менедж/), client:find(/клиент|покупат/),
+    plant:find(/растени|товар|наимен/), qty:find(/к-во|кол/), priceBU:find(/цена\s*бу|закуп|цена\s*постав|себестоим/),
+    priceCl:find(/цена\s*клиент|цена\s*продаж/), margin:find(/марж|прибыл/), num:find(/№|номер/), pay:find(/куда\s*оплат|оплата/),
+  };
+  c.sumBU=find(/^сумма/,(c.priceBU>=0?c.priceBU:c.qty)+1);
+  c.plantBU=find(/посадк/,c.sumBU+1);
+  if(c.priceCl<0) c.priceCl=find(/цена/,c.plantBU+1);
+  c.sumCl=find(/^сумма/,c.priceCl+1);
+  c.plantCl=find(/посадк/,c.sumCl+1);
+  const lastCol=Math.max(...Object.values(c));
+  const cell=(r,k)=>c[k]>=0?(r[c[k]]??''):'';
+  const num=(r,k)=>c[k]>=0?toNum(r[c[k]]):null;
+
+  // side summary: label followed by a value, to the right of the order columns
+  const summary=[];
+  for(const r of rows){
+    for(let j=lastCol+1;j<r.length-1;j++){
+      if(r[j] && toNum(r[j])==null && (r[j+1]!=='' )){ summary.push({label:r[j],raw:r[j+1],value:toNum(r[j+1])}); j++; }
+    }
+  }
+
+  const orders=[]; let cur=null, prevDate=null;
+  const finish=o=>{
+    const lines=o.items;
+    const sum=(f)=>lines.reduce((a,l)=>a+(f(l)||0),0);
+    const lineCost=sum(l=>(l.sumBU||0)+(l.plantBU||0)), lineRev=sum(l=>(l.sumCl||0)+(l.plantCl||0));
+    o.cost=o.tot&&o.tot.cost!=null?o.tot.cost:lineCost;
+    o.revenue=o.tot&&o.tot.revenue!=null?o.tot.revenue:lineRev;
+    o.profit=o.tot&&o.tot.margin!=null?o.tot.margin:o.revenue-o.cost;
+    const plants=lines.filter(l=>!isService(l.name));
+    o.qty=plants.reduce((a,l)=>a+(l.qty||0),0);
+    o.plantsRevenue=plants.reduce((a,l)=>a+(l.sumCl||0),0);
+    o.plantsCost=plants.reduce((a,l)=>a+(l.sumBU||0),0);
+    o.plantingRevenue=plants.reduce((a,l)=>a+(l.plantCl||0),0)+lines.filter(l=>isService(l.name)&&!isDelivery(l.name)).reduce((a,l)=>a+(l.sumCl||0)+(l.plantCl||0),0);
+    o.plantingCost=plants.reduce((a,l)=>a+(l.plantBU||0),0)+lines.filter(l=>isService(l.name)&&!isDelivery(l.name)).reduce((a,l)=>a+(l.sumBU||0)+(l.plantBU||0),0);
+    o.deliveryRevenue=lines.filter(l=>isDelivery(l.name)).reduce((a,l)=>a+(l.sumCl||0)+(l.plantCl||0),0);
+    o.deliveryCost=lines.filter(l=>isDelivery(l.name)).reduce((a,l)=>a+(l.sumBU||0)+(l.plantBU||0),0);
+    o.product=plants.length?plants[0].name+(plants.length>1?` +${plants.length-1}`:''):(lines[0]?.name||'(без позиций)');
+    o.payments=o.payments.filter(p=>p.amount);
+    const tos=uniq(o.payments.map(p=>p.to)); o.payTo=tos.length?tos.join(' + '):(o.payTo||'');
+    if(o.payNotes.length) o.payTo=[o.payTo,...o.payNotes].filter(Boolean).join(' · ');
+    o.payClass=classifyPay(o.payTo);
+    o.statusClass=classifyStage(o.status);
+    if(!o.date && prevDate){ o.date=prevDate; o.dateApprox=true; }
+    if(o.date && !o.dateApprox) prevDate=o.date;
+    o.clientInfo=uniq(o.clientInfo).join(', ');
+    o.text=[o.status,o.id,o.manager,o.client,o.clientInfo,o.payTo,...lines.map(l=>l.name),...o.notes].join(' ').toLowerCase();
+    orders.push(o);
+  };
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i];
+    const status=cell(r,'status'), dateRaw=cell(r,'date');
+    const isHeader=!!status || (!!dateRaw && toDate(dateRaw)!=null);
+    if(isHeader){
+      if(cur) finish(cur);
+      cur={ idx:i+1, status, dateRaw, date:toDate(dateRaw,prevDate?prevDate.getFullYear():null), manager:cell(r,'mgr'), client:cell(r,'client'), clientInfo:[], items:[], tot:null, payments:[], payNotes:[], notes:[], id:'', payTo:cell(r,'pay') };
+    }
+    if(!cur) continue;
+    const plant=cell(r,'plant').replace(/:$/,'').trim();
+    const label=(cell(r,'sumBU')+' '+cell(r,'sumCl')).toLowerCase();
+    const marginV=num(r,'margin');
+    const numCell=cell(r,'num');
+    if(numCell){
+      const n=toNum(numCell);
+      if(n!=null) cur.payments.push({amount:n,to:cell(r,'pay')});
+      else if(!cur.id && /заказ|№|^\d+$/i.test(numCell)) cur.id=numCell;
+      else cur.notes.push(numCell);
+    } else if(!isHeader && cell(r,'pay')) cur.payNotes.push(cell(r,'pay'));
+    if(!isHeader && cell(r,'client')) cur.clientInfo.push(cell(r,'client'));
+    if(/итого/.test(label) || (!plant && !isHeader && marginV!=null)){
+      const costT=num(r,'plantBU')??num(r,'sumBU'), revT=num(r,'plantCl')??num(r,'sumCl');
+      cur.tot={cost:costT,revenue:revT,margin:marginV};
+      finish(cur); cur=null; continue;
+    }
+    const line={ name:plant, qty:num(r,'qty'), priceBU:num(r,'priceBU'), sumBU:num(r,'sumBU'), plantBU:num(r,'plantBU'), priceCl:num(r,'priceCl'), sumCl:num(r,'sumCl'), plantCl:num(r,'plantCl') };
+    const hasMoney=[line.sumBU,line.plantBU,line.sumCl,line.plantCl].some(v=>v);
+    if(plant && (hasMoney || line.qty || isHeader)) cur.items.push(line);
+  }
+  if(cur) finish(cur);
+  return {orders,summary,cols:c};
+}
+function classifyPay(s){
+  const t=(s||'').toLowerCase();
+  if(!t||/^нет/.test(t)) return 'none';
+  const rs=/р\/?с|расч|счет|счёт|qr|карт|перевод/.test(t), cash=/нал/.test(t);
+  if(rs&&cash) return 'mixed'; if(rs) return 'rs'; if(cash) return 'cash'; return 'other';
+}
+const PAY_LABEL={rs:'Расчётный счёт',cash:'Наличные',mixed:'РС + наличные',none:'Не указано',other:'Другое'};
+
+/* ================= FLAT FORMAT (generic fallback) ================= */
+function detectHeaderRow(rows){
+  let best=0,bestScore=-1;
+  for(let i=0;i<Math.min(rows.length,10);i++){
+    const r=rows[i]; const filled=r.filter(v=>v!=='');
+    if(filled.length<2) continue;
+    const textish=filled.filter(v=>toNum(v)==null&&!toDate(v)).length;
+    const score=textish*2+filled.length;
+    if(score>bestScore){bestScore=score;best=i;}
+    if(textish>=3&&textish===filled.length) return i;
+  }
+  return best;
+}
+function autoMap(headers,sample){
+  const map={}, used=new Set(); const lower=headers.map(h=>h.toLowerCase());
+  const isNumericCol=i=>{ const v=sample.map(r=>r[i]).filter(x=>x!==''); return v.length&&v.filter(x=>toNum(x)!=null).length/v.length>0.7; };
+  const isDateCol=i=>{ const v=sample.map(r=>r[i]).filter(x=>x!==''); return v.length&&v.filter(x=>toDate(x)&&toNum(x)==null).length/v.length>0.7; };
+  for(const [role,,re] of ROLES){
+    let cands=lower.map((h,i)=>[h,i]).filter(([h,i])=>!used.has(i)&&re.test(h));
+    if(role==='date') cands=cands.filter(([,i])=>isDateCol(i));
+    if(role==='id') cands=cands.filter(([h])=>!/дат/.test(h));
+    if(role==='price') cands=cands.filter(([h])=>!/себестоим|закуп|бу|доставк/.test(h));
+    if(role==='revenue') cands=cands.filter(([h])=>!/себестоим|закуп|комисс|доставк|выплат|бу/.test(h));
+    if(role==='product') cands=cands.filter(([h])=>!/кол|цена|сумм|катег/.test(h));
+    if(NUMERIC_ROLES.has(role)) cands=cands.filter(([,i])=>isNumericCol(i));
+    if(cands.length){ map[role]=cands[0][1]; used.add(cands[0][1]); }
+  }
+  if(map.date==null){ const i=headers.findIndex((h,i)=>!used.has(i)&&isDateCol(i)); if(i>=0){map.date=i;used.add(i);} }
+  return map;
+}
+function buildFlatOrders(){
+  const rows=state.matrix, hi=state.headerIdx, m=state.mapping; const get=(r,role)=>m[role]!=null?r[m[role]]:'';
+  const out=[];
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i]; if(!r.some(v=>v!=='')) continue;
+    if(/^(итого|всего|total)\b/i.test(get(r,'product'))||/^(итого|всего|total)\b/i.test(r[0])) continue;
+    const o={ idx:i+1, raw:r, status:get(r,'status'), id:get(r,'id'), manager:get(r,'manager'), client:get(r,'buyer'), clientInfo:get(r,'city'), payTo:get(r,'payTo'), notes:[], payments:[] };
+    o.date=toDate(get(r,'date'));
+    if(m.date!=null && !o.date && !o.id && !get(r,'product')) continue;
+    o.statusClass=classifyStage(o.status); o.payClass=classifyPay(o.payTo);
+    const qty=toNum(get(r,'qty')), price=toNum(get(r,'price'));
+    o.revenue=toNum(get(r,'revenue')); if(o.revenue==null&&price!=null) o.revenue=price*(qty??1); o.revenue=o.revenue||0;
+    o.cost=toNum(get(r,'cost'))||0;
+    o.profit=toNum(get(r,'profit')); if(o.profit==null) o.profit=(m.cost!=null)?o.revenue-o.cost:null;
+    const name=get(r,'product')||'(без названия)';
+    o.items=[{name,qty,priceCl:price,sumCl:o.revenue,sumBU:o.cost,plantBU:0,plantCl:0}];
+    o.qty=isService(name)?0:(qty??1); o.product=name;
+    o.plantsRevenue=isService(name)?0:o.revenue; o.plantsCost=isService(name)?0:o.cost; o.plantingRevenue=0; o.plantingCost=0;
+    o.deliveryRevenue=isDelivery(name)?o.revenue:0; o.deliveryCost=isDelivery(name)?o.cost:0;
+    o.text=r.join(' ').toLowerCase();
+    out.push(o);
+  }
+  return out;
+}
+
+/* ---------- ingest ---------- */
+function setStatus(msg,cls){ const el=$('status'); el.textContent=msg; el.className='status '+(cls||''); }
+function ingestMatrix(matrix,label){
+  state.matrix=matrix; state.sourceLabel=label; state.expanded.clear();
+  const bh=detectBlockHeader(matrix);
+  if(bh>=0){
+    state.mode='blocks'; $('mapDetails').classList.add('hidden');
+    const res=parseBlocks(matrix,bh); state.orders=res.orders; state.summary=res.summary; state.headers=matrix[bh];
+  } else {
+    state.mode='flat'; $('mapDetails').classList.remove('hidden');
+    state.headerIdx=detectHeaderRow(matrix); state.headers=matrix[state.headerIdx].map(h=>h||'');
+    state.autoMapping=autoMap(state.headers,matrix.slice(state.headerIdx+1,state.headerIdx+60));
+    const saved=loadSettings().maps?.[state.headers.join('|')];
+    state.mapping=saved||{...state.autoMapping};
+    state.orders=buildFlatOrders(); state.summary=[]; renderMapping();
+  }
+  fillFilters(); state.page=0; render();
+  const dated=state.orders.filter(o=>o.date&&!o.dateApprox);
+  const range=dated.length?` · ${fmtDate(new Date(Math.min(...dated.map(o=>o.date))))} — ${fmtDate(new Date(Math.max(...dated.map(o=>o.date))))}`:'';
+  const paid=state.orders.filter(o=>o.statusClass==='done');
+  setStatus(`${label} · лист «${state.tab}» · ${state.orders.length} заказов (${paid.length} оплачено)${range} · обновлено ${new Date().toLocaleTimeString('ru-RU')}`,'ok');
+  if(state.orders.length && !state.orders.some(o=>o.date)) setStatus($('status').textContent+' · не найдена колонка с датой','err');
+  saveSettings();
+}
+function parseSheetId(v){ v=(v||'').trim(); const m=v.match(/\/d\/([a-zA-Z0-9-_]+)/); if(m) return m[1]; if(/^[a-zA-Z0-9-_]{20,}$/.test(v)) return v; return null; }
+function loadXlsxLib(){
+  if(window.XLSX) return Promise.resolve();
+  return new Promise((ok,err)=>{ const s=document.createElement('script'); s.src=XLSX_CDN; s.onload=ok; s.onerror=()=>err(new Error('Не удалось загрузить библиотеку XLSX')); document.head.appendChild(s); });
+}
+function sheetToMatrix(ws){
+  const fm=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+  const rw=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+  rw.forEach((r,i)=>r.forEach((v,j)=>{ if(v instanceof Date&&!isNaN(v)&&fm[i]){ const t=v.getHours()||v.getMinutes(); fm[i][j]=v.toLocaleDateString('ru-RU')+(t?' '+v.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):''); } }));
+  return trimMatrix(fm);
+}
+function pickTab(names,wanted){
+  const w=(wanted||'').trim().toLowerCase();
+  return names.find(n=>n.trim().toLowerCase()===w)
+    || names.find(n=>/заказ/i.test(n)&&/расч/i.test(n)&&!/копи/i.test(n))
+    || names.find(n=>/заказ/i.test(n)&&!/копи/i.test(n))
+    || names[0];
+}
+function setWorkbook(wb,label){
+  state.workbook=wb; state.tabNames=wb.SheetNames.slice();
+  const tab=pickTab(state.tabNames,$('tabSelect').value||state.tab);
+  fillTabSelect(tab); useTab(tab,label);
+}
+function useTab(tab,label){
+  state.tab=tab; const ws=state.workbook.Sheets[tab];
+  ingestMatrix(sheetToMatrix(ws),label||state.sourceLabel);
+}
+function fillTabSelect(selected){
+  const sel=$('tabSelect'); const names=state.tabNames.length?state.tabNames:[selected];
+  sel.innerHTML=names.map(n=>`<option value="${esc(n)}" ${n===selected?'selected':''}>${esc(n)}</option>`).join('');
+}
+async function fetchWorkbook(id){
+  await loadXlsxLib();
+  const res=await fetch(`https://docs.google.com/spreadsheets/d/${id}/export?format=xlsx&_=${Date.now()}`,{cache:'no-store'});
+  if(!res.ok) throw new Error(`HTTP ${res.status}`);
+  const ct=res.headers.get('content-type')||''; if(/text\/html/.test(ct)) throw new Error('AUTH');
+  return XLSX.read(await res.arrayBuffer(),{type:'array',cellDates:true});
+}
+async function fetchSheetCSV(id,name){
+  const res=await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(name)}&_=${Date.now()}`,{cache:'no-store'});
+  if(!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text=await res.text(); if(/^\s*<(!doctype|html)/i.test(text)) throw new Error('AUTH');
+  return parseCSV(text);
+}
+async function loadFromGoogle(){
+  const id=parseSheetId($('sheetUrl').value);
+  if(!id){ setStatus('Не удалось разобрать ссылку на таблицу','err'); return; }
+  state.sheetId=id; $('accessNotice').classList.add('hidden');
+  const tab=$('tabSelect').value||DEFAULT_TAB;
+  setStatus('Загрузка…'); $('btnLoad').disabled=true;
+  try{
+    try{
+      const wb=await fetchWorkbook(id); setWorkbook(wb,'Google Таблица');
+    }catch(e){
+      if(e.message==='AUTH') throw e;
+      // fallback: CSV of the single sheet (formatted text only)
+      const m=await fetchSheetCSV(id,tab); state.workbook=null; state.tabNames=[]; state.tab=tab; fillTabSelect(tab);
+      ingestMatrix(m,'Google Таблица (CSV)');
+    }
+    history.replaceState(null,'',`?sheet=${id}&tab=${encodeURIComponent(state.tab)}`);
+  }catch(e){
+    const auth=e.message==='AUTH'||/Failed to fetch|NetworkError|HTTP 4/.test(e.message);
+    setStatus(auth?'Google Таблица недоступна для чтения (нет доступа по ссылке).':'Ошибка: '+e.message,'err');
+    if(auth) $('accessNotice').classList.remove('hidden');
+  }finally{ $('btnLoad').disabled=false; }
+}
+async function loadFile(f){
+  if(!f) return; setStatus('Чтение файла…');
+  try{
+    state.sheetId='file:'+f.name;
+    if(/\.xlsx?$/i.test(f.name)){
+      await loadXlsxLib();
+      const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});
+      setWorkbook(wb,'Файл '+f.name);
+    } else {
+      state.workbook=null; state.tabNames=[]; state.tab=f.name; fillTabSelect(f.name);
+      ingestMatrix(parseCSV(await f.text()),'Файл '+f.name);
+    }
+  }catch(e){ setStatus('Ошибка чтения файла: '+e.message,'err'); }
+}
+
+/* ---------- filtering & aggregation ---------- */
+function applyPreset(p){
+  const f=state.filter; f.preset=p;
+  const today=new Date(); today.setHours(0,0,0,0); const end=new Date(today); end.setHours(23,59,59,999);
+  if(p==='all'){ f.from=null; f.to=null; }
+  else if(p==='month'){ f.from=new Date(today.getFullYear(),today.getMonth(),1); f.to=end; }
+  else if(p==='prevmonth'){ f.from=new Date(today.getFullYear(),today.getMonth()-1,1); f.to=new Date(today.getFullYear(),today.getMonth(),0,23,59,59,999); }
+  else { const n=+p; f.from=new Date(today); f.from.setDate(today.getDate()-n+1); f.to=end; }
+  $('dateFrom').value=f.from?isoDay(f.from):''; $('dateTo').value=f.to?isoDay(f.to):'';
+  document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+}
+function filterOrders(orders,f){
+  return orders.filter(o=>{
+    if(f.from&&(!o.date||o.date<f.from)) return false;
+    if(f.to&&(!o.date||o.date>f.to)) return false;
+    if(f.status!=='all'&&o.statusClass!==f.status) return false;
+    if(f.manager&&(o.manager||'—')!==f.manager) return false;
+    if(f.product&&!o.items.some(l=>l.name===f.product)) return false;
+    if(f.q&&!o.text.includes(f.q)) return false;
+    return true;
+  });
+}
+function stageSums(list){
+  const s={}; for(const k of STAGE_ORDER) s[k]={orders:0,revenue:0,cost:0,profit:0,qty:0};
+  for(const o of list){ const b=s[o.statusClass]||s.other; b.orders++; b.revenue+=o.revenue||0; b.cost+=o.cost||0; b.profit+=o.profit||0; b.qty+=o.qty||0; }
+  s.all={orders:list.length,revenue:list.reduce((a,o)=>a+(o.revenue||0),0)};
+  s.done.margin=s.done.revenue?s.done.profit/s.done.revenue*100:null;
+  s.done.avg=s.done.orders?s.done.revenue/s.done.orders:null;
+  s.clients=new Set(list.filter(o=>o.statusClass==='done').map(o=>o.client||o.clientInfo).filter(Boolean)).size;
+  return s;
+}
+function periodKey(d,g){
+  if(g==='day') return isoDay(d);
+  if(g==='month') return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  const x=new Date(d); x.setDate(x.getDate()-((x.getDay()+6)%7)); x.setHours(0,0,0,0); return isoDay(x);
+}
+function fromKey(k){ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d||1); }
+function periodLabel(k,g){ return fromKey(k).toLocaleDateString('ru-RU',g==='month'?{month:'short',year:'2-digit'}:{day:'2-digit',month:'2-digit'}); }
+function timeSeries(list,g){
+  const map=new Map(); const blank=()=>({orders:0,done:0,progress:0,lead:0,cancel:0,other:0,profit:0});
+  for(const o of list){ if(!o.date) continue; const k=periodKey(o.date,g); if(!map.has(k)) map.set(k,blank()); const b=map.get(k); b.orders++; b[o.statusClass in b?o.statusClass:'other']+=o.revenue||0; if(o.statusClass==='done') b.profit+=o.profit||0; }
+  const keys=[...map.keys()].sort(); if(!keys.length) return [];
+  const out=[]; let cur=fromKey(keys[0]); const last=fromKey(keys[keys.length-1]);
+  while(cur<=last){ const k=periodKey(cur,g); out.push({k,label:periodLabel(k,g),...(map.get(k)||blank())}); if(g==='month') cur.setMonth(cur.getMonth()+1); else cur.setDate(cur.getDate()+(g==='week'?7:1)); }
+  return out;
+}
+function groupOrders(list,fn){
+  const map=new Map();
+  for(const o of list){ const k=fn(o)||'—'; if(!map.has(k)) map.set(k,{key:k,orders:0,done:0,revenue:0,cost:0,profit:0,pipeline:0,lost:0,qty:0}); const b=map.get(k); b.orders++;
+    if(o.statusClass==='done'){ b.done++; b.revenue+=o.revenue||0; b.cost+=o.cost||0; b.profit+=o.profit||0; b.qty+=o.qty||0; }
+    else if(o.statusClass==='cancel') b.lost+=o.revenue||0; else b.pipeline+=o.revenue||0; }
+  return [...map.values()];
+}
+function groupItems(list,onlyPlants){
+  const map=new Map();
+  for(const o of list) for(const l of o.items){
+    if(onlyPlants&&isService(l.name)) continue; if(!l.name) continue;
+    const disp=l.name.trim().replace(/\s+/g,' '); const k=disp.toLowerCase();
+    if(!map.has(k)) map.set(k,{key:disp[0].toUpperCase()+disp.slice(1),orders:0,qty:0,revenue:0,cost:0,pipelineQty:0,prices:[]});
+    const b=map.get(k); const rev=(l.sumCl||0)+(l.plantCl||0), cost=(l.sumBU||0)+(l.plantBU||0);
+    if(o.statusClass==='done'){ b.orders++; b.qty+=l.qty||0; b.revenue+=rev; b.cost+=cost; if(l.priceCl) b.prices.push(l.priceCl); }
+    else if(o.statusClass!=='cancel') b.pipelineQty+=l.qty||0;
+  }
+  return [...map.values()];
+}
+
+/* ---------- rendering ---------- */
+function render(){
+  if(!state.orders.length){ $('dash').classList.add('hidden'); $('emptyState').classList.remove('hidden'); return; }
+  $('dash').classList.remove('hidden'); $('emptyState').classList.add('hidden');
+  state.filtered=filterOrders(state.orders,state.filter);
+  $('mgrPanel').classList.toggle('hidden',!state.orders.some(o=>o.manager));
+  $('payPanel').classList.toggle('hidden',!state.orders.some(o=>o.payTo));
+  renderKPIs(); renderCharts(); renderManagers(); renderPayments(); renderServices(); renderProducts(); renderClients(); renderOrders();
+}
+function renderKPIs(){
+  const f=state.filter; const s=stageSums(state.filtered);
+  let prev=null;
+  if(f.from&&f.to){ const len=f.to-f.from; prev=stageSums(filterOrders(state.orders,{...f,from:new Date(f.from-len-1),to:new Date(f.from-1)})); }
+  const delta=(cur,pr,inverse)=>{ if(!prev||pr==null||cur==null||pr===0) return ''; const d=(cur-pr)/Math.abs(pr)*100; const up=d>=0; const good=inverse?!up:up; return `<div class="d ${good?'up':'down'}">${up?'▲':'▼'} ${fmtPct(Math.abs(d))} к пред. периоду</div>`; };
+  const hasCost=state.filtered.some(o=>o.cost), hasProfit=state.filtered.some(o=>o.profit!=null);
+  const cards=[
+    {l:'Выручка факт',v:fmtMoney(s.done.revenue),d:delta(s.done.revenue,prev?.done.revenue),c:'var(--green)',sub:`${fmtInt(s.done.orders)} оплаченных заказов`},
+    hasProfit&&{l:'Маржа факт',v:fmtMoney(s.done.profit),d:delta(s.done.profit,prev?.done.profit),c:'var(--yellow)',sub:`${fmtPct(s.done.margin)} от выручки`},
+    hasCost&&{l:'Себестоимость (БУ)',v:fmtMoney(s.done.cost),d:delta(s.done.cost,prev?.done.cost,true),c:'var(--red)',sub:'по оплаченным'},
+    {l:'Средний чек',v:fmtMoney(s.done.avg),d:delta(s.done.avg,prev?.done.avg),c:'var(--purple)',sub:'по оплаченным'},
+    {l:'В плане',v:fmtMoney(s.progress.revenue),d:delta(s.progress.revenue,prev?.progress.revenue),c:'var(--accent)',sub:`${fmtInt(s.progress.orders)} заказов`},
+    {l:'В расчёте',v:fmtMoney(s.lead.revenue),d:delta(s.lead.revenue,prev?.lead.revenue),c:'var(--purple)',sub:`${fmtInt(s.lead.orders)} заказов`},
+    {l:'Слились',v:fmtMoney(s.cancel.revenue),d:delta(s.cancel.revenue,prev?.cancel.revenue,true),c:'var(--red)',sub:`${fmtInt(s.cancel.orders)} заказов`},
+    {l:'Растений продано',v:fmtInt(s.done.qty),d:delta(s.done.qty,prev?.done.qty),c:'var(--green)',sub:'шт, по оплаченным'},
+    {l:'Всего заказов',v:fmtInt(s.all.orders),d:delta(s.all.orders,prev?.all.orders),c:'var(--accent)',sub:s.all.orders?`оплачено ${fmtPct(s.done.orders/s.all.orders*100)}`:''},
+  ].filter(Boolean);
+  $('kpis').innerHTML=cards.map(c=>`<div class="kpi" style="--kc:${c.c}"><div class="l">${c.l}</div><div class="v">${c.v}</div>${c.d||(c.sub?`<div class="d">${c.sub}</div>`:'')}</div>`).join('');
+}
+function chart(id,cfg){ if(state.charts[id]) state.charts[id].destroy(); state.charts[id]=new Chart($(id).getContext('2d'),cfg); }
+Chart.defaults.color='#8b9ab5'; Chart.defaults.borderColor='rgba(255,255,255,.06)'; Chart.defaults.font.family='Inter,system-ui,sans-serif';
+const tipMoney={callbacks:{label:c=>{ const v=c.chart.options.indexAxis==='y'?c.parsed.x:c.parsed.y; return ` ${c.dataset.label}: ${c.dataset.money===false?fmtInt(v):fmtMoney(v)}`; }}};
+const moneyTicks={callback:v=>fmtInt(v)+' ₽'};
+function renderCharts(){
+  const list=state.filtered;
+  const ts=timeSeries(list,state.gran);
+  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'}`:'нет дат';
+  const bar=(k,label,color)=>({type:'bar',label,data:ts.map(t=>t[k]),backgroundColor:color,stack:'rev',borderRadius:3,order:2});
+  chart('chTs',{data:{labels:ts.map(t=>t.label),datasets:[
+      bar('done','Оплачено','rgba(151,207,38,.8)'), bar('progress','План','rgba(0,170,255,.6)'), bar('lead','Расчёт','rgba(161,105,247,.5)'), bar('cancel','Слился','rgba(255,64,83,.5)'),
+      {type:'line',label:'Маржа факт',data:ts.map(t=>t.profit),borderColor:'#ffd24d',backgroundColor:'#ffd24d',tension:.3,pointRadius:3,order:1},
+      {type:'line',label:'Заказов',data:ts.map(t=>t.orders),borderColor:'#e6edf7',borderDash:[4,4],backgroundColor:'#e6edf7',tension:.3,pointRadius:2,yAxisID:'y1',order:0,money:false},
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{tooltip:tipMoney,legend:{position:'top'}},
+      scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:moneyTicks},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{precision:0}}}}});
+
+  const s=stageSums(list);
+  const stages=STAGE_ORDER.filter(k=>s[k].orders);
+  chart('chStatus',{type:'doughnut',data:{labels:stages.map(k=>STAGE[k].label),datasets:[{data:stages.map(k=>s[k].orders),backgroundColor:stages.map(k=>STAGE[k].color),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right'},tooltip:{callbacks:{label:c=>{ const k=stages[c.dataIndex]; return ` ${STAGE[k].label}: ${s[k].orders} · ${fmtMoney(s[k].revenue)}`; }}}}}});
+
+  const prods=groupItems(list.filter(o=>o.statusClass==='done'),true).sort((a,b)=>b.revenue-a.revenue).slice(0,10);
+  chart('chProducts',{type:'bar',data:{labels:prods.map(p=>cut(p.key,36)),datasets:[{label:'Выручка (оплачено)',data:prods.map(p=>p.revenue),backgroundColor:COLORS.map(c=>c+'cc'),borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{ const p=prods[c.dataIndex]; return ` ${fmtMoney(p.revenue)} · ${fmtInt(p.qty)} шт · ${p.orders} зак.`; }}}},scales:{x:{beginAtZero:true,ticks:moneyTicks}}}});
+
+  let dim,title;
+  if(list.some(o=>o.manager)){ dim=groupOrders(list,o=>o.manager).sort((a,b)=>b.revenue-a.revenue); title='По ответственным'; }
+  else { const g=groupOrders(list.filter(o=>o.date),o=>WEEKDAYS[(o.date.getDay()+6)%7]); dim=WEEKDAYS.map(w=>g.find(x=>x.key===w)||{key:w,revenue:0,profit:0,pipeline:0}); title='По дням недели'; }
+  $('chDimTitle').textContent=title;
+  chart('chDim',{type:'bar',data:{labels:dim.map(d=>d.key),datasets:[
+      {label:'Выручка факт',data:dim.map(d=>d.revenue),backgroundColor:'rgba(151,207,38,.8)',borderRadius:3},
+      {label:'Маржа факт',data:dim.map(d=>d.profit),backgroundColor:'rgba(255,210,77,.8)',borderRadius:3},
+      {label:'План + расчёт',data:dim.map(d=>d.pipeline),backgroundColor:'rgba(0,170,255,.45)',borderRadius:3},
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{tooltip:tipMoney,legend:{position:'top'}},scales:{y:{beginAtZero:true,ticks:moneyTicks}}}});
+}
+function renderManagers(){
+  const rows=groupOrders(state.filtered,o=>o.manager).sort((a,b)=>b.revenue-a.revenue);
+  const tot=rows.reduce((a,r)=>({orders:a.orders+r.orders,done:a.done+r.done,revenue:a.revenue+r.revenue,profit:a.profit+r.profit,pipeline:a.pipeline+r.pipeline,lost:a.lost+r.lost}),{orders:0,done:0,revenue:0,profit:0,pipeline:0,lost:0});
+  const tr=(r,cls)=>`<tr class="${cls||''}"><td>${esc(r.key)}</td><td class="num">${r.done}/${r.orders}</td><td class="num">${fmtMoney(r.revenue)}</td><td class="num">${fmtMoney(r.profit)}</td><td class="num">${fmtPct(r.revenue?r.profit/r.revenue*100:null)}</td><td class="num">${fmtMoney(r.done?r.revenue/r.done:null)}</td><td class="num">${fmtMoney(r.pipeline)}</td><td class="num">${fmtMoney(r.lost)}</td></tr>`;
+  $('mgrTable').innerHTML=`<table><thead><tr><th>Ответ-ный</th><th class="num" title="оплачено / всего">Опл./всего</th><th class="num">Выручка</th><th class="num">Маржа</th><th class="num">Маржа %</th><th class="num">Ср. чек</th><th class="num">План+расчёт</th><th class="num">Слилось</th></tr></thead><tbody>${rows.map(r=>tr(r)).join('')}${rows.length>1?tr({key:'Итого',...tot},'tot'):''}</tbody></table>`;
+}
+function renderPayments(){
+  const done=state.filtered.filter(o=>o.statusClass==='done');
+  const map=new Map();
+  for(const o of done){
+    const parts=o.payments.length?o.payments:[{amount:o.revenue,to:o.payTo}];
+    for(const p of parts){ const k=classifyPay(p.to); if(!map.has(k)) map.set(k,{k,orders:new Set(),sum:0,raw:new Set()}); const b=map.get(k); b.orders.add(o.idx); b.sum+=p.amount||0; if(p.to) b.raw.add(p.to.trim()); }
+  }
+  const rows=[...map.values()].sort((a,b)=>b.sum-a.sum); const total=rows.reduce((a,r)=>a+r.sum,0);
+  $('payTable').innerHTML=rows.length?`<table><thead><tr><th>Куда</th><th class="num">Заказов</th><th class="num">Сумма</th><th class="num">Доля</th></tr></thead><tbody>${rows.map(r=>`<tr title="${esc([...r.raw].join(', '))}"><td>${PAY_LABEL[r.k]}<div class="small muted">${esc(cut([...r.raw].join(', '),40))}</div></td><td class="num">${r.orders.size}</td><td class="num">${fmtMoney(r.sum)}</td><td class="num"><span class="bar"><i style="width:${total?r.sum/total*100:0}%"></i></span> ${fmtPct(total?r.sum/total*100:0)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty" style="padding:20px">Нет оплаченных заказов в выборке</div>';
+}
+function renderServices(){
+  const done=state.filtered.filter(o=>o.statusClass==='done');
+  const sum=k=>done.reduce((a,o)=>a+(o[k]||0),0);
+  const rows=[['Растения',sum('plantsRevenue'),sum('plantsCost')],['Посадка',sum('plantingRevenue'),sum('plantingCost')],['Доставка',sum('deliveryRevenue'),sum('deliveryCost')]].filter(r=>r[1]||r[2]);
+  $('svcTable').innerHTML=rows.length?`<table><thead><tr><th>Статья</th><th class="num">Выручка</th><th class="num">Себест.</th><th class="num">Маржа</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${fmtMoney(r[1])}</td><td class="num">${fmtMoney(r[2])}</td><td class="num">${fmtMoney(r[1]-r[2])}</td></tr>`).join('')}</tbody></table>`:'';
+  const cards=state.summary.filter(c=>c.label&&c.label.length<60);
+  $('calcHint').textContent=cards.length?'справа — сводка из таблицы':'';
+  $('calcCards').innerHTML=cards.map(c=>`<div class="calc-card"><div class="l">${esc(c.label)}</div><div class="v">${c.value!=null?fmtMoney(c.value):`<span class="muted" title="${esc(c.raw)}">${/#/.test(c.raw)?'ошибка формулы':esc(cut(c.raw,20))}</span>`}</div></div>`).join('');
+}
+function renderProducts(){
+  const rows=groupItems(state.filtered,true).sort((a,b)=>b.revenue-a.revenue||b.pipelineQty-a.pipelineQty);
+  const total=rows.reduce((a,r)=>a+r.revenue,0); const max=Math.max(1,...rows.map(r=>r.revenue));
+  $('prodHint').textContent=`${rows.length} позиций · факт по оплаченным`;
+  $('prodTable').innerHTML=`<table><thead><tr><th>Растение</th><th class="num">Зак.</th><th class="num">Шт</th><th class="num">Выручка</th><th class="num">Доля</th><th class="num">Себест.</th><th class="num">Маржа</th><th class="num" title="штук в плане и расчёте">В плане, шт</th></tr></thead><tbody>${
+    rows.slice(0,150).map(r=>`<tr><td title="${esc(r.key)}">${esc(cut(r.key,44))}</td><td class="num">${r.orders||''}</td><td class="num">${fmtInt(r.qty)}</td><td class="num">${fmtMoney(r.revenue)}</td><td class="num"><span class="bar"><i style="width:${r.revenue/max*100}%"></i></span> ${fmtPct(total?r.revenue/total*100:0)}</td><td class="num">${fmtMoney(r.cost)}</td><td class="num">${fmtMoney(r.revenue-r.cost)}</td><td class="num">${r.pipelineQty?fmtInt(r.pipelineQty):''}</td></tr>`).join('')
+  }</tbody></table>`;
+}
+function renderClients(){
+  const rows=groupOrders(state.filtered,o=>o.client||o.clientInfo||'—').sort((a,b)=>b.revenue-a.revenue||b.pipeline-a.pipeline);
+  $('cliHint').textContent=`${rows.length} клиентов`;
+  $('cliTable').innerHTML=`<table><thead><tr><th>Клиент</th><th class="num">Зак.</th><th class="num">Выручка факт</th><th class="num">Маржа</th><th class="num">План+расчёт</th></tr></thead><tbody>${
+    rows.slice(0,150).map(r=>`<tr><td title="${esc(r.key)}">${esc(cut(r.key,36))}</td><td class="num">${r.done}/${r.orders}</td><td class="num">${fmtMoney(r.revenue)}</td><td class="num">${fmtMoney(r.profit)}</td><td class="num">${r.pipeline?fmtMoney(r.pipeline):''}</td></tr>`).join('')
+  }</tbody></table>`;
+}
+const ORD_COLS=[
+  {k:'date',l:'Дата',v:o=>(o.dateApprox?'<span class="approx" title="дата не указана, взята от соседнего заказа">≈</span>':'')+fmtDate(o.date),s:o=>o.date?.getTime()||0},
+  {k:'id',l:'№',v:o=>esc(o.id||''),s:o=>+(String(o.id).match(/\d+/)||[0])[0]},
+  {k:'status',l:'Статус',v:o=>`<span class="badge ${o.statusClass}">${esc(o.status||'—')}</span>`,s:o=>STAGE_ORDER.indexOf(o.statusClass)},
+  {k:'manager',l:'Ответ-ный',v:o=>esc(o.manager||''),s:o=>o.manager||''},
+  {k:'client',l:'Клиент',v:o=>`${esc(cut(o.client,28))}${o.clientInfo?`<div class="small muted">${esc(cut(o.clientInfo,40))}</div>`:''}`,s:o=>o.client||''},
+  {k:'product',l:'Состав',v:o=>`${esc(cut(o.product,40))}${o.items.length>1?` <span class="small muted">(${o.items.length} поз.)</span>`:''}`,s:o=>o.product||''},
+  {k:'qty',l:'Шт',num:true,v:o=>o.qty?fmtInt(o.qty):'',s:o=>o.qty||0},
+  {k:'cost',l:'Себест. БУ',num:true,v:o=>o.cost?fmtMoney(o.cost):'',s:o=>o.cost||0},
+  {k:'revenue',l:'Сумма клиенту',num:true,v:o=>fmtMoney(o.revenue),s:o=>o.revenue||0},
+  {k:'profit',l:'Маржа',num:true,v:o=>o.profit!=null?fmtMoney(o.profit):'',s:o=>o.profit||0},
+  {k:'marginPct',l:'Маржа %',num:true,v:o=>o.revenue&&o.profit!=null?fmtPct(o.profit/o.revenue*100):'',s:o=>o.revenue?(o.profit||0)/o.revenue:0},
+  {k:'payTo',l:'Куда оплата',v:o=>esc(cut(o.payTo||'',30)),s:o=>o.payTo||''},
+];
+function renderOrders(){
+  const list=state.filtered.slice(); const {col,dir}=state.sort;
+  const cols=ORD_COLS.filter(c=>!(c.k==='manager'&&!state.orders.some(o=>o.manager))&&!(c.k==='payTo'&&!state.orders.some(o=>o.payTo))&&!(c.k==='cost'&&!state.orders.some(o=>o.cost)));
+  const sc=ORD_COLS.find(c=>c.k===col)||ORD_COLS[0];
+  list.sort((a,b)=>{ const x=sc.s(a),y=sc.s(b); return (typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'ru'))*dir; });
+  $('ordHint').textContent=`${list.length} из ${state.orders.length} · клик по строке — состав заказа`;
+  const pages=Math.max(1,Math.ceil(list.length/state.pageSize)); state.page=Math.min(state.page,pages-1);
+  const slice=list.slice(state.page*state.pageSize,(state.page+1)*state.pageSize);
+  const itemRows=o=>`<table class="items"><tr><th>Позиция</th><th class="num">Шт</th><th class="num">Цена БУ</th><th class="num">Сумма БУ</th><th class="num">Посадка БУ</th><th class="num">Цена клиенту</th><th class="num">Сумма</th><th class="num">Посадка</th></tr>${o.items.map(l=>`<tr><td>${esc(l.name)}</td><td class="num">${l.qty??''}</td><td class="num">${l.priceBU!=null?fmtInt(l.priceBU):''}</td><td class="num">${l.sumBU!=null?fmtInt(l.sumBU):''}</td><td class="num">${l.plantBU?fmtInt(l.plantBU):''}</td><td class="num">${l.priceCl!=null?fmtInt(l.priceCl):''}</td><td class="num">${l.sumCl!=null?fmtInt(l.sumCl):''}</td><td class="num">${l.plantCl?fmtInt(l.plantCl):''}</td></tr>`).join('')}</table>${o.payments.length?`<div class="small muted" style="margin-top:6px">Оплаты: ${o.payments.map(p=>fmtMoney(p.amount)+(p.to?' → '+esc(p.to):'')).join('; ')}</div>`:''}${o.notes.length?`<div class="small muted">Заметки: ${esc(o.notes.join('; '))}</div>`:''}<div class="small muted">Строка в таблице: ${o.idx}</div>`;
+  $('ordTable').innerHTML=`<table><thead><tr>${cols.map(c=>`<th data-c="${c.k}" class="${c.num?'num':''} ${col===c.k?'sorted':''}">${c.l}${col===c.k?(dir>0?' ▲':' ▼'):''}</th>`).join('')}</tr></thead><tbody>${
+    slice.map(o=>`<tr class="clickable" data-i="${o.idx}">${cols.map(c=>`<td class="${c.num?'num':''}">${c.v(o)}</td>`).join('')}</tr>${state.expanded.has(o.idx)?`<tr class="detail"><td colspan="${cols.length}">${itemRows(o)}</td></tr>`:''}`).join('')
+  }</tbody></table>`;
+  $('ordTable').querySelectorAll('th').forEach(th=>th.onclick=()=>{ const c=th.dataset.c; if(state.sort.col===c) state.sort.dir*=-1; else state.sort={col:c,dir:c==='date'?-1:1}; renderOrders(); });
+  $('ordTable').querySelectorAll('tr.clickable').forEach(tr=>tr.onclick=()=>{ const i=+tr.dataset.i; if(state.expanded.has(i)) state.expanded.delete(i); else state.expanded.add(i); renderOrders(); });
+  $('pager').innerHTML=list.length>state.pageSize?`<button class="btn sm" id="pgPrev" ${state.page===0?'disabled':''}>‹</button> стр. ${state.page+1} из ${pages} <button class="btn sm" id="pgNext" ${state.page>=pages-1?'disabled':''}>›</button>`:'';
+  const pp=$('pgPrev'),pn=$('pgNext'); if(pp) pp.onclick=()=>{state.page--;renderOrders();}; if(pn) pn.onclick=()=>{state.page++;renderOrders();};
+}
+
+/* ---------- mapping UI (flat mode only) ---------- */
+function renderMapping(){
+  const grid=$('mapGrid'); const hdr=state.headers;
+  grid.innerHTML=ROLES.map(([role,label])=>`<label class="f">${label}${state.autoMapping[role]!=null&&state.autoMapping[role]===state.mapping[role]?' <span class="muted">(авто)</span>':''}<select data-role="${role}"><option value="">— не используется —</option>${hdr.map((h,i)=>`<option value="${i}" ${state.mapping[role]===i?'selected':''}>${esc(h||'col '+(i+1))}</option>`).join('')}</select></label>`).join('');
+  grid.querySelectorAll('select').forEach(sel=>sel.onchange=()=>{ const r=sel.dataset.role; if(sel.value==='') delete state.mapping[r]; else state.mapping[r]=+sel.value; saveSettings(); state.orders=buildFlatOrders(); fillFilters(); renderMapping(); render(); });
+  $('mapHint').textContent=`· таблица не в формате «Заказы и расчеты», распознано ${ROLES.filter(([r])=>state.mapping[r]!=null).length} полей`;
+}
+function fillFilters(){
+  const ps=$('productFilter'); const names=uniq(state.orders.flatMap(o=>o.items.map(l=>l.name))).sort((a,b)=>a.localeCompare(b,'ru'));
+  ps.innerHTML='<option value="">Все растения</option>'+names.map(p=>`<option value="${esc(p)}" ${p===state.filter.product?'selected':''}>${esc(cut(p,50))}</option>`).join('');
+  if(!names.includes(state.filter.product)) state.filter.product='';
+  const ms=$('managerFilter'); const mgrs=uniq(state.orders.map(o=>o.manager||'—')).sort();
+  ms.innerHTML='<option value="">Все ответственные</option>'+mgrs.map(m=>`<option value="${esc(m)}" ${m===state.filter.manager?'selected':''}>${esc(m)}</option>`).join('');
+  ms.classList.toggle('hidden',!state.orders.some(o=>o.manager));
+  if(!mgrs.includes(state.filter.manager)) state.filter.manager='';
+}
+
+/* ---------- settings ---------- */
+function saveSettings(){
+  try{ const all=loadSettings(); all.lastSheet=$('sheetUrl').value; all.lastTab=state.tab; all.gran=state.gran; if(state.mode==='flat'){ all.maps=all.maps||{}; all.maps[state.headers.join('|')]=state.mapping; } localStorage.setItem(LS_KEY,JSON.stringify(all)); }catch(e){}
+}
+function loadSettings(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'{}'); }catch(e){ return {}; } }
+
+/* ---------- demo data (same block layout as the real sheet) ---------- */
+function demoData(){
+  const plants=[['Туя Смарагд 180-200 см',5500,7700],['Яблоня колоновидная 5-6 лет',4500,6300],['Ель сербская 200-220',20000,28000],['Пихта корейская С5',1625,2438],['Сосна норвежская 2-3,5 м',5500,8250],['Можжевельник Блю Эрроу',14000,18200],['Вишня 3-4 года',2500,3500],['Голубика 4-летняя',2300,4186],['Липа с20 2.2-2.4',2500,3500],['Сирень гибридная С7,5',1050,1470],['Малина с5',500,1200],['Фундук Каталонский',700,1400]];
+  const managers=['Наташа','Наташа','Наташа','Дарья','Дарья','Кирилл']; const names=['Алексей','Ольга','Денис','Дмитрий','Андрей','Наталья','Роман','Диана','Виктор','Игорь','Анна','Евгений','Сергей','Гульнара','Рустам'];
+  const stages=[['3 оплачен',0.55],['2 план',0.2],['1 расчет',0.15],['слился',0.1]]; const pays=['РС На','Нал БУ','Нал БУ','РС'];
+  let seed=7; const rnd=()=>{ seed=(seed*9301+49297)%233280; return seed/233280; }; const pick=a=>a[Math.floor(rnd()*a.length)];
+  const R=n=>'р.'+Math.round(n).toLocaleString('en-US');
+  const rows=[['Статус','Дата','Ответ-ный','Клиент','Растение','К-во','Цена БУ','Сумма','Посадка 30%','Цена клиенту','Сумма','Посадка 40%','Маржа заказа','№ заказа','Куда оплата','','','']];
+  const today=new Date(); today.setHours(0,0,0,0); let n=1; let factRev=0,factBU=0;
+  for(let d=75; d>=-12; d-=Math.ceil(rnd()*3)){
+    const date=new Date(today); date.setDate(today.getDate()-d);
+    let r=rnd(), st=stages[0][0]; for(const [s,w] of stages){ if(r<w){st=s;break;} r-=w; }
+    if(d<0) st=rnd()<0.6?'2 план':'1 расчет';
+    const k=1+Math.floor(rnd()*4); const withPlanting=rnd()<0.5; const delivery=rnd()<0.6?3000+Math.round(rnd()*4)*1000:0;
+    let sBU=0,sCl=0,pBU=0,pCl=0;
+    for(let j=0;j<k;j++){
+      const p=pick(plants); const q=rnd()<0.6?1:Math.ceil(rnd()*5); const bu=p[1]*q, cl=p[2]*q; const plBU=withPlanting?bu*0.3:0, plCl=withPlanting?cl*0.4:0;
+      sBU+=bu; sCl+=cl; pBU+=plBU; pCl+=plCl;
+      rows.push(j===0?[st,`${String(date.getDate()).padStart(2,'0')}.${String(date.getMonth()+1).padStart(2,'0')}.${date.getFullYear()}`,pick(managers),pick(names),p[0],String(q),R(p[1]),R(bu),plBU?R(plBU):'',R(p[2]),R(cl),plCl?R(plCl):'',``,st==='3 оплачен'?`заказ ${n}`:'',st==='3 оплачен'?pick(pays):'']
+        :['','','',j===1?'8916'+String(Math.floor(rnd()*9e6)+1e6):'',p[0],String(q),R(p[1]),R(bu),plBU?R(plBU):'',R(p[2]),R(cl),plCl?R(plCl):'','','','']);
+    }
+    if(delivery){ rows.push(['','','','','Доставка:','1',R(delivery),R(delivery),'',R(delivery),R(delivery),'','','','']); sBU+=delivery; sCl+=delivery; }
+    const cost=sBU+pBU, rev=sCl+pCl;
+    rows.push(['','','','','','','',R(sBU),pBU?R(pBU):'','',R(sCl),pCl?R(pCl):'','','','']);
+    rows.push(['','','','','','','','Итого:',R(cost),'','Итого:',R(rev),R(rev-cost),'','','']);
+    if(st==='3 оплачен'){ factRev+=rev; factBU+=cost; n++; }
+  }
+  rows[2][16]='Выручка факт'; rows[2][17]=R(factRev); rows[3][16]='Из нее Буннату'; rows[3][17]=R(factBU); rows[5][16]='На расчетном счете'; rows[5][17]=R((factRev-factBU)*0.9);
+  return trimMatrix(rows);
+}
+
+/* ---------- export ---------- */
+function exportCSV(){
+  const cols=ORD_COLS; const strip=s=>String(s).replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').trim();
+  const rows=[cols.map(c=>c.l).concat(['Позиции'])].concat(state.filtered.map(o=>cols.map(c=>strip(c.v(o))).concat([o.items.map(l=>`${l.name}${l.qty?' ×'+l.qty:''}`).join('; ')])));
+  const csv='\uFEFF'+rows.map(r=>r.map(v=>/[",\n;]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v).join(';')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='avito-orders.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---------- wiring ---------- */
+function init(){
+  const params=new URLSearchParams(location.search); const settings=loadSettings();
+  $('sheetUrl').value=params.get('sheet')?`https://docs.google.com/spreadsheets/d/${params.get('sheet')}/edit`:(settings.lastSheet||`https://docs.google.com/spreadsheets/d/${DEFAULT_SHEET_ID}/edit`);
+  state.tab=params.get('tab')||settings.lastTab||DEFAULT_TAB; fillTabSelect(state.tab);
+  if(settings.gran){ state.gran=settings.gran; document.querySelectorAll('#gran button').forEach(x=>x.classList.toggle('active',x.dataset.g===state.gran)); }
+  $('btnLoad').onclick=loadFromGoogle;
+  $('sheetUrl').onkeydown=e=>{ if(e.key==='Enter') loadFromGoogle(); };
+  $('sheetUrl').onchange=()=>{ if(parseSheetId($('sheetUrl').value)!==state.sheetId){ state.workbook=null; state.tabNames=[]; fillTabSelect(DEFAULT_TAB); } };
+  $('tabSelect').onchange=e=>{ if(state.workbook){ useTab(e.target.value); history.replaceState(null,'',`?sheet=${state.sheetId}&tab=${encodeURIComponent(state.tab)}`); } else state.tab=e.target.value; };
+  $('btnDemo').onclick=()=>{ state.sheetId='demo'; state.workbook=null; state.tabNames=[]; state.tab='Демо'; fillTabSelect('Демо'); ingestMatrix(demoData(),'Демо-данные'); };
+  $('btnFile').onclick=()=>$('fileInput').click();
+  $('fileInput').onchange=e=>{ loadFile(e.target.files[0]); e.target.value=''; };
+  const app=$('app');
+  app.addEventListener('dragover',e=>{ e.preventDefault(); app.classList.add('drop'); });
+  app.addEventListener('dragleave',()=>app.classList.remove('drop'));
+  app.addEventListener('drop',e=>{ e.preventDefault(); app.classList.remove('drop'); if(e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]); });
+  document.querySelectorAll('#presets button').forEach(b=>b.onclick=()=>{ applyPreset(b.dataset.p); state.page=0; render(); });
+  $('dateFrom').onchange=$('dateTo').onchange=()=>{ const f=state.filter; f.preset='custom'; f.from=$('dateFrom').value?new Date($('dateFrom').value+'T00:00:00'):null; f.to=$('dateTo').value?new Date($('dateTo').value+'T23:59:59.999'):null; document.querySelectorAll('#presets button').forEach(b=>b.classList.remove('active')); state.page=0; render(); };
+  $('statusFilter').onchange=e=>{ state.filter.status=e.target.value; state.page=0; render(); };
+  $('managerFilter').onchange=e=>{ state.filter.manager=e.target.value; state.page=0; render(); };
+  $('productFilter').onchange=e=>{ state.filter.product=e.target.value; state.page=0; render(); };
+  let t; $('search').oninput=e=>{ clearTimeout(t); t=setTimeout(()=>{ state.filter.q=e.target.value.trim().toLowerCase(); state.page=0; render(); },200); };
+  document.querySelectorAll('#gran button').forEach(b=>b.onclick=()=>{ state.gran=b.dataset.g; document.querySelectorAll('#gran button').forEach(x=>x.classList.toggle('active',x===b)); saveSettings(); renderCharts(); });
+  $('btnExport').onclick=exportCSV;
+  if(params.get('demo')!=null) $('btnDemo').click();
+  else if(parseSheetId($('sheetUrl').value)) loadFromGoogle();
+}
+init();
+</script>
+</body>
+</html>
