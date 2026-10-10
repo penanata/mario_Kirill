@@ -88,8 +88,8 @@
   .calc-card .l{color:var(--muted);font-size:12px} .calc-card .v{font-weight:700;font-size:18px;margin-top:3px}
   .empty{color:var(--muted);text-align:center;padding:40px 10px}
   .muted{color:var(--muted)} .small{font-size:12px}
-  .viewbar{display:flex;align-items:center;gap:12px;margin:14px 0}
-  .viewbar .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .viewbar{display:flex;align-items:center;gap:12px;margin:14px 0;flex-wrap:wrap}
+  .viewbar .seg{display:flex;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:9px;overflow:visible}
   .viewbar .seg button{background:transparent;border:0;padding:8px 14px;cursor:pointer;color:var(--muted);font-weight:700}
   .viewbar .seg button.active{background:rgba(0,170,255,.18);color:#fff}
   .owner-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
@@ -99,6 +99,39 @@
   .verdict.owe{color:#ff8d99}
   .verdict.owed{color:var(--green)}
   .verdict.even{color:var(--text)}
+  .bunat-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+  .bunat-head h2{margin:0}
+  .bunat-sheet{width:100%;border-collapse:collapse}
+  .bunat-sheet th,.bunat-sheet td{white-space:normal}
+  .bunat-sheet td{font-size:13.5px;line-height:1.35}
+  .bunat-sheet .comp{margin:0;padding-left:16px}
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+  .tag.ok{background:rgba(151,207,38,.16);color:var(--green)}
+  .tag.no{background:rgba(255,64,83,.16);color:#ff8d99}
+  .tag.cash{background:rgba(255,138,61,.16);color:#ffb27a}
+  .tag.bill{background:rgba(0,170,255,.16);color:#7dceff}
+  .tag.muted{background:rgba(255,255,255,.06);color:var(--muted)}
+  @media (max-width:800px){
+    .bunat-sheet thead{display:none}
+    .bunat-sheet tr{display:block;border:1px solid var(--line);border-radius:12px;margin:0 0 10px;padding:8px 4px}
+    .bunat-sheet td{display:block;border:0;padding:3px 8px}
+    .bunat-sheet td::before{content:attr(data-l);display:block;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  }
+  @media print{
+    body[data-view="bunat"]{background:#fff;color:#111}
+    body[data-view="bunat"] header,
+    body[data-view="bunat"] section.panel,
+    body[data-view="bunat"] #viewSwitch,
+    body[data-view="bunat"] footer,
+    body[data-view="bunat"] #ownerView,
+    body[data-view="bunat"] #dash,
+    body[data-view="bunat"] .noprint{display:none!important}
+    body[data-view="bunat"] #bunatView{display:block!important}
+    body[data-view="bunat"] .panel{border:0;box-shadow:none;background:#fff;break-inside:avoid}
+    body[data-view="bunat"] .bunat-sheet th,
+    body[data-view="bunat"] .bunat-sheet td{color:#111;border-color:#ccc;background:#fff}
+    body[data-view="bunat"] .tag{border:1px solid #bbb;color:#111;background:#fff}
+  }
   @media (max-width:1100px){.owner-grid{grid-template-columns:1fr}}
   .hidden{display:none!important}
   .drop{outline:2px dashed var(--accent);outline-offset:-6px}
@@ -156,9 +189,10 @@
   <div class="viewbar hidden" id="viewSwitch">
     <div class="seg" id="views">
       <button type="button" data-v="owner" class="active">Собственник</button>
+      <button type="button" data-v="bunat">Для Буната</button>
       <button type="button" data-v="detail">Подробно</button>
     </div>
-    <span class="muted small">Факт — это оплаченные заказы.</span>
+    <span class="muted small" id="viewHint">Факт — это оплаченные заказы.</span>
   </div>
 
   <div id="ownerView" class="hidden">
@@ -186,6 +220,8 @@
       <div class="tbl" id="mgrMonths" style="max-height:none"></div>
     </div>
   </div>
+
+  <div id="bunatView" class="hidden"></div>
 
   <div id="dash" class="hidden">
     <div class="filters panel" style="padding:10px 14px">
@@ -461,7 +497,8 @@ function parseBlocks(rows,hi){
     o.statusClass=classifyStage(o.status);
     if(!o.date && prevDate){ o.date=prevDate; o.dateApprox=true; }
     if(o.date && !o.dateApprox) prevDate=o.date;
-    o.clientInfo=uniq(o.clientInfo).join(', ');
+    o.clientLines=uniq(o.clientInfo);
+    o.clientInfo=o.clientLines.join(', ');
     o.text=[o.status,o.id,o.manager,o.client,o.clientInfo,o.payTo,...lines.map(l=>l.name),...o.notes].join(' ').toLowerCase();
     orders.push(o);
   };
@@ -493,8 +530,7 @@ function parseBlocks(rows,hi){
       finish(cur); cur=null; continue;
     }
     const line={ name:plant, qty:num(r,'qty'), priceBU:num(r,'priceBU'), sumBU:num(r,'sumBU'), plantBU:num(r,'plantBU'), priceCl:num(r,'priceCl'), sumCl:num(r,'sumCl'), plantCl:num(r,'plantCl') };
-    const hasMoney=[line.sumBU,line.plantBU,line.sumCl,line.plantCl].some(v=>v);
-    if(plant && (hasMoney || line.qty || isHeader)) cur.items.push(line);
+    if(plant) cur.items.push(line);
   }
   if(cur) finish(cur);
   return {orders,summary,cols:c};
@@ -660,7 +696,7 @@ async function loadFromGoogle(opts){
     }
     state.loadedAt=Date.now();
     if(silent){ state.page=page; render(); window.scrollTo(0, scroll); }
-    else history.replaceState(null,'',`?sheet=${id}&tab=${encodeURIComponent(state.tab)}`);
+    else history.replaceState(null,'',`?sheet=${id}&tab=${encodeURIComponent(state.tab)}${state.view&&state.view!=='owner'?'&view='+encodeURIComponent(state.view):''}`);
     scheduleAuto();
   }catch(e){
     if(!silent){
@@ -835,6 +871,126 @@ function mgrPeriodTable(list, gran){
   }).join('');
   return `<table><thead>${head}</thead><tbody>${body||`<tr><td class="muted" colspan="${1+names.length*3}">Нет оплаченных заказов</td></tr>`}${body?`<tr class="tot"><td>Итого</td>${tot}</tr>`:''}</tbody></table>`;
 }
+const PHONE_RE=/(?:\+7|8|7)[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{2}[\s().-]*\d{2}/g;
+function extractPhones(text){
+  const out=[]; let m; const s=String(text||'');
+  PHONE_RE.lastIndex=0;
+  while((m=PHONE_RE.exec(s))){
+    let d=m[0].replace(/\D/g,'');
+    if(d.length===11 && (d[0]==='7'||d[0]==='8')){ if(d[0]==='7') d='8'+d.slice(1); out.push(d[0]+'-'+d.slice(1,4)+'-'+d.slice(4,7)+'-'+d.slice(7,9)+'-'+d.slice(9)); }
+  }
+  return uniq(out);
+}
+function stripPhones(text){ return String(text||'').replace(PHONE_RE,' ').replace(/\s+/g,' ').trim(); }
+const BUNAT_NOTE=/подтверд|думает|жду|не\s*ответ|приед|самовывоз|(^|[^а-яё])нал(?![а-яё])|налич|списать|уточн|больниц|(^|[^а-яё])когда(?![а-яё])|(^|[^а-яё])доставк|видео|перенос|закончил|написать|дала адрес|номер бун|в вых|посмотре|спросил|уехали|(^|[^а-яё])макс(?![а-яё])|скинуть|выбираем|сделать\s+сч|(^|[^а-яё])сч[её]т(?![а-яё])|(^|[^а-яё])яндекс(?![а-яё])/i;
+const ADDR_MARK=/район|ул\.|улиц|\bдом\b|снт|\bкп\b|поселен|деревн|село|город|шоссе|просп|корп|област|округ|микрорайон|\bмкр\b|парк|усадьб|квартал|блок/i;
+function isNoisePlant(name){
+  const t=String(name||'').trim().toLowerCase().replace(/ё/g,'е');
+  if(!t||isService(name)) return true;
+  if(/^(нал|наличка|наличные|нал буннат|наличные буннат|рс|рс наташа|счет|счёт)$/.test(t)) return true;
+  if(/^(приедет.*|не отвечает|думает|подтвердил[аи]?|не подтвердил[аи]?)$/.test(t)) return true;
+  if(/^нал\b/.test(t) && t.length<28) return true;
+  return false;
+}
+function deliveryPlace(name){
+  const m=String(name||'').match(/доставк[^:]*:\s*([\s\S]*)$/i);
+  if(!m) return '';
+  return m[1].replace(/(^|[^а-яё])когда(?![а-яё])\s*\??/ig,' ').replace(/(^|[^а-яё])яндекс(?![а-яё])/ig,' ').replace(/\s+/g,' ').replace(/^[,.\s?]+|[,.\s?]+$/g,'').trim();
+}
+function bunatCard(o){
+  const lines=(o.clientLines&&o.clientLines.length?o.clientLines:(o.clientInfo?String(o.clientInfo).split(/\n+/):[])).map(s=>String(s).trim()).filter(Boolean);
+  const texts=[o.client||'',...lines,...(o.items||[]).map(i=>i.name||''),o.payTo||'',...(o.notes||[])];
+  const phones=uniq(texts.flatMap(extractPhones));
+  const name=stripPhones(String(o.client||'').split(/\n/)[0])||'Без имени';
+  const strong=[], weak=[], clues=[];
+  for(const raw of lines){
+    const line=stripPhones(raw);
+    if(!line) continue;
+    if(BUNAT_NOTE.test(line)){ if(/подтверд|думает|жду|не\s*ответ|уточн|больниц|видео|приед|перенос|уехали|закончил|когда/i.test(line)) clues.push(line); continue; }
+    if(ADDR_MARK.test(line)||line.includes(',')||line.length>22) strong.push(line);
+    else weak.push(line);
+  }
+  const places=uniq((o.items||[]).filter(i=>isDelivery(i.name)).map(i=>deliveryPlace(i.name)).filter(Boolean));
+  let address=uniq(strong.concat(places));
+  let contacts=[];
+  if(address.length) contacts=weak; else address=weak.slice();
+  const blob=texts.join('\n').toLowerCase().replace(/ё/g,'е');
+  const word=re=>new RegExp('(^|[^а-я])(?:'+re+')(?![а-я])').test(blob);
+  const cash=word('нал|наличк[аи]|наличные');
+  const bill=word('сч[её]т|р\\/?с|карт[аеуы]|перевод|qr');
+  const pay=!cash&&!bill?'Не указан':cash&&bill?'Наличка и счёт':cash?'Наличка':'Счёт';
+  const pickup=/самовывоз/.test(blob);
+  const deliveryMoney=(o.items||[]).some(i=>isDelivery(i.name)&&((i.sumBU||0)+(i.plantBU||0)+(i.sumCl||0)+(i.plantCl||0))>0);
+  const deliveryText=(o.items||[]).some(i=>isDelivery(i.name)&&!/^доставка\s*:?\s*$/i.test(String(i.name).trim()));
+  const deliver=deliveryMoney||places.length||deliveryText||/манипулятор|грузов/.test(blob)||lines.some(l=>/^доставк/i.test(l));
+  let logistics=pickup&&deliver?'Самовывоз и доставка':pickup?'Самовывоз':deliver?'Доставка':'Не указано';
+  if(deliver&&/манипулятор/.test(blob)) logistics+=', манипулятор';
+  else if(deliver&&/грузов/.test(blob)) logistics+=', грузовая';
+  if(deliver&&/яндекс/.test(blob)) logistics+=', Яндекс';
+  const confirmed=/подтверд/.test(blob)&&!/не\s*подтверд/.test(blob);
+  for(const item of o.items||[]){
+    if(BUNAT_NOTE.test(item.name||'') && /подтверд|думает|жду|не\s*ответ|приед|уточн|видео|больниц/i.test(item.name||'')) clues.push(String(item.name).trim());
+  }
+  const plants=(o.items||[]).filter(i=>!isNoisePlant(i.name)&&!isDelivery(i.name)&&!BUNAT_NOTE.test(i.name||''));
+  const composition=plants.map(i=>{
+    const q=i.qty!=null&&isFinite(i.qty)?fmtInt(i.qty)+' × ':'';
+    return q+String(i.name).trim();
+  });
+  return {name, address:address.join('; ')||'не указан', phones:phones.join(', ')||'не указан', contacts:uniq(contacts), composition, pay, logistics, confirmed, clues:uniq(clues).slice(0,3), manager:o.manager||'', date:o.date&&!o.dateApprox?o.date:null, past:false};
+}
+function bunatBucket(card, today){
+  if(!card.date) return 'undated';
+  const d=new Date(card.date); d.setHours(0,0,0,0);
+  if(isoDay(d)===isoDay(today)) return 'today';
+  const ws=new Date(today); ws.setDate(today.getDate()-((today.getDay()+6)%7)); ws.setHours(0,0,0,0);
+  const we=new Date(ws); we.setDate(ws.getDate()+6);
+  if(d>=ws&&d<=we) return 'week';
+  if(d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth()) return 'month';
+  return 'other';
+}
+function bunatTable(cards){
+  if(!cards.length) return '<div class="empty" style="padding:18px">Нет таких заказов</div>';
+  const rows=cards.map(c=>{
+    const comp=c.composition.length?`<ul class="comp">${c.composition.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<span class="muted">состав не указан</span>';
+    const payCls=c.pay==='Наличка'?'cash':c.pay==='Счёт'?'bill':c.pay==='Наличка и счёт'?'cash':'muted';
+    const logCls=c.logistics==='Не указано'?'muted':'ok';
+    const conf=c.confirmed?'<span class="tag ok">Подтверждён</span>':'<span class="tag no">Не подтверждён</span>';
+    const clue=[...c.clues, c.manager?`менеджер ${c.manager}`:''].filter(Boolean).join(' · ');
+    const who=`<b>${esc(c.name)}</b>${c.contacts.length?`<div class="small muted">${esc(c.contacts.join(', '))}</div>`:''}`;
+    const when=c.date?c.date.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}):(c.past?'':'без даты');
+    const whenHtml=esc(when)+(c.past?'<div class="small muted">дата уже прошла</div>':'');
+    const cell=(l,html)=>`<td data-l="${l}">${html}</td>`;
+    return `<tr>${cell('Дата',whenHtml)}${cell('Клиент',who)}${cell('Адрес',esc(c.address))}${cell('Телефон',esc(c.phones))}${cell('Состав',comp)}${cell('Оплата',`<span class="tag ${payCls}">${esc(c.pay)}</span>`)}${cell('Получение',`<span class="tag ${logCls}">${esc(c.logistics)}</span>`)}${cell('Подтверждение',conf+(clue?`<div class="small muted">${esc(clue)}</div>`:''))}</tr>`;
+  }).join('');
+  return `<table class="bunat-sheet"><thead><tr><th>Дата</th><th>Клиент</th><th>Адрес</th><th>Телефон</th><th>Состав</th><th>Оплата</th><th>Получение</th><th>Подтверждение</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderBunat(){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const ws=new Date(today); ws.setDate(today.getDate()-((today.getDay()+6)%7));
+  const we=new Date(ws); we.setDate(ws.getDate()+6);
+  const groups={today:[],week:[],month:[],other:[],undated:[]};
+  for(const o of state.orders){
+    if(o.statusClass!=='progress') continue;
+    const card=bunatCard(o);
+    const bucket=bunatBucket(card, today);
+    if(card.date && card.date<today && bucket!=='today') card.past=true;
+    groups[bucket].push(card);
+  }
+  const byDate=(a,b)=>((a.date?a.date.getTime():9e15)-(b.date?b.date.getTime():9e15))||a.name.localeCompare(b.name,'ru');
+  Object.values(groups).forEach(list=>list.sort(byDate));
+  const weekLabel=ws.toLocaleDateString('ru-RU',{day:'numeric',month:'long'})+' – '+we.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+  const monthLabel=today.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+  const section=(title, hint, list)=>`<div class="panel" style="margin-bottom:14px"><h2>${title} <span class="hint">${esc(hint)} · ${fmtInt(list.length)}</span></h2>${bunatTable(list)}</div>`;
+  const bits=[
+    section('Сегодня', today.toLocaleDateString('ru-RU',{day:'numeric',month:'long',weekday:'long'}), groups.today),
+    section('Эта неделя', weekLabel+', кроме сегодня', groups.week),
+    section('Этот месяц', monthLabel+', кроме этой недели', groups.month),
+  ];
+  if(groups.other.length) bits.push(section('Другие даты', 'план вне этого месяца', groups.other));
+  if(groups.undated.length) bits.push(section('Без даты', 'в плане, день не указан', groups.undated));
+  $('bunatView').innerHTML=`<div class="bunat-head"><div><h2>Лист для Буната</h2><div class="small muted">Заказы со статусом «2 план». Сегодня ${fmtInt(groups.today.length)}, на неделе ещё ${fmtInt(groups.week.length)}, в месяце ещё ${fmtInt(groups.month.length)}${groups.undated.length?`, без даты ${fmtInt(groups.undated.length)}`:''}. Таблица только читается.</div></div><button type="button" class="btn noprint" id="btnBunatPrint">Печать</button></div>`+bits.join('');
+  const btn=$('btnBunatPrint'); if(btn) btn.onclick=()=>window.print();
+}
 function kpiCard(label, value, sub, color){
   return `<div class="kpi" style="--kc:${color}"><div class="l">${label}</div><div class="v">${value}</div>${sub?`<div class="d">${sub}</div>`:''}</div>`;
 }
@@ -893,27 +1049,40 @@ function renderOwner(){
 }
 function showView(view){
   state.view=view;
+  const u=new URL(location.href);
+  if(view==='owner') u.searchParams.delete('view'); else u.searchParams.set('view', view);
+  history.replaceState(null,'',u.pathname+u.search);
   document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('active', b.dataset.v===view));
+  const hints={owner:'Факт — это оплаченные заказы.',bunat:'Лист для Буната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
+  if($('viewHint')) $('viewHint').textContent=hints[view]||hints.owner;
   render();
 }
 
 /* ---------- rendering ---------- */
 function render(){
   if(!state.orders.length){
-    $('dash').classList.add('hidden'); $('ownerView').classList.add('hidden'); $('viewSwitch').classList.add('hidden');
+    $('dash').classList.add('hidden'); $('ownerView').classList.add('hidden'); $('bunatView').classList.add('hidden'); $('viewSwitch').classList.add('hidden');
     $('emptyState').classList.remove('hidden'); return;
   }
   $('emptyState').classList.add('hidden');
   $('viewSwitch').classList.remove('hidden');
+  document.body.dataset.view=state.view;
+  document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('active', b.dataset.v===state.view));
+  const hints={owner:'Факт — это оплаченные заказы.',bunat:'Лист для Буната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
+  if($('viewHint')) $('viewHint').textContent=hints[state.view]||hints.owner;
   state.filtered=filterOrders(state.orders,state.filter);
   if(state.view==='detail'){
-    $('ownerView').classList.add('hidden');
+    $('ownerView').classList.add('hidden'); $('bunatView').classList.add('hidden');
     $('dash').classList.remove('hidden');
     $('mgrPanel').classList.toggle('hidden',!state.orders.some(o=>o.manager));
     $('payPanel').classList.toggle('hidden',!state.orders.some(o=>o.payTo));
     renderKPIs(); renderCharts(); renderManagers(); renderPayments(); renderServices(); renderProducts(); renderClients(); renderOrders();
+  } else if(state.view==='bunat'){
+    $('dash').classList.add('hidden'); $('ownerView').classList.add('hidden');
+    $('bunatView').classList.remove('hidden');
+    renderBunat();
   } else {
-    $('dash').classList.add('hidden');
+    $('dash').classList.add('hidden'); $('bunatView').classList.add('hidden');
     $('ownerView').classList.remove('hidden');
     renderOwner();
   }
@@ -1137,6 +1306,8 @@ function init(){
     if(!state.sheetId||state.sheetId==='demo'||String(state.sheetId).startsWith('file:')) return;
     if(Date.now()-(state.loadedAt||0)>=AUTO_MS) loadFromGoogle({silent:true});
   });
+  const view=params.get('view');
+  if(view==='bunat'||view==='detail'||view==='owner') state.view=view;
   if(params.get('demo')!=null) $('btnDemo').click();
   else if(parseSheetId($('sheetUrl').value)) loadFromGoogle();
 }
