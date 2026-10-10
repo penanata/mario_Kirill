@@ -485,7 +485,9 @@ function parseBlocks(rows,hi){
       else cur.notes.push(numCell);
     } else if(!isHeader && cell(r,'pay')) cur.payNotes.push(cell(r,'pay'));
     if(!isHeader && cell(r,'client')) cur.clientInfo.push(cell(r,'client'));
-    if(/итого/.test(label) || (!plant && !isHeader && marginV!=null)){
+    // «Итого» в выгрузке CSV теряет само слово, а в ячейке растения иногда стоит адрес.
+    // Строка с маржой и без нового статуса — итог заказа, даже если растение заполнено.
+    if(/итого/.test(label) || (!isHeader && marginV!=null)){
       const costT=num(r,'plantBU')??num(r,'sumBU'), revT=num(r,'plantCl')??num(r,'sumCl');
       cur.tot={cost:costT,revenue:revT,margin:marginV};
       finish(cur); cur=null; continue;
@@ -863,24 +865,27 @@ function renderOwner(){
     kpiCard('Запланированная выручка', fmtMoney(planAgg.revenue), 'ещё не оплачено', 'var(--accent)'),
     kpiCard('Маржа в плане', fmtMoney(planAgg.profit), planAgg.revenue?fmtPct(planAgg.margin)+' от плановой выручки':'', 'var(--yellow)'),
   ].join('');
-  let entitled=0, received=0, ours=0, unknown=0, unknownN=0;
+  let entitled=0, received=0, ours=0, unknown=0, unknownN=0, heOwes=0, weOwe=0;
   for(const o of fact){
     entitled+=o.cost||0;
     const sides=moneySides(o);
     received+=sides.bunat; ours+=sides.ours; unknown+=sides.unknown;
     if(sides.unknown) unknownN++;
+    // его карман минус его себестоимость: плюс — наша маржа у него, минус — его доля у нас
+    const diff=(sides.bunat||0)-(o.cost||0);
+    if(diff>1) heOwes+=diff; else if(diff<-1) weOwe+=-diff;
   }
   const balance=received-entitled;
   const verdict=$('bunatVerdict');
-  if(balance>1){ verdict.className='verdict owed'; verdict.textContent='Бунат должен нам '+fmtMoney(balance); }
-  else if(balance<-1){ verdict.className='verdict owe'; verdict.textContent='Мы должны Бунату '+fmtMoney(-balance); }
+  if(balance>1){ verdict.className='verdict owed'; verdict.textContent='Итог: Бунат должен нам '+fmtMoney(balance); }
+  else if(balance<-1){ verdict.className='verdict owe'; verdict.textContent='Итог: мы должны Бунату '+fmtMoney(-balance); }
   else { verdict.className='verdict even'; verdict.textContent='Взаиморасчёты сходятся'; }
   $('bunatKpis').innerHTML=[
-    kpiCard('Причитается Бунату', fmtMoney(entitled), 'себестоимость оплаченных', 'var(--red)'),
-    kpiCard('Бунат уже получил', fmtMoney(received), 'весь нал, «Нал Буннат»', 'var(--orange)'),
+    kpiCard('Мы должны Бунату', fmtMoney(weOwe), 'его себестоимость, которой нет в наличных', 'var(--red)'),
+    kpiCard('Бунат должен нам', fmtMoney(heOwes), 'наша маржа в его наличных', 'var(--orange)'),
     kpiCard('Деньги у нас', fmtMoney(ours), 'только «РС Наташа»', 'var(--green)'),
   ].join('');
-  $('bunatNote').textContent='По оплаченным заказам. Бунату причитается себестоимость. Два кармана: «РС Наташа» — деньги у вас, «Нал Буннат» и любой «нал» — деньги у Буната. Если он получил больше себестоимости, разница — ваши деньги у него. Если меньше, остаток вы должны ему.'+(unknown?` Не размечено, куда пришли деньги: ${fmtMoney(unknown)} (${fmtInt(unknownN)} зак.) — в расчёт «получил» это не входит.`:'');
+  $('bunatNote').textContent=`По оплаченным заказам, по строке «Итого». Себестоимость Буната ${fmtMoney(entitled)}. Наличными у него ${fmtMoney(received)} — весь «нал» и «Нал Буннат». На «РС Наташа» у вас ${fmtMoney(ours)}. По заказу: если в его кармане больше себестоимости, разница наша; если меньше, этот остаток мы должны ему.`+(unknown?` Не размечено, куда пришли деньги: ${fmtMoney(unknown)} (${fmtInt(unknownN)} зак.) — в карман Буната это не входит.`:'');
   $('mgrSummary').innerHTML=mgrSummaryTable(fact);
   $('mgrDays').innerHTML=mgrPeriodTable(fact,'day');
   $('mgrWeeks').innerHTML=mgrPeriodTable(fact,'week');
