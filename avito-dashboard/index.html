@@ -1270,7 +1270,7 @@ function renderCharts(){
       {label:'План + расчёт',data:dim.map(d=>d.pipeline),backgroundColor:'rgba(197,165,124,.8)',borderRadius:3},
     ]},options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,plugins:{tooltip:tipMoney,legend:{position:'top'}},
       scales:horizontal
-        ?{x:{beginAtZero:true,ticks:moneyTicks},y:{ticks:{autoSkip:false}}}
+        ?{x:{beginAtZero:true,ticks:{maxTicksLimit:6,callback:v=>{ const n=Math.abs(v); if(n>=1e6) return (v/1e6).toLocaleString('ru-RU',{maximumFractionDigits:1})+' млн'; if(n>=1e3) return fmtInt(v/1000)+' тыс.'; return fmtInt(v); }}},y:{ticks:{autoSkip:false}}}
         :{y:{beginAtZero:true,ticks:moneyTicks}}}});
 }
 function renderManagers(){
