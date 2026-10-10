@@ -1129,14 +1129,12 @@ const moneyTicks={callback:v=>fmtInt(v)+' ₽'};
 function renderCharts(){
   const list=state.filtered;
   const ts=timeSeries(list,state.gran);
-  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'}`:'нет дат';
-  const bar=(k,label,color)=>({type:'bar',label,data:ts.map(t=>t[k]),backgroundColor:color,stack:'rev',borderRadius:3,order:2});
+  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · оплаченные`:'нет дат';
   chart('chTs',{data:{labels:ts.map(t=>t.label),datasets:[
-      bar('done','Оплачено','rgba(143,191,127,.9)'), bar('progress','План','rgba(197,165,124,.85)'), bar('lead','Расчёт','rgba(57,66,43,.55)'), bar('cancel','Слился','rgba(163,42,42,.75)'),
-      {type:'line',label:'Маржа факт',data:ts.map(t=>t.profit),borderColor:'#39422b',backgroundColor:'#39422b',tension:.3,pointRadius:3,order:1},
-      {type:'line',label:'Заказов',data:ts.map(t=>t.orders),borderColor:'#12160f',borderDash:[4,4],backgroundColor:'#12160f',tension:.3,pointRadius:2,yAxisID:'y1',order:0,money:false},
+      {type:'line',label:'Выручка',data:ts.map(t=>t.done),borderColor:'#8fbf7f',backgroundColor:'rgba(143,191,127,.22)',fill:true,tension:.3,pointRadius:3,borderWidth:2,order:2},
+      {type:'line',label:'Маржа',data:ts.map(t=>t.profit),borderColor:'#39422b',backgroundColor:'#39422b',tension:.3,pointRadius:3,borderWidth:2,order:1},
     ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{tooltip:tipMoney,legend:{position:'top'}},
-      scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:moneyTicks},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{precision:0}}}}});
+      scales:{y:{beginAtZero:true,ticks:moneyTicks}}}});
 
   const s=stageSums(list);
   const stages=STAGE_ORDER.filter(k=>s[k].orders);
