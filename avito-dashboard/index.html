@@ -98,38 +98,18 @@
   .owner th{cursor:default}
   .period-board,.mgr-board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;align-items:start}
   .period-col,.mgr-col{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;min-width:0}
-  .period-now{background:#5fbf45;color:#071206;border-radius:12px;padding:14px 14px 12px;box-shadow:0 0 0 3px #16300f}
-  .period-now .kicker{font-size:13px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin:0}
-  .mgr-col h2{font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin:0}
-  .period-now .when{font-size:14px;font-weight:700;margin:2px 0 8px}
-  .mrow{margin-top:8px}
-  .mrow-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:12px;font-weight:700}
-  .mrow-top b{font-size:22px;font-weight:800;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
-  .hbar{display:block;height:8px;border-radius:99px;margin-top:4px;max-width:100%}
-  .hbar.bright{background:#071206;height:10px}
-  .hbar.dim{background:rgba(143,191,127,.45);height:100%;margin:0}
-  .hbar.sand{background:#8a7048}
-  .past-head{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin:12px 2px 6px}
-  .past-list{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto;padding-right:2px}
-  .past-row{display:grid;grid-template-columns:minmax(72px,92px) minmax(36px,1fr) auto;gap:6px;align-items:center}
-  .past-track{height:7px;border-radius:99px;background:rgba(18,22,15,.08);overflow:hidden}
-  .past-row.is-zero .past-label,.past-row.is-zero .past-nums{color:#8b9284;font-weight:600}
-  .past-label{font-size:12px;font-weight:700;line-height:1.2}
-  .past-nums{display:flex;gap:8px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .past-caption{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:4px}
+  .period-col h2{margin:0 0 10px;font-size:15px;font-weight:700}
+  .period-tbl{max-height:480px}
+  .period-tbl th{cursor:default}
+  .period-tbl td,.period-tbl th{font-variant-numeric:tabular-nums}
+  .period-tbl tr.now td{background:#e7e4dc;color:var(--text);font-weight:800}
+  .period-tbl tr.past td{color:var(--muted);font-weight:500}
+  .period-tbl tr.past.is-zero td{color:#a3ab9d}
   .sum3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 12px}
   .sum3 div{background:var(--panel2);border-radius:10px;padding:10px 12px}
   .sum3 span{display:block;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
   .sum3 b{display:block;margin-top:4px;font-size:20px;font-weight:800;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
   .mgr-col h2{font-size:18px;text-transform:none;letter-spacing:0;margin:0 0 10px}
-  .mgr-line{margin-top:8px;border-radius:10px;padding:8px 10px}
-  .mgr-line.now{background:#5fbf45;color:#071206;box-shadow:0 0 0 2px #16300f}
-  .mgr-line.soft{background:var(--panel2)}
-  .mgr-line .mgr-h{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
-  .mgr-line .mgr-nums{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700}
-  .mgr-line .mgr-nums b{font-size:14px}
-  .mgr-line.now .hbar{background:#071206}
-  .mgr-line.soft .hbar{background:rgba(143,191,127,.7)}
   .verdict{font-size:26px;font-weight:800;letter-spacing:-.3px;margin:4px 0 8px}
   .verdict.owe{color:var(--red)}
   .verdict.owed{color:var(--green)}
@@ -175,7 +155,7 @@
   .approx{color:var(--muted)}
   footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center}
   @media (max-width:1100px){.three{grid-template-columns:1fr 1fr}}
-  @media (max-width:980px){.charts,.two,.three,.period-board,.mgr-board{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}.past-row{grid-template-columns:1fr}.past-nums{flex-wrap:wrap}}
+  @media (max-width:980px){.charts,.two,.three,.period-board,.mgr-board{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1032,13 +1012,11 @@ function dayFloor(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
 function weekStart(d){ const x=dayFloor(d); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; }
 function hasRealDate(o){ return !!(o.date&&!o.dateApprox); }
 function orderDay(o){ return o.date?dayFloor(o.date):null; }
-function barWidth(val, max){ if(!(val>0)||!(max>0)) return 0; return Math.max(4, Math.min(100, Math.round(val/max*100))); }
-function metricBars(a, scales, tone){
-  const items=[['Маржа',Math.max(0,a.profit||0),scales.profit,fmtMoney(a.profit)],['Выручка',a.revenue||0,scales.revenue,fmtMoney(a.revenue)],['Заказы',a.n||0,scales.n,fmtInt(a.n)]];
-  return items.map(([label,val,max,text])=>`<div class="mrow"><div class="mrow-top"><span>${label}</span><b>${text}</b></div><i class="hbar ${tone}" style="width:${barWidth(val,max)}%"></i></div>`).join('');
+function metricRow(label, a, cls){
+  return `<tr class="${cls}${a.n?'':' is-zero'}"><td>${esc(label)}</td><td class="num">${fmtMoney(a.profit)}</td><td class="num">${fmtMoney(a.revenue)}</td><td class="num">${fmtInt(a.n)}</td></tr>`;
 }
-function pastLine(label, a, maxRev){
-  return `<div class="past-row${a.n?'':' is-zero'}"><div class="past-label">${esc(label)}</div><div class="past-track"><i class="hbar dim" style="width:${barWidth(a.revenue,maxRev)}%"></i></div><div class="past-nums"><span title="Маржа">${fmtMoney(a.profit)}</span><span title="Выручка">${fmtMoney(a.revenue)}</span><span title="Заказы">${fmtInt(a.n)}</span></div></div>`;
+function metricTable(rows, head){
+  return `<div class="tbl period-tbl"><table><thead><tr><th>${esc(head||'Дата')}</th><th class="num">Маржа</th><th class="num">Выручка</th><th class="num">Заказы</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function granLabel(k, gran){
   if(gran==='week'){ const start=fromKey(k); const end=new Date(start); end.setDate(end.getDate()+6); const fmt=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}); return fmt(start)+' – '+fmt(end); }
@@ -1077,15 +1055,11 @@ function splitAround(list, gran, today){
 }
 function ordersInKey(list, gran, key){ return list.filter(o=>{ const d=orderDay(o); return d&&periodKey(d,gran)===key; }); }
 function periodColumn(title, when, currentOrders, past, future){
-  const pastA=past.map(([label,orders])=>({label,a:aggOrders(orders)}));
-  const futA=future.map(([label,orders])=>({label,a:aggOrders(orders)}));
-  const cur=aggOrders(currentOrders);
-  const all=[cur,...pastA.map(p=>p.a),...futA.map(p=>p.a)];
-  const maxOf=k=>Math.max(0,...all.map(a=>a[k]||0));
-  const scales={profit:maxOf('profit'),revenue:maxOf('revenue'),n:maxOf('n')};
-  const rows=pastA.map(p=>pastLine(p.label,p.a,scales.revenue)).join('')||'<div class="small muted">Нет предыдущих периодов</div>';
-  const later=futA.length?`<div class="past-caption">Позже</div>`+futA.map(p=>pastLine(p.label,p.a,scales.revenue)).join(''):'';
-  return `<div class="period-col"><div class="period-now"><div class="kicker">${esc(title)}</div><div class="when">${esc(when)}</div>${metricBars(cur,scales,'bright')}</div><div class="past-head"><span>Раньше</span><span>Маржа · выручка · заказы</span></div><div class="past-list">${rows}${later}</div></div>`;
+  const rows=[metricRow(when, aggOrders(currentOrders), 'now')]
+    .concat(past.map(([label,orders])=>metricRow(label, aggOrders(orders), 'past')))
+    .concat(future.map(([label,orders])=>metricRow(label, aggOrders(orders), 'past')))
+    .join('');
+  return `<div class="period-col"><h2>${esc(title)}</h2>${metricTable(rows)}</div>`;
 }
 function sumCards(a){
   return `<div class="sum3"><div><span>Маржа</span><b>${fmtMoney(a.profit)}</b></div><div><span>Выручка</span><b>${fmtMoney(a.revenue)}</b></div><div><span>Заказы</span><b>${fmtInt(a.n)}</b></div></div>`;
@@ -1108,13 +1082,12 @@ function renderOwner(){
   const planMap=new Map();
   for(const o of planDated){ const k=isoDay(orderDay(o)); if(!planMap.has(k)) planMap.set(k,[]); planMap.get(k).push(o); }
   const planGroups=[...planMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-  const planMax=Math.max(0,...planGroups.map(([,orders])=>aggOrders(orders).revenue), aggOrders(planOpen).revenue);
-  const planRows=planGroups.map(([k,orders])=>pastLine(granLabel(k,'day'), aggOrders(orders), planMax)).join('')||'<div class="small muted">Нет запланированных заказов с датой</div>';
-  const openRow=planOpen.length?`<div class="past-caption">В плане без даты</div>`+pastLine('Без даты', aggOrders(planOpen), planMax):'';
+  const planRows=planGroups.map(([k,orders])=>metricRow(granLabel(k,'day'), aggOrders(orders), 'past')).join('')||'<tr><td colspan="4" class="muted">Нет запланированных заказов с датой</td></tr>';
+  const openRow=planOpen.length?metricRow('Без даты', aggOrders(planOpen), 'past'):'';
   const leads=state.orders.filter(o=>o.statusClass==='lead');
   const calc=leads.filter(o=>!hasRealDate(o)), calcDated=leads.filter(hasRealDate);
-  const calcRow=calcDated.length?`<div class="past-caption">В расчёте, дата уже стоит</div>`+pastLine('С датой', aggOrders(calcDated), Math.max(aggOrders(calc).revenue, aggOrders(calcDated).revenue)):'';
-  $('ownerNext').innerHTML=`<div class="panel" style="margin-bottom:14px"><h2>Запланированные <span class="hint">статус «2 план», с датой</span></h2>${sumCards(aggOrders(planDated))}<div class="past-head"><span>По датам</span><span>Маржа · выручка · заказы</span></div><div class="past-list">${planRows}${openRow}</div></div><div class="panel" style="margin-bottom:14px"><h2>Расчёты <span class="hint">без даты, в обсуждении</span></h2>${sumCards(aggOrders(calc))}${calcRow}</div>`;
+  const calcRow=calcDated.length?metricTable(metricRow('С датой', aggOrders(calcDated), 'past')):'';
+  $('ownerNext').innerHTML=`<div class="panel" style="margin-bottom:14px"><h2>Запланированные <span class="hint">статус «2 план», с датой</span></h2>${sumCards(aggOrders(planDated))}${metricTable(planRows+openRow)}</div><div class="panel" style="margin-bottom:14px"><h2>Расчёты <span class="hint">без даты, в обсуждении</span></h2>${sumCards(aggOrders(calc))}${calcRow}</div>`;
   const factPaid=factAll;
   let entitled=0, received=0, ours=0, unknown=0, unknownN=0, heOwes=0, weOwe=0;
   for(const o of factPaid){
@@ -1156,9 +1129,7 @@ function renderManagerSheet(){
     {key:'lead',title:'Расчёты',tone:'soft',list:calc},
   ];
   const cells=SHEET_NAMES.map(name=>({name,rows:slices.map(s=>({...s,a:aggOrders(s.list.filter(o=>canonManager(o.manager)===name))}))}));
-  const maxRev={}; for(const s of slices) maxRev[s.key]=Math.max(0,...cells.map(c=>c.rows.find(r=>r.key===s.key).a.revenue));
-  const line=(row)=>`<div class="mgr-line ${row.tone}"><div class="mgr-h">${esc(row.title)}</div><div class="mgr-nums"><span>Маржа <b>${fmtMoney(row.a.profit)}</b></span><span>Выручка <b>${fmtMoney(row.a.revenue)}</b></span><span>Заказы <b>${fmtInt(row.a.n)}</b></span></div><i class="hbar" style="width:${barWidth(row.a.revenue,maxRev[row.key])}%"></i></div>`;
-  const cols=cells.map(c=>`<div class="mgr-col"><h2>${esc(c.name)}</h2>${c.rows.map(line).join('')}</div>`).join('');
+  const cols=cells.map(c=>`<div class="mgr-col"><h2>${esc(c.name)}</h2>${metricTable(c.rows.map(r=>metricRow(r.title, r.a, r.tone==='now'?'now':'past')).join(''),'Период')}</div>`).join('');
   const rest=state.orders.filter(o=>o.statusClass==='done'&&!SHEET_NAMES.includes(canonManager(o.manager)));
   const restNote=rest.length?`<div class="small muted" style="margin-top:8px">Ещё ${fmtInt(rest.length)} оплаченных заказов у других ответственных.</div>`:'';
   $('mgrView').innerHTML=`<div class="bunat-head"><div><h2>Менеджеры</h2><div class="small muted">Маржа, выручка и заказы. Этот день, эта неделя и этот месяц — по оплаченным.</div></div></div><div class="mgr-board">${cols}</div>${restNote}`;
