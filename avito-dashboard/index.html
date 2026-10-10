@@ -96,6 +96,37 @@
   .owner-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
   .owner-grid .tbl{max-height:380px}
   .owner th{cursor:default}
+  .period-board,.mgr-board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;align-items:start}
+  .period-col,.mgr-col{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;min-width:0}
+  .period-now,.mgr-now{background:var(--leaf);color:var(--leaf-ink);border-radius:12px;padding:12px 12px 10px}
+  .period-now .kicker,.mgr-col h2{font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin:0}
+  .period-now .when{font-size:13px;margin:2px 0 8px}
+  .mrow{margin-top:8px}
+  .mrow-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:12px;font-weight:700}
+  .mrow-top b{font-size:18px;font-weight:800;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+  .hbar{display:block;height:8px;border-radius:99px;margin-top:4px;max-width:100%}
+  .hbar.bright{background:#12160f}
+  .hbar.dim{background:rgba(143,191,127,.55);height:7px}
+  .hbar.sand{background:#8a7048}
+  .past-head{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin:12px 2px 6px}
+  .past-list{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto;padding-right:2px}
+  .past-row{display:grid;grid-template-columns:minmax(72px,92px) minmax(36px,1fr) auto;gap:6px;align-items:center}
+  .past-label{font-size:12px;font-weight:700;line-height:1.2}
+  .past-nums{display:flex;gap:8px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .past-caption{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:4px}
+  .sum3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 12px}
+  .sum3 div{background:var(--panel2);border-radius:10px;padding:10px 12px}
+  .sum3 span{display:block;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .sum3 b{display:block;margin-top:4px;font-size:20px;font-weight:800;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+  .mgr-col h2{font-size:18px;text-transform:none;letter-spacing:0;margin:0 0 10px}
+  .mgr-line{margin-top:8px;border-radius:10px;padding:8px 10px}
+  .mgr-line.now{background:var(--leaf);color:var(--leaf-ink)}
+  .mgr-line.soft{background:var(--panel2)}
+  .mgr-line .mgr-h{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+  .mgr-line .mgr-nums{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700}
+  .mgr-line .mgr-nums b{font-size:14px}
+  .mgr-line.now .hbar{background:#12160f}
+  .mgr-line.soft .hbar{background:rgba(143,191,127,.7)}
   .verdict{font-size:26px;font-weight:800;letter-spacing:-.3px;margin:4px 0 8px}
   .verdict.owe{color:var(--red)}
   .verdict.owed{color:var(--green)}
@@ -126,6 +157,7 @@
     body[data-view="bunat"] #viewSwitch,
     body[data-view="bunat"] footer,
     body[data-view="bunat"] #ownerView,
+    body[data-view="bunat"] #mgrView,
     body[data-view="bunat"] #dash,
     body[data-view="bunat"] .noprint{display:none!important}
     body[data-view="bunat"] #bunatView{display:block!important}
@@ -140,7 +172,7 @@
   .approx{color:var(--muted)}
   footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center}
   @media (max-width:1100px){.three{grid-template-columns:1fr 1fr}}
-  @media (max-width:980px){.charts,.two,.three{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}}
+  @media (max-width:980px){.charts,.two,.three,.period-board,.mgr-board{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}.past-row{grid-template-columns:1fr}.past-nums{flex-wrap:wrap}}
 </style>
 </head>
 <body>
@@ -148,7 +180,7 @@
   <header>
     <div>
       <h1><span class="logo"></span>Авито · Аналитика заказов</h1>
-      <div class="sub">Первый экран — для собственника: факт, план, Буннат и менеджеры. Таблица только читается.</div>
+      <div class="sub">Первый экран — для собственника: день, неделя, месяц. Таблица только читается.</div>
     </div>
     <div class="actions">
       <button class="btn" id="btnDemo" title="Показать дашборд на сгенерированных данных">Демо-данные</button>
@@ -191,6 +223,7 @@
   <div class="viewbar hidden" id="viewSwitch">
     <div class="seg" id="views">
       <button type="button" data-v="owner" class="active">Собственник</button>
+      <button type="button" data-v="mgr">Менеджеры</button>
       <button type="button" data-v="bunat">Для Бунната</button>
       <button type="button" data-v="detail">Подробно</button>
     </div>
@@ -198,30 +231,17 @@
   </div>
 
   <div id="ownerView" class="hidden">
-    <div class="kpis" id="todayKpis"></div>
-    <div class="owner-grid">
-      <div class="panel"><h2>Факт по дням <span class="hint">оплаченные</span></h2><div class="tbl" id="factDays"></div></div>
-      <div class="panel"><h2>Факт по неделям <span class="hint">с понедельника</span></h2><div class="tbl" id="factWeeks"></div></div>
-      <div class="panel"><h2>Факт по месяцам <span class="hint">оплаченные</span></h2><div class="tbl" id="factMonths"></div></div>
-    </div>
-    <div class="kpis" id="planKpis"></div>
+    <div class="period-board" id="ownerPeriods"></div>
+    <div id="ownerNext"></div>
     <div class="panel" style="margin-bottom:14px">
       <h2>Взаиморасчёты с Буннатом <span class="hint" id="bunatHint">по оплаченным</span></h2>
       <div class="verdict" id="bunatVerdict"></div>
       <div class="kpis" id="bunatKpis" style="margin:0"></div>
       <div class="small muted" id="bunatNote" style="margin-top:10px"></div>
     </div>
-    <div class="panel" style="margin-bottom:14px">
-      <h2>Менеджеры <span class="hint">факт · Дарья+Ирина — один человек</span></h2>
-      <div class="tbl" id="mgrSummary" style="max-height:none;margin-bottom:14px"></div>
-      <h2 style="font-size:13px">По дням</h2>
-      <div class="tbl" id="mgrDays" style="max-height:320px;margin-bottom:14px"></div>
-      <h2 style="font-size:13px">По неделям</h2>
-      <div class="tbl" id="mgrWeeks" style="max-height:320px;margin-bottom:14px"></div>
-      <h2 style="font-size:13px">По месяцам</h2>
-      <div class="tbl" id="mgrMonths" style="max-height:none"></div>
-    </div>
   </div>
+
+  <div id="mgrView" class="hidden"></div>
 
   <div id="bunatView" class="hidden"></div>
 
@@ -1005,35 +1025,74 @@ function renderBunat(){
 function kpiCard(label, value, sub, color){
   return `<div class="kpi" style="--kc:${color}"><div class="l">${label}</div><div class="v">${value}</div>${sub?`<div class="d">${sub}</div>`:''}</div>`;
 }
+function dayFloor(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+function weekStart(d){ const x=dayFloor(d); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; }
+function hasRealDate(o){ return !!(o.date&&!o.dateApprox); }
+function orderDay(o){ return o.date?dayFloor(o.date):null; }
+function barWidth(val, max){ if(!(val>0)||!(max>0)) return 0; return Math.max(4, Math.min(100, Math.round(val/max*100))); }
+function metricBars(a, scales, tone){
+  const items=[['Маржа',Math.max(0,a.profit||0),scales.profit,fmtMoney(a.profit)],['Выручка',a.revenue||0,scales.revenue,fmtMoney(a.revenue)],['Заказы',a.n||0,scales.n,fmtInt(a.n)]];
+  return items.map(([label,val,max,text])=>`<div class="mrow"><div class="mrow-top"><span>${label}</span><b>${text}</b></div><i class="hbar ${tone}" style="width:${barWidth(val,max)}%"></i></div>`).join('');
+}
+function pastLine(label, a, maxRev){
+  return `<div class="past-row"><div class="past-label">${esc(label)}</div><i class="hbar dim" style="width:${barWidth(a.revenue,maxRev)}%"></i><div class="past-nums"><span title="Маржа">${fmtMoney(a.profit)}</span><span title="Выручка">${fmtMoney(a.revenue)}</span><span title="Заказы">${fmtInt(a.n)}</span></div></div>`;
+}
+function granLabel(k, gran){
+  if(gran==='week'){ const start=fromKey(k); const end=new Date(start); end.setDate(end.getDate()+6); const fmt=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}); return fmt(start)+' – '+fmt(end); }
+  if(gran==='month') return fromKey(k).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+  return fromKey(k).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+}
+function splitAround(list, gran, currentKey){
+  const map=new Map();
+  for(const o of list){ const d=orderDay(o); if(!d) continue; const k=periodKey(d,gran); if(!map.has(k)) map.set(k,[]); map.get(k).push(o); }
+  const past=[], future=[];
+  for(const [k,orders] of map){ if(k===currentKey) continue; (k<currentKey?past:future).push([granLabel(k,gran),orders,k]); }
+  past.sort((a,b)=>b[2].localeCompare(a[2])); future.sort((a,b)=>a[2].localeCompare(b[2]));
+  return {past,future};
+}
+function ordersInKey(list, gran, key){ return list.filter(o=>{ const d=orderDay(o); return d&&periodKey(d,gran)===key; }); }
+function periodColumn(title, when, currentOrders, past, future){
+  const pastA=past.map(([label,orders])=>({label,a:aggOrders(orders)}));
+  const futA=future.map(([label,orders])=>({label,a:aggOrders(orders)}));
+  const cur=aggOrders(currentOrders);
+  const all=[cur,...pastA.map(p=>p.a),...futA.map(p=>p.a)];
+  const maxOf=k=>Math.max(0,...all.map(a=>a[k]||0));
+  const scales={profit:maxOf('profit'),revenue:maxOf('revenue'),n:maxOf('n')};
+  const rows=pastA.map(p=>pastLine(p.label,p.a,scales.revenue)).join('')||'<div class="small muted">Нет предыдущих периодов</div>';
+  const later=futA.length?`<div class="past-caption">Позже</div>`+futA.map(p=>pastLine(p.label,p.a,scales.revenue)).join(''):'';
+  return `<div class="period-col"><div class="period-now"><div class="kicker">${esc(title)}</div><div class="when">${esc(when)}</div>${metricBars(cur,scales,'bright')}</div><div class="past-head"><span>Раньше</span><span>Маржа · выручка · заказы</span></div><div class="past-list">${rows}${later}</div></div>`;
+}
+function sumCards(a){
+  return `<div class="sum3"><div><span>Маржа</span><b>${fmtMoney(a.profit)}</b></div><div><span>Выручка</span><b>${fmtMoney(a.revenue)}</b></div><div><span>Заказы</span><b>${fmtInt(a.n)}</b></div></div>`;
+}
 function renderOwner(){
-  const fact=state.orders.filter(o=>o.statusClass==='done');
-  const plan=state.orders.filter(o=>o.statusClass==='progress');
-  const today=new Date(); today.setHours(0,0,0,0);
-  const isToday=o=>o.date&&isoDay(o.date)===isoDay(today);
-  const todayFact=aggOrders(fact.filter(isToday));
-  const todayPlan=aggOrders(plan.filter(isToday));
-  const todayLead=aggOrders(state.orders.filter(o=>o.statusClass==='lead'&&isToday(o)));
-  const todayLabel=today.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
-  const todayExtra=[
-    todayPlan.n?`В плане сегодня: ${fmtInt(todayPlan.n)} зак. · выручка ${fmtMoney(todayPlan.revenue)} · маржа ${fmtMoney(todayPlan.profit)}`:'',
-    todayLead.n?`В расчёте сегодня: ${fmtInt(todayLead.n)} зак. · выручка ${fmtMoney(todayLead.revenue)} · маржа ${fmtMoney(todayLead.profit)}`:'',
-  ].filter(Boolean).join(' · ');
-  $('todayKpis').innerHTML=[
-    kpiCard('Заказов сегодня', fmtInt(todayFact.n), `факт · ${todayLabel}`, 'var(--accent)'),
-    kpiCard('Выручка сегодня', fmtMoney(todayFact.revenue), 'оплаченные заказы', 'var(--green)'),
-    kpiCard('Маржа сегодня', fmtMoney(todayFact.profit), todayFact.revenue?fmtPct(todayFact.margin)+' от выручки':'оплаченные заказы', 'var(--yellow)'),
-  ].join('')+(todayExtra?`<div class="small muted" style="grid-column:1/-1">${todayExtra}</div>`:'');
-  $('factDays').innerHTML=factTable(fact,'day');
-  $('factWeeks').innerHTML=factTable(fact,'week');
-  $('factMonths').innerHTML=factTable(fact,'month');
-  const planAgg=aggOrders(plan);
-  $('planKpis').innerHTML=[
-    kpiCard('Заказов в плане', fmtInt(planAgg.n), 'статус «2 план»', 'var(--accent)'),
-    kpiCard('Запланированная выручка', fmtMoney(planAgg.revenue), 'ещё не оплачено', 'var(--accent)'),
-    kpiCard('Маржа в плане', fmtMoney(planAgg.profit), planAgg.revenue?fmtPct(planAgg.margin)+' от плановой выручки':'', 'var(--yellow)'),
+  const today=dayFloor(new Date());
+  const ws=weekStart(today); const we=new Date(ws); we.setDate(ws.getDate()+6);
+  const fmt=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+  const factAll=state.orders.filter(o=>o.statusClass==='done');
+  const fact=factAll.filter(o=>o.date);
+  const dayKey=isoDay(today), weekKey=periodKey(today,'week'), monthKey=periodKey(today,'month');
+  const days=splitAround(fact,'day',dayKey), weeks=splitAround(fact,'week',weekKey), months=splitAround(fact,'month',monthKey);
+  $('ownerPeriods').innerHTML=[
+    periodColumn('Этот день', today.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'}), ordersInKey(fact,'day',dayKey), days.past, days.future),
+    periodColumn('Эта неделя', fmt(ws)+' – '+fmt(we), ordersInKey(fact,'week',weekKey), weeks.past, weeks.future),
+    periodColumn('Этот месяц', today.toLocaleDateString('ru-RU',{month:'long',year:'numeric'}), ordersInKey(fact,'month',monthKey), months.past, months.future),
   ].join('');
+  const plan=state.orders.filter(o=>o.statusClass==='progress');
+  const planDated=plan.filter(hasRealDate), planOpen=plan.filter(o=>!hasRealDate(o));
+  const planMap=new Map();
+  for(const o of planDated){ const k=isoDay(orderDay(o)); if(!planMap.has(k)) planMap.set(k,[]); planMap.get(k).push(o); }
+  const planGroups=[...planMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+  const planMax=Math.max(0,...planGroups.map(([,orders])=>aggOrders(orders).revenue), aggOrders(planOpen).revenue);
+  const planRows=planGroups.map(([k,orders])=>pastLine(granLabel(k,'day'), aggOrders(orders), planMax)).join('')||'<div class="small muted">Нет запланированных заказов с датой</div>';
+  const openRow=planOpen.length?`<div class="past-caption">В плане без даты</div>`+pastLine('Без даты', aggOrders(planOpen), planMax):'';
+  const leads=state.orders.filter(o=>o.statusClass==='lead');
+  const calc=leads.filter(o=>!hasRealDate(o)), calcDated=leads.filter(hasRealDate);
+  const calcRow=calcDated.length?`<div class="past-caption">В расчёте, дата уже стоит</div>`+pastLine('С датой', aggOrders(calcDated), Math.max(aggOrders(calc).revenue, aggOrders(calcDated).revenue)):'';
+  $('ownerNext').innerHTML=`<div class="panel" style="margin-bottom:14px"><h2>Запланированные <span class="hint">статус «2 план», с датой</span></h2>${sumCards(aggOrders(planDated))}<div class="past-head"><span>По датам</span><span>Маржа · выручка · заказы</span></div><div class="past-list">${planRows}${openRow}</div></div><div class="panel" style="margin-bottom:14px"><h2>Расчёты <span class="hint">без даты, в обсуждении</span></h2>${sumCards(aggOrders(calc))}${calcRow}</div>`;
+  const factPaid=factAll;
   let entitled=0, received=0, ours=0, unknown=0, unknownN=0, heOwes=0, weOwe=0;
-  for(const o of fact){
+  for(const o of factPaid){
     entitled+=o.cost||0;
     const sides=moneySides(o);
     received+=sides.bunat; ours+=sides.ours; unknown+=sides.unknown;
@@ -1053,47 +1112,68 @@ function renderOwner(){
     kpiCard('Деньги у нас', fmtMoney(ours), 'только «РС Наташа»', 'var(--green)'),
   ].join('');
   $('bunatNote').textContent=`По оплаченным заказам, по строке «Итого». Себестоимость Бунната ${fmtMoney(entitled)}. Наличными у него ${fmtMoney(received)} — весь «нал» и «Нал Буннат». На «РС Наташа» у вас ${fmtMoney(ours)}. По заказу: если в его кармане больше себестоимости, разница наша; если меньше, этот остаток мы должны ему.`+(unknown?` Не размечено, куда пришли деньги: ${fmtMoney(unknown)} (${fmtInt(unknownN)} зак.) — в карман Бунната это не входит.`:'');
-  $('mgrSummary').innerHTML=mgrSummaryTable(fact);
-  $('mgrDays').innerHTML=mgrPeriodTable(fact,'day');
-  $('mgrWeeks').innerHTML=mgrPeriodTable(fact,'week');
-  $('mgrMonths').innerHTML=mgrPeriodTable(fact,'month');
 }
+const SHEET_NAMES=['Наталия','Кирилл','Дарья+Ирина'];
+function renderManagerSheet(){
+  const today=dayFloor(new Date());
+  const ws=weekStart(today); const we=new Date(ws); we.setDate(ws.getDate()+6);
+  const ms=new Date(today.getFullYear(), today.getMonth(), 1);
+  const me=new Date(today.getFullYear(), today.getMonth()+1, 0);
+  const between=(o,a,b)=>{ const d=orderDay(o); return !!(d&&d>=a&&d<=b); };
+  const fact=state.orders.filter(o=>o.statusClass==='done'&&o.date);
+  const plan=state.orders.filter(o=>o.statusClass==='progress'&&hasRealDate(o));
+  const calc=state.orders.filter(o=>o.statusClass==='lead'&&!hasRealDate(o));
+  const slices=[
+    {key:'day',title:'Этот день',tone:'now',list:fact.filter(o=>between(o,today,today))},
+    {key:'week',title:'Эта неделя',tone:'now',list:fact.filter(o=>between(o,ws,we))},
+    {key:'month',title:'Этот месяц',tone:'now',list:fact.filter(o=>between(o,ms,me))},
+    {key:'plan',title:'Запланированные',tone:'soft',list:plan},
+    {key:'lead',title:'Расчёты',tone:'soft',list:calc},
+  ];
+  const cells=SHEET_NAMES.map(name=>({name,rows:slices.map(s=>({...s,a:aggOrders(s.list.filter(o=>canonManager(o.manager)===name))}))}));
+  const maxRev={}; for(const s of slices) maxRev[s.key]=Math.max(0,...cells.map(c=>c.rows.find(r=>r.key===s.key).a.revenue));
+  const line=(row)=>`<div class="mgr-line ${row.tone}"><div class="mgr-h">${esc(row.title)}</div><div class="mgr-nums"><span>Маржа <b>${fmtMoney(row.a.profit)}</b></span><span>Выручка <b>${fmtMoney(row.a.revenue)}</b></span><span>Заказы <b>${fmtInt(row.a.n)}</b></span></div><i class="hbar" style="width:${barWidth(row.a.revenue,maxRev[row.key])}%"></i></div>`;
+  const cols=cells.map(c=>`<div class="mgr-col"><h2>${esc(c.name)}</h2>${c.rows.map(line).join('')}</div>`).join('');
+  const rest=state.orders.filter(o=>o.statusClass==='done'&&!SHEET_NAMES.includes(canonManager(o.manager)));
+  const restNote=rest.length?`<div class="small muted" style="margin-top:8px">Ещё ${fmtInt(rest.length)} оплаченных заказов у других ответственных.</div>`:'';
+  $('mgrView').innerHTML=`<div class="bunat-head"><div><h2>Менеджеры</h2><div class="small muted">Маржа, выручка и заказы. Этот день, эта неделя и этот месяц — по оплаченным.</div></div></div><div class="mgr-board">${cols}</div>${restNote}`;
+}
+const viewHints={owner:'Оплаченные заказы: этот день, эта неделя, этот месяц. Ниже — план с датами и расчёты.',mgr:'Наталия, Кирилл, Дарья+Ирина. Маржа, выручка, заказы.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
 function showView(view){
   state.view=view;
   const u=new URL(location.href);
   if(view==='owner') u.searchParams.delete('view'); else u.searchParams.set('view', view);
   history.replaceState(null,'',u.pathname+u.search);
   document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('active', b.dataset.v===view));
-  const hints={owner:'Факт — это оплаченные заказы.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
-  if($('viewHint')) $('viewHint').textContent=hints[view]||hints.owner;
+  if($('viewHint')) $('viewHint').textContent=viewHints[view]||viewHints.owner;
   render();
 }
 
 /* ---------- rendering ---------- */
 function render(){
   if(!state.orders.length){
-    $('dash').classList.add('hidden'); $('ownerView').classList.add('hidden'); $('bunatView').classList.add('hidden'); $('viewSwitch').classList.add('hidden');
+    $('dash').classList.add('hidden'); $('ownerView').classList.add('hidden'); $('bunatView').classList.add('hidden'); $('mgrView').classList.add('hidden'); $('viewSwitch').classList.add('hidden');
     $('emptyState').classList.remove('hidden'); return;
   }
   $('emptyState').classList.add('hidden');
   $('viewSwitch').classList.remove('hidden');
   document.body.dataset.view=state.view;
   document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('active', b.dataset.v===state.view));
-  const hints={owner:'Факт — это оплаченные заказы.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
-  if($('viewHint')) $('viewHint').textContent=hints[state.view]||hints.owner;
+  if($('viewHint')) $('viewHint').textContent=viewHints[state.view]||viewHints.owner;
   state.filtered=filterOrders(state.orders,state.filter);
+  $('dash').classList.add('hidden'); $('ownerView').classList.add('hidden'); $('bunatView').classList.add('hidden'); $('mgrView').classList.add('hidden');
   if(state.view==='detail'){
-    $('ownerView').classList.add('hidden'); $('bunatView').classList.add('hidden');
     $('dash').classList.remove('hidden');
     $('mgrPanel').classList.toggle('hidden',!state.orders.some(o=>o.manager));
     $('payPanel').classList.toggle('hidden',!state.orders.some(o=>o.payTo));
     renderKPIs(); renderCharts(); renderManagers(); renderPayments(); renderServices(); renderProducts(); renderClients(); renderOrders();
   } else if(state.view==='bunat'){
-    $('dash').classList.add('hidden'); $('ownerView').classList.add('hidden');
     $('bunatView').classList.remove('hidden');
     renderBunat();
+  } else if(state.view==='mgr'){
+    $('mgrView').classList.remove('hidden');
+    renderManagerSheet();
   } else {
-    $('dash').classList.add('hidden'); $('bunatView').classList.add('hidden');
     $('ownerView').classList.remove('hidden');
     renderOwner();
   }
@@ -1307,7 +1387,7 @@ function init(){
     if(Date.now()-(state.loadedAt||0)>=AUTO_MS) loadFromGoogle({silent:true});
   });
   const view=params.get('view');
-  if(view==='bunat'||view==='detail'||view==='owner') state.view=view;
+  if(view==='bunat'||view==='detail'||view==='owner'||view==='mgr') state.view=view;
   if(params.get('demo')!=null) $('btnDemo').click();
   else if(parseSheetId($('sheetUrl').value)) loadFromGoogle();
 }
