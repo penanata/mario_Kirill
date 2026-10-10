@@ -137,6 +137,7 @@
       </div>
     </div>
     <div class="status" id="status">Данные не загружены.</div>
+    <div class="small muted" id="autoHint">Пока эта вкладка открыта, лист перечитывается каждую минуту. В таблицу дашборд ничего не записывает.</div>
     <div class="notice hidden" id="accessNotice">
       Google не отдаёт таблицу без входа в аккаунт. Чтобы дашборд мог читать данные, откройте доступ по ссылке (только чтение):
       <ol>
@@ -312,8 +313,9 @@ const state = {
   mode:'blocks', orders:[], filtered:[], summary:[], headers:[], headerIdx:0, mapping:{}, autoMapping:{},
   filter:{ preset:'all', from:null, to:null, status:'all', manager:'', product:'', q:'' },
   gran:'week', sort:{col:'date',dir:-1}, page:0, pageSize:25, expanded:new Set(), charts:{}, sourceLabel:'',
-  view:'owner',
+  view:'owner', loading:false, loadedAt:0, autoTimer:null,
 };
+const AUTO_MS = 60000;
 const OWNER_MANAGERS = ['Дарья и Ирина','Наталия','Кирилл','Света'];
 const $ = id => document.getElementById(id);
 
@@ -626,12 +628,25 @@ async function fetchSheetCSV(id,name){
   const text=await res.text(); if(/^\s*<(!doctype|html)/i.test(text)) throw new Error('AUTH');
   return parseCSV(text);
 }
-async function loadFromGoogle(){
+function stopAuto(){ clearInterval(state.autoTimer); state.autoTimer=null; }
+function scheduleAuto(){
+  stopAuto();
+  state.autoTimer=setInterval(()=>{
+    if(document.hidden||state.loading) return;
+    if(!state.sheetId||state.sheetId==='demo'||String(state.sheetId).startsWith('file:')) return;
+    loadFromGoogle({silent:true});
+  }, AUTO_MS);
+}
+async function loadFromGoogle(opts){
+  const silent=!!(opts&&opts.silent);
+  if(state.loading) return;
   const id=parseSheetId($('sheetUrl').value);
-  if(!id){ setStatus('Не удалось разобрать ссылку на таблицу','err'); return; }
-  state.sheetId=id; $('accessNotice').classList.add('hidden');
+  if(!id){ if(!silent) setStatus('Не удалось разобрать ссылку на таблицу','err'); return; }
+  state.loading=true; state.sheetId=id; $('accessNotice').classList.add('hidden');
   const tab=$('tabSelect').value||DEFAULT_TAB;
-  setStatus('Загрузка…'); $('btnLoad').disabled=true;
+  const scroll=silent?window.scrollY:null;
+  const page=state.page;
+  if(!silent){ setStatus('Загрузка…'); $('btnLoad').disabled=true; }
   try{
     try{
       const wb=await fetchWorkbook(id); setWorkbook(wb,'Google Таблица');
@@ -641,15 +656,20 @@ async function loadFromGoogle(){
       const m=await fetchSheetCSV(id,tab); state.workbook=null; state.tabNames=[]; state.tab=tab; fillTabSelect(tab);
       ingestMatrix(m,'Google Таблица (CSV)');
     }
-    history.replaceState(null,'',`?sheet=${id}&tab=${encodeURIComponent(state.tab)}`);
+    state.loadedAt=Date.now();
+    if(silent){ state.page=page; render(); window.scrollTo(0, scroll); }
+    else history.replaceState(null,'',`?sheet=${id}&tab=${encodeURIComponent(state.tab)}`);
+    scheduleAuto();
   }catch(e){
-    const auth=e.message==='AUTH'||/Failed to fetch|NetworkError|HTTP 4/.test(e.message);
-    setStatus(auth?'Google Таблица недоступна для чтения (нет доступа по ссылке).':'Ошибка: '+e.message,'err');
-    if(auth) $('accessNotice').classList.remove('hidden');
-  }finally{ $('btnLoad').disabled=false; }
+    if(!silent){
+      const auth=e.message==='AUTH'||/Failed to fetch|NetworkError|HTTP 4/.test(e.message);
+      setStatus(auth?'Google Таблица недоступна для чтения (нет доступа по ссылке).':'Ошибка: '+e.message,'err');
+      if(auth) $('accessNotice').classList.remove('hidden');
+    }
+  }finally{ state.loading=false; $('btnLoad').disabled=false; }
 }
 async function loadFile(f){
-  if(!f) return; setStatus('Чтение файла…');
+  if(!f) return; stopAuto(); setStatus('Чтение файла…');
   try{
     state.sheetId='file:'+f.name;
     if(/\.xlsx?$/i.test(f.name)){
@@ -1091,7 +1111,7 @@ function init(){
   $('sheetUrl').onkeydown=e=>{ if(e.key==='Enter') loadFromGoogle(); };
   $('sheetUrl').onchange=()=>{ if(parseSheetId($('sheetUrl').value)!==state.sheetId){ state.workbook=null; state.tabNames=[]; fillTabSelect(DEFAULT_TAB); } };
   $('tabSelect').onchange=e=>{ if(state.workbook){ useTab(e.target.value); history.replaceState(null,'',`?sheet=${state.sheetId}&tab=${encodeURIComponent(state.tab)}`); } else state.tab=e.target.value; };
-  $('btnDemo').onclick=()=>{ state.sheetId='demo'; state.workbook=null; state.tabNames=[]; state.tab='Демо'; fillTabSelect('Демо'); ingestMatrix(demoData(),'Демо-данные'); };
+  $('btnDemo').onclick=()=>{ stopAuto(); state.sheetId='demo'; state.workbook=null; state.tabNames=[]; state.tab='Демо'; fillTabSelect('Демо'); ingestMatrix(demoData(),'Демо-данные'); };
   $('btnFile').onclick=()=>$('fileInput').click();
   $('fileInput').onchange=e=>{ loadFile(e.target.files[0]); e.target.value=''; };
   const app=$('app');
@@ -1107,6 +1127,11 @@ function init(){
   document.querySelectorAll('#gran button').forEach(b=>b.onclick=()=>{ state.gran=b.dataset.g; document.querySelectorAll('#gran button').forEach(x=>x.classList.toggle('active',x===b)); saveSettings(); renderCharts(); });
   $('btnExport').onclick=exportCSV;
   document.querySelectorAll('#views button').forEach(b=>b.onclick=()=>showView(b.dataset.v));
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden||state.loading) return;
+    if(!state.sheetId||state.sheetId==='demo'||String(state.sheetId).startsWith('file:')) return;
+    if(Date.now()-(state.loadedAt||0)>=AUTO_MS) loadFromGoogle({silent:true});
+  });
   if(params.get('demo')!=null) $('btnDemo').click();
   else if(parseSheetId($('sheetUrl').value)) loadFromGoogle();
 }
