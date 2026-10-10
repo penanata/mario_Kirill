@@ -974,14 +974,20 @@ function renderBunat(){
   for(const o of state.orders){
     if(o.statusClass!=='progress') continue;
     const card=bunatCard(o);
-    const bucket=bunatBucket(card, today);
-    if(card.date && card.date<today && bucket!=='today') card.past=true;
-    groups[bucket].push(card);
+    if(card.date){
+      const d=new Date(card.date); d.setHours(0,0,0,0);
+      if(d<today) continue;
+    }
+    groups[bunatBucket(card, today)].push(card);
   }
   const byDate=(a,b)=>((a.date?a.date.getTime():9e15)-(b.date?b.date.getTime():9e15))||a.name.localeCompare(b.name,'ru');
   Object.values(groups).forEach(list=>list.sort(byDate));
-  const weekLabel=ws.toLocaleDateString('ru-RU',{day:'numeric',month:'long'})+' – '+we.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
-  const monthLabel=today.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+  const fmtDay=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+  const tomorrow=new Date(today); tomorrow.setDate(today.getDate()+1);
+  const weekLabel=tomorrow<=we?fmtDay(tomorrow)+' – '+fmtDay(we):'на этой неделе предстоящих дней нет';
+  const monthStart=new Date(we); monthStart.setDate(we.getDate()+1); monthStart.setHours(0,0,0,0);
+  const monthEnd=new Date(today.getFullYear(), today.getMonth()+1, 0);
+  const monthLabel=monthStart<=monthEnd?fmtDay(monthStart)+' – '+fmtDay(monthEnd):'после этой недели в месяце дней нет';
   const section=(title, hint, list)=>`<div class="panel" style="margin-bottom:14px"><h2>${title} <span class="hint">${esc(hint)} · ${fmtInt(list.length)}</span></h2>${bunatTable(list)}</div>`;
   const todayKind=c=>{ const t=c.logistics.toLowerCase(); if(t.includes('доставк')) return 'delivery'; if(t.includes('самовывоз')) return 'pickup'; return 'unknown'; };
   const todayBlock=(title, list)=>`<h2 class="bunat-sub">${title} <span class="hint">${fmtInt(list.length)}</span></h2>${bunatTable(list)}`;
@@ -991,12 +997,14 @@ function renderBunat(){
   const todayHtml=`<div class="panel" style="margin-bottom:14px"><h2>Сегодня <span class="hint">${esc(today.toLocaleDateString('ru-RU',{day:'numeric',month:'long',weekday:'long'}))} · ${fmtInt(groups.today.length)}</span></h2>${todayBlock('Доставка', todayDelivery)}${todayBlock('Самовывоз', todayPickup)}${todayUnknown.length?todayBlock('Получение не указано', todayUnknown):''}</div>`;
   const bits=[
     todayHtml,
-    section('Эта неделя', weekLabel+', кроме сегодня', groups.week),
-    section('Этот месяц', monthLabel+', кроме этой недели', groups.month),
+    section('Эта неделя', weekLabel, groups.week),
+    section('Этот месяц', monthLabel, groups.month),
   ];
   if(groups.other.length) bits.push(section('Другие даты', 'план вне этого месяца', groups.other));
   if(groups.undated.length) bits.push(section('Без даты', 'в плане, день не указан', groups.undated));
-  $('bunatView').innerHTML=`<div class="bunat-head"><div><h2>Лист для Бунната</h2><div class="small muted">Заказы со статусом «2 план». Сегодня ${fmtInt(groups.today.length)}, на неделе ещё ${fmtInt(groups.week.length)}, в месяце ещё ${fmtInt(groups.month.length)}${groups.undated.length?`, без даты ${fmtInt(groups.undated.length)}`:''}. Таблица только читается.</div></div><button type="button" class="btn noprint" id="btnBunatPrint">Печать</button></div>`+bits.join('');
+  const later=groups.other.length?`, дальше ${fmtInt(groups.other.length)}`:'';
+  const nodate=groups.undated.length?`, без даты ${fmtInt(groups.undated.length)}`:'';
+  $('bunatView').innerHTML=`<div class="bunat-head"><div><h2>Лист для Бунната</h2><div class="small muted">Заказы со статусом «2 план» на сегодня и предстоящие дни. Сегодня ${fmtInt(groups.today.length)}, на неделе ещё ${fmtInt(groups.week.length)}, в месяце ещё ${fmtInt(groups.month.length)}${later}${nodate}. Таблица только читается.</div></div><button type="button" class="btn noprint" id="btnBunatPrint">Печать</button></div>`+bits.join('');
   const btn=$('btnBunatPrint'); if(btn) btn.onclick=()=>window.print();
 }
 function kpiCard(label, value, sub, color){
