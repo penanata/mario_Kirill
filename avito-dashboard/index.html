@@ -212,7 +212,7 @@
       <div class="small muted" id="bunatNote" style="margin-top:10px"></div>
     </div>
     <div class="panel" style="margin-bottom:14px">
-      <h2>Менеджеры <span class="hint">факт · Дарья и Ирина — один человек</span></h2>
+      <h2>Менеджеры <span class="hint">факт · Дарья+Ирина — один человек</span></h2>
       <div class="tbl" id="mgrSummary" style="max-height:none;margin-bottom:14px"></div>
       <h2 style="font-size:13px">По дням</h2>
       <div class="tbl" id="mgrDays" style="max-height:320px;margin-bottom:14px"></div>
@@ -259,10 +259,6 @@
 
     <div class="charts">
       <div class="panel"><h2>Динамика по дате заказа <span class="hint" id="tsHint"></span></h2><div class="ch"><canvas id="chTs"></canvas></div></div>
-      <div class="panel"><h2>Воронка по статусам <span class="hint">заказов / сумма</span></h2><div class="ch"><canvas id="chStatus"></canvas></div></div>
-    </div>
-    <div class="charts">
-      <div class="panel"><h2>Топ растений по выручке <span class="hint">без доставки и посадки</span></h2><div class="ch"><canvas id="chProducts"></canvas></div></div>
       <div class="panel"><h2 id="chDimTitle">По ответственным</h2><div class="ch"><canvas id="chDim"></canvas></div></div>
     </div>
 
@@ -316,7 +312,6 @@ const DEFAULT_SHEET_ID = '1hAYm1dtDdHI7o6r2Y9ebd4Ur0PHoy-yYWI_y-V9rZ_Q';
 const DEFAULT_TAB = 'Заказы и расчеты';
 const LS_KEY = 'avitoDash.v2';
 const XLSX_CDN = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
-const COLORS = ['#8fbf7f','#39422b','#c5a57c','#2a2e28','#a4d094','#a32a2a','#b7d6ad','#e8d6b4','#5c6556','#12160f'];
 const STAGE = {
   done:{label:'Оплачен',color:'#8fbf7f'},
   progress:{label:'План',color:'#c5a57c'},
@@ -354,7 +349,7 @@ const state = {
   view:'owner', loading:false, loadedAt:0, autoTimer:null,
 };
 const AUTO_MS = 60000;
-const OWNER_MANAGERS = ['Дарья и Ирина','Наталия','Кирилл','Света'];
+const OWNER_MANAGERS = ['Дарья+Ирина','Наталия','Кирилл','Света'];
 const $ = id => document.getElementById(id);
 
 /* ---------- parsing helpers ---------- */
@@ -739,7 +734,7 @@ function filterOrders(orders,f){
     if(f.from&&(!o.date||o.date<f.from)) return false;
     if(f.to&&(!o.date||o.date>f.to)) return false;
     if(f.status!=='all'&&o.statusClass!==f.status) return false;
-    if(f.manager&&(o.manager||'—')!==f.manager) return false;
+    if(f.manager&&canonManager(o.manager)!==f.manager) return false;
     if(f.product&&!o.items.some(l=>l.name===f.product)) return false;
     if(f.q&&!o.text.includes(f.q)) return false;
     return true;
@@ -793,7 +788,7 @@ function groupItems(list,onlyPlants){
 function canonManager(name){
   const t=String(name||'').toLowerCase().replace(/ё/g,'е').trim();
   if(!t) return 'Не указан';
-  if(/ирин|(^|[^а-я])дар/.test(t)) return 'Дарья и Ирина';
+  if(/ирин|(^|[^а-я])дар/.test(t)) return 'Дарья+Ирина';
   if(/натал|наташ/.test(t)) return 'Наталия';
   if(/кирил/.test(t)) return 'Кирилл';
   if(/свет/.test(t)) return 'Света';
@@ -938,7 +933,7 @@ function bunatCard(o){
     const q=i.qty!=null&&isFinite(i.qty)?fmtInt(i.qty)+' × ':'';
     return q+String(i.name).trim();
   });
-  return {name, address:address.join('; ')||'не указан', phones:phones.join(', ')||'не указан', contacts:uniq(contacts), composition, pay, logistics, confirmed, clues:uniq(clues).slice(0,3), manager:o.manager||'', date:o.date&&!o.dateApprox?o.date:null, past:false};
+  return {name, address:address.join('; ')||'не указан', phones:phones.join(', ')||'не указан', contacts:uniq(contacts), composition, pay, logistics, confirmed, clues:uniq(clues).slice(0,3), manager:o.manager?canonManager(o.manager):'', date:o.date&&!o.dateApprox?o.date:null, past:false};
 }
 function bunatBucket(card, today){
   if(!card.date) return 'undated';
@@ -1136,17 +1131,8 @@ function renderCharts(){
     ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{tooltip:tipMoney,legend:{position:'top'}},
       scales:{y:{beginAtZero:true,ticks:moneyTicks}}}});
 
-  const s=stageSums(list);
-  const stages=STAGE_ORDER.filter(k=>s[k].orders);
-  chart('chStatus',{type:'doughnut',data:{labels:stages.map(k=>STAGE[k].label),datasets:[{data:stages.map(k=>s[k].orders),backgroundColor:stages.map(k=>STAGE[k].color),borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right'},tooltip:{callbacks:{label:c=>{ const k=stages[c.dataIndex]; return ` ${STAGE[k].label}: ${s[k].orders} · ${fmtMoney(s[k].revenue)}`; }}}}}});
-
-  const prods=groupItems(list.filter(o=>o.statusClass==='done'),true).sort((a,b)=>b.revenue-a.revenue).slice(0,10);
-  chart('chProducts',{type:'bar',data:{labels:prods.map(p=>cut(p.key,36)),datasets:[{label:'Выручка (оплачено)',data:prods.map(p=>p.revenue),backgroundColor:COLORS.map(c=>c+'cc'),borderRadius:4}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{ const p=prods[c.dataIndex]; return ` ${fmtMoney(p.revenue)} · ${fmtInt(p.qty)} шт · ${p.orders} зак.`; }}}},scales:{x:{beginAtZero:true,ticks:moneyTicks}}}});
-
   let dim,title;
-  if(list.some(o=>o.manager)){ dim=groupOrders(list,o=>o.manager).sort((a,b)=>b.revenue-a.revenue); title='По ответственным'; }
+  if(list.some(o=>o.manager)){ dim=groupOrders(list,o=>canonManager(o.manager)).sort((a,b)=>b.revenue-a.revenue); title='По ответственным'; }
   else { const g=groupOrders(list.filter(o=>o.date),o=>WEEKDAYS[(o.date.getDay()+6)%7]); dim=WEEKDAYS.map(w=>g.find(x=>x.key===w)||{key:w,revenue:0,profit:0,pipeline:0}); title='По дням недели'; }
   $('chDimTitle').textContent=title;
   chart('chDim',{type:'bar',data:{labels:dim.map(d=>d.key),datasets:[
@@ -1156,7 +1142,7 @@ function renderCharts(){
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{tooltip:tipMoney,legend:{position:'top'}},scales:{y:{beginAtZero:true,ticks:moneyTicks}}}});
 }
 function renderManagers(){
-  const rows=groupOrders(state.filtered,o=>o.manager).sort((a,b)=>b.revenue-a.revenue);
+  const rows=groupOrders(state.filtered,o=>canonManager(o.manager)).sort((a,b)=>b.revenue-a.revenue);
   const tot=rows.reduce((a,r)=>({orders:a.orders+r.orders,done:a.done+r.done,revenue:a.revenue+r.revenue,profit:a.profit+r.profit,pipeline:a.pipeline+r.pipeline,lost:a.lost+r.lost}),{orders:0,done:0,revenue:0,profit:0,pipeline:0,lost:0});
   const tr=(r,cls)=>`<tr class="${cls||''}"><td>${esc(r.key)}</td><td class="num">${r.done}/${r.orders}</td><td class="num">${fmtMoney(r.revenue)}</td><td class="num">${fmtMoney(r.profit)}</td><td class="num">${fmtPct(r.revenue?r.profit/r.revenue*100:null)}</td><td class="num">${fmtMoney(r.done?r.revenue/r.done:null)}</td><td class="num">${fmtMoney(r.pipeline)}</td><td class="num">${fmtMoney(r.lost)}</td></tr>`;
   $('mgrTable').innerHTML=`<table><thead><tr><th>Ответ-ный</th><th class="num" title="оплачено / всего">Опл./всего</th><th class="num">Выручка</th><th class="num">Маржа</th><th class="num">Маржа %</th><th class="num">Ср. чек</th><th class="num">План+расчёт</th><th class="num">Слилось</th></tr></thead><tbody>${rows.map(r=>tr(r)).join('')}${rows.length>1?tr({key:'Итого',...tot},'tot'):''}</tbody></table>`;
@@ -1199,7 +1185,7 @@ const ORD_COLS=[
   {k:'date',l:'Дата',v:o=>(o.dateApprox?'<span class="approx" title="дата не указана, взята от соседнего заказа">≈</span>':'')+fmtDate(o.date),s:o=>o.date?.getTime()||0},
   {k:'id',l:'№',v:o=>esc(o.id||''),s:o=>+(String(o.id).match(/\d+/)||[0])[0]},
   {k:'status',l:'Статус',v:o=>`<span class="badge ${o.statusClass}">${esc(o.status||'—')}</span>`,s:o=>STAGE_ORDER.indexOf(o.statusClass)},
-  {k:'manager',l:'Ответ-ный',v:o=>esc(o.manager||''),s:o=>o.manager||''},
+  {k:'manager',l:'Ответ-ный',v:o=>esc(o.manager?canonManager(o.manager):''),s:o=>o.manager?canonManager(o.manager):''},
   {k:'client',l:'Клиент',v:o=>`${esc(cut(o.client,28))}${o.clientInfo?`<div class="small muted">${esc(cut(o.clientInfo,40))}</div>`:''}`,s:o=>o.client||''},
   {k:'product',l:'Состав',v:o=>`${esc(cut(o.product,40))}${o.items.length>1?` <span class="small muted">(${o.items.length} поз.)</span>`:''}`,s:o=>o.product||''},
   {k:'qty',l:'Шт',num:true,v:o=>o.qty?fmtInt(o.qty):'',s:o=>o.qty||0},
@@ -1238,7 +1224,7 @@ function fillFilters(){
   const ps=$('productFilter'); const names=uniq(state.orders.flatMap(o=>o.items.map(l=>l.name))).sort((a,b)=>a.localeCompare(b,'ru'));
   ps.innerHTML='<option value="">Все растения</option>'+names.map(p=>`<option value="${esc(p)}" ${p===state.filter.product?'selected':''}>${esc(cut(p,50))}</option>`).join('');
   if(!names.includes(state.filter.product)) state.filter.product='';
-  const ms=$('managerFilter'); const mgrs=uniq(state.orders.map(o=>o.manager||'—')).sort();
+  const ms=$('managerFilter'); const mgrs=uniq(state.orders.map(o=>canonManager(o.manager))).sort((a,b)=>a.localeCompare(b,'ru'));
   ms.innerHTML='<option value="">Все ответственные</option>'+mgrs.map(m=>`<option value="${esc(m)}" ${m===state.filter.manager?'selected':''}>${esc(m)}</option>`).join('');
   ms.classList.toggle('hidden',!state.orders.some(o=>o.manager));
   if(!mgrs.includes(state.filter.manager)) state.filter.manager='';
