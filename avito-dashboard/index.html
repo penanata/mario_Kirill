@@ -796,13 +796,14 @@ function periodKey(d,g){
 }
 function fromKey(k){ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d||1); }
 function periodLabel(k,g){ return fromKey(k).toLocaleDateString('ru-RU',g==='month'?{month:'short',year:'2-digit'}:{day:'2-digit',month:'2-digit'}); }
-function timeSeries(list,g){
+function timeSeries(list,g,range){
   const map=new Map(); const blank=()=>({orders:0,done:0,progress:0,lead:0,cancel:0,other:0,profit:0});
   for(const o of list){ if(!o.date) continue; const k=periodKey(o.date,g); if(!map.has(k)) map.set(k,blank()); const b=map.get(k); b.orders++; b[o.statusClass in b?o.statusClass:'other']+=o.revenue||0; if(o.statusClass==='done') b.profit+=o.profit||0; }
-  const keys=[...map.keys()].sort(); if(!keys.length) return [];
-  const out=[]; let cur=fromKey(keys[0]); const last=fromKey(keys[keys.length-1]);
-  while(cur<=last){ const k=periodKey(cur,g); out.push({k,label:periodLabel(k,g),...(map.get(k)||blank())}); if(g==='month') cur.setMonth(cur.getMonth()+1); else cur.setDate(cur.getDate()+(g==='week'?7:1)); }
-  return out;
+  const keys=[...map.keys()].sort();
+  let start=range&&range.from?dayFloor(range.from):keys.length?fromKey(keys[0]):null;
+  let end=range&&range.to?dayFloor(range.to):keys.length?fromKey(keys[keys.length-1]):null;
+  if(!start||!end||end<start) return [];
+  return periodKeys(g,start,end).map(k=>({k,label:periodLabel(k,g),...(map.get(k)||blank())}));
 }
 function groupOrders(list,fn){
   const map=new Map();
@@ -1248,7 +1249,7 @@ const tipMoney={callbacks:{label:c=>{ const v=c.chart.options.indexAxis==='y'?c.
 const moneyTicks={callback:v=>fmtInt(v)+' ₽'};
 function renderCharts(){
   const list=state.filtered;
-  const ts=timeSeries(list,state.gran);
+  const ts=timeSeries(list,state.gran,state.filter);
   $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · оплаченные`:'нет дат';
   chart('chTs',{data:{labels:ts.map(t=>t.label),datasets:[
       {type:'line',label:'Выручка',data:ts.map(t=>t.done),borderColor:'#8fbf7f',backgroundColor:'rgba(143,191,127,.22)',fill:true,tension:.3,pointRadius:3,borderWidth:2,order:2},
