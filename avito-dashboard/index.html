@@ -98,19 +98,22 @@
   .owner th{cursor:default}
   .period-board,.mgr-board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;align-items:start}
   .period-col,.mgr-col{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;min-width:0}
-  .period-now,.mgr-now{background:var(--leaf);color:var(--leaf-ink);border-radius:12px;padding:12px 12px 10px}
-  .period-now .kicker,.mgr-col h2{font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin:0}
-  .period-now .when{font-size:13px;margin:2px 0 8px}
+  .period-now{background:#5fbf45;color:#071206;border-radius:12px;padding:14px 14px 12px;box-shadow:0 0 0 3px #16300f}
+  .period-now .kicker{font-size:13px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin:0}
+  .mgr-col h2{font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin:0}
+  .period-now .when{font-size:14px;font-weight:700;margin:2px 0 8px}
   .mrow{margin-top:8px}
   .mrow-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:12px;font-weight:700}
-  .mrow-top b{font-size:18px;font-weight:800;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+  .mrow-top b{font-size:22px;font-weight:800;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
   .hbar{display:block;height:8px;border-radius:99px;margin-top:4px;max-width:100%}
-  .hbar.bright{background:#12160f}
-  .hbar.dim{background:rgba(143,191,127,.55);height:7px}
+  .hbar.bright{background:#071206;height:10px}
+  .hbar.dim{background:rgba(143,191,127,.45);height:100%;margin:0}
   .hbar.sand{background:#8a7048}
   .past-head{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin:12px 2px 6px}
   .past-list{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto;padding-right:2px}
   .past-row{display:grid;grid-template-columns:minmax(72px,92px) minmax(36px,1fr) auto;gap:6px;align-items:center}
+  .past-track{height:7px;border-radius:99px;background:rgba(18,22,15,.08);overflow:hidden}
+  .past-row.is-zero .past-label,.past-row.is-zero .past-nums{color:#8b9284;font-weight:600}
   .past-label{font-size:12px;font-weight:700;line-height:1.2}
   .past-nums{display:flex;gap:8px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
   .past-caption{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:4px}
@@ -120,12 +123,12 @@
   .sum3 b{display:block;margin-top:4px;font-size:20px;font-weight:800;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
   .mgr-col h2{font-size:18px;text-transform:none;letter-spacing:0;margin:0 0 10px}
   .mgr-line{margin-top:8px;border-radius:10px;padding:8px 10px}
-  .mgr-line.now{background:var(--leaf);color:var(--leaf-ink)}
+  .mgr-line.now{background:#5fbf45;color:#071206;box-shadow:0 0 0 2px #16300f}
   .mgr-line.soft{background:var(--panel2)}
   .mgr-line .mgr-h{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
   .mgr-line .mgr-nums{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700}
   .mgr-line .mgr-nums b{font-size:14px}
-  .mgr-line.now .hbar{background:#12160f}
+  .mgr-line.now .hbar{background:#071206}
   .mgr-line.soft .hbar{background:rgba(143,191,127,.7)}
   .verdict{font-size:26px;font-weight:800;letter-spacing:-.3px;margin:4px 0 8px}
   .verdict.owe{color:var(--red)}
@@ -1035,18 +1038,40 @@ function metricBars(a, scales, tone){
   return items.map(([label,val,max,text])=>`<div class="mrow"><div class="mrow-top"><span>${label}</span><b>${text}</b></div><i class="hbar ${tone}" style="width:${barWidth(val,max)}%"></i></div>`).join('');
 }
 function pastLine(label, a, maxRev){
-  return `<div class="past-row"><div class="past-label">${esc(label)}</div><i class="hbar dim" style="width:${barWidth(a.revenue,maxRev)}%"></i><div class="past-nums"><span title="Маржа">${fmtMoney(a.profit)}</span><span title="Выручка">${fmtMoney(a.revenue)}</span><span title="Заказы">${fmtInt(a.n)}</span></div></div>`;
+  return `<div class="past-row${a.n?'':' is-zero'}"><div class="past-label">${esc(label)}</div><div class="past-track"><i class="hbar dim" style="width:${barWidth(a.revenue,maxRev)}%"></i></div><div class="past-nums"><span title="Маржа">${fmtMoney(a.profit)}</span><span title="Выручка">${fmtMoney(a.revenue)}</span><span title="Заказы">${fmtInt(a.n)}</span></div></div>`;
 }
 function granLabel(k, gran){
   if(gran==='week'){ const start=fromKey(k); const end=new Date(start); end.setDate(end.getDate()+6); const fmt=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}); return fmt(start)+' – '+fmt(end); }
   if(gran==='month') return fromKey(k).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
   return fromKey(k).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
 }
-function splitAround(list, gran, currentKey){
-  const map=new Map();
-  for(const o of list){ const d=orderDay(o); if(!d) continue; const k=periodKey(d,gran); if(!map.has(k)) map.set(k,[]); map.get(k).push(o); }
+function periodKeys(gran, start, end){
+  const keys=[]; const cur=dayFloor(start);
+  if(gran==='week') cur.setTime(weekStart(cur).getTime());
+  if(gran==='month') cur.setDate(1);
+  const last=periodKey(dayFloor(end), gran);
+  while(periodKey(cur, gran)<=last){
+    keys.push(periodKey(cur, gran));
+    if(gran==='month') cur.setMonth(cur.getMonth()+1);
+    else cur.setDate(cur.getDate()+(gran==='week'?7:1));
+    if(keys.length>500) break;
+  }
+  return keys;
+}
+function splitAround(list, gran, today){
+  const currentKey=periodKey(today, gran);
+  const map=new Map(); const days=[];
+  for(const o of list){ const d=orderDay(o); if(!d) continue; days.push(d); const k=periodKey(d,gran); if(!map.has(k)) map.set(k,[]); map.get(k).push(o); }
+  let start=days.length?new Date(Math.min(...days.map(d=>d.getTime()))):today;
+  let end=days.length?new Date(Math.max(...days.map(d=>d.getTime()))):today;
+  if(today<start) start=today;
+  if(today>end) end=today;
   const past=[], future=[];
-  for(const [k,orders] of map){ if(k===currentKey) continue; (k<currentKey?past:future).push([granLabel(k,gran),orders,k]); }
+  for(const k of periodKeys(gran, start, end)){
+    if(k===currentKey) continue;
+    const orders=map.get(k)||[];
+    (k<currentKey?past:future).push([granLabel(k,gran),orders,k]);
+  }
   past.sort((a,b)=>b[2].localeCompare(a[2])); future.sort((a,b)=>a[2].localeCompare(b[2]));
   return {past,future};
 }
@@ -1072,7 +1097,7 @@ function renderOwner(){
   const factAll=state.orders.filter(o=>o.statusClass==='done');
   const fact=factAll.filter(o=>o.date);
   const dayKey=isoDay(today), weekKey=periodKey(today,'week'), monthKey=periodKey(today,'month');
-  const days=splitAround(fact,'day',dayKey), weeks=splitAround(fact,'week',weekKey), months=splitAround(fact,'month',monthKey);
+  const days=splitAround(fact,'day',today), weeks=splitAround(fact,'week',today), months=splitAround(fact,'month',today);
   $('ownerPeriods').innerHTML=[
     periodColumn('Этот день', today.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'}), ordersInKey(fact,'day',dayKey), days.past, days.future),
     periodColumn('Эта неделя', fmt(ws)+' – '+fmt(we), ordersInKey(fact,'week',weekKey), weeks.past, weeks.future),
