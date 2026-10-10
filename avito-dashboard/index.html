@@ -1257,15 +1257,21 @@ function renderCharts(){
     ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{tooltip:tipMoney,legend:{position:'top'}},
       scales:{y:{beginAtZero:true,ticks:moneyTicks}}}});
 
-  let dim,title;
-  if(list.some(o=>o.manager)){ dim=groupOrders(list,o=>canonManager(o.manager)).sort((a,b)=>b.revenue-a.revenue); title='По ответственным'; }
-  else { const g=groupOrders(list.filter(o=>o.date),o=>WEEKDAYS[(o.date.getDay()+6)%7]); dim=WEEKDAYS.map(w=>g.find(x=>x.key===w)||{key:w,revenue:0,profit:0,pipeline:0}); title='По дням недели'; }
+  let dim,title,horizontal=false;
+  if(list.some(o=>o.manager)){
+    dim=groupOrders(list,o=>canonManager(o.manager)).sort((a,b)=>(b.profit||0)-(a.profit||0)||(b.revenue||0)-(a.revenue||0)||String(a.key).localeCompare(String(b.key),'ru'));
+    title='По ответственным';
+    horizontal=true;
+  } else { const g=groupOrders(list.filter(o=>o.date),o=>WEEKDAYS[(o.date.getDay()+6)%7]); dim=WEEKDAYS.map(w=>g.find(x=>x.key===w)||{key:w,revenue:0,profit:0,pipeline:0}); title='По дням недели'; }
   $('chDimTitle').textContent=title;
   chart('chDim',{type:'bar',data:{labels:dim.map(d=>d.key),datasets:[
       {label:'Выручка факт',data:dim.map(d=>d.revenue),backgroundColor:'rgba(143,191,127,.9)',borderRadius:3},
       {label:'Маржа факт',data:dim.map(d=>d.profit),backgroundColor:'rgba(57,66,43,.75)',borderRadius:3},
       {label:'План + расчёт',data:dim.map(d=>d.pipeline),backgroundColor:'rgba(197,165,124,.8)',borderRadius:3},
-    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{tooltip:tipMoney,legend:{position:'top'}},scales:{y:{beginAtZero:true,ticks:moneyTicks}}}});
+    ]},options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,plugins:{tooltip:tipMoney,legend:{position:'top'}},
+      scales:horizontal
+        ?{x:{beginAtZero:true,ticks:moneyTicks},y:{ticks:{autoSkip:false}}}
+        :{y:{beginAtZero:true,ticks:moneyTicks}}}});
 }
 function renderManagers(){
   const rows=groupOrders(state.filtered,o=>canonManager(o.manager)).sort((a,b)=>b.revenue-a.revenue);
