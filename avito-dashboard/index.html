@@ -57,6 +57,12 @@
   .charts .panel{min-height:320px;display:flex;flex-direction:column}
   .charts .panel .ch{flex:1;position:relative;min-height:250px}
   .charts .panel .ch canvas{position:absolute;inset:0}
+  .chart-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+  .chart-tools .seg{display:flex;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:9px}
+  .chart-tools .seg button{background:transparent;border:0;padding:6px 10px;cursor:pointer;color:var(--muted);font-weight:700;white-space:nowrap}
+  .chart-tools .seg button.active{background:var(--leaf);color:var(--leaf-ink)}
+  .chart-range{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-weight:700}
+  .chart-range input{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 8px;color:var(--text)}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
   .three{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;margin-bottom:14px}
   table{width:100%;border-collapse:collapse;font-size:13px}
@@ -272,7 +278,7 @@
     <div class="kpis" id="kpis"></div>
 
     <div class="charts">
-      <div class="panel"><h2>Динамика по дате заказа <span class="hint" id="tsHint"></span></h2><div class="ch"><canvas id="chTs"></canvas></div></div>
+      <div class="panel"><h2>Динамика по дате заказа <span class="hint" id="tsHint"></span></h2><div class="chart-tools"><div class="seg" id="chartGran"><button type="button" data-g="day">Дни</button><button type="button" data-g="week" class="active">Недели</button><button type="button" data-g="month">Месяцы</button></div><div class="seg" id="chartPeriod"><button type="button" data-p="all" class="active">Всё время</button><button type="button" data-p="7">7 дней</button><button type="button" data-p="30">30 дней</button><button type="button" data-p="90">90 дней</button><button type="button" data-p="month">Этот месяц</button><button type="button" data-p="prevmonth">Прошлый месяц</button></div><label class="chart-range">с <input type="date" id="chartFrom" title="Начало"> по <input type="date" id="chartTo" title="Конец"></label></div><div class="ch"><canvas id="chTs"></canvas></div></div>
       <div class="panel"><h2 id="chDimTitle">По ответственным</h2><div class="ch"><canvas id="chDim"></canvas></div></div>
     </div>
 
@@ -742,6 +748,26 @@ function applyPreset(p){
   else { const n=+p; f.from=new Date(today); f.from.setDate(today.getDate()-n+1); f.to=end; }
   $('dateFrom').value=f.from?isoDay(f.from):''; $('dateTo').value=f.to?isoDay(f.to):'';
   document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+  syncChartPeriod();
+}
+function syncChartPeriod(){
+  const f=state.filter;
+  document.querySelectorAll('#chartPeriod button').forEach(b=>b.classList.toggle('active', b.dataset.p===f.preset));
+  if($('chartFrom')) $('chartFrom').value=f.from?isoDay(f.from):'';
+  if($('chartTo')) $('chartTo').value=f.to?isoDay(f.to):'';
+}
+function setGran(g){
+  state.gran=g;
+  document.querySelectorAll('#gran button, #chartGran button').forEach(x=>x.classList.toggle('active', x.dataset.g===g));
+  saveSettings();
+}
+function setCustomRange(fromStr, toStr){
+  const f=state.filter; f.preset='custom';
+  f.from=fromStr?new Date(fromStr+'T00:00:00'):null;
+  f.to=toStr?new Date(toStr+'T23:59:59.999'):null;
+  $('dateFrom').value=fromStr||''; $('dateTo').value=toStr||'';
+  document.querySelectorAll('#presets button').forEach(b=>b.classList.remove('active'));
+  syncChartPeriod();
 }
 function filterOrders(orders,f){
   return orders.filter(o=>{
@@ -1379,7 +1405,7 @@ function init(){
   const params=new URLSearchParams(location.search); const settings=loadSettings();
   $('sheetUrl').value=params.get('sheet')?`https://docs.google.com/spreadsheets/d/${params.get('sheet')}/edit`:(settings.lastSheet||`https://docs.google.com/spreadsheets/d/${DEFAULT_SHEET_ID}/edit`);
   state.tab=params.get('tab')||settings.lastTab||DEFAULT_TAB; fillTabSelect(state.tab);
-  if(settings.gran){ state.gran=settings.gran; document.querySelectorAll('#gran button').forEach(x=>x.classList.toggle('active',x.dataset.g===state.gran)); }
+  if(settings.gran) setGran(settings.gran);
   $('btnLoad').onclick=loadFromGoogle;
   $('sheetUrl').onkeydown=e=>{ if(e.key==='Enter') loadFromGoogle(); };
   $('sheetUrl').onchange=()=>{ if(parseSheetId($('sheetUrl').value)!==state.sheetId){ state.workbook=null; state.tabNames=[]; fillTabSelect(DEFAULT_TAB); } };
@@ -1392,12 +1418,14 @@ function init(){
   app.addEventListener('dragleave',()=>app.classList.remove('drop'));
   app.addEventListener('drop',e=>{ e.preventDefault(); app.classList.remove('drop'); if(e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]); });
   document.querySelectorAll('#presets button').forEach(b=>b.onclick=()=>{ applyPreset(b.dataset.p); state.page=0; render(); });
-  $('dateFrom').onchange=$('dateTo').onchange=()=>{ const f=state.filter; f.preset='custom'; f.from=$('dateFrom').value?new Date($('dateFrom').value+'T00:00:00'):null; f.to=$('dateTo').value?new Date($('dateTo').value+'T23:59:59.999'):null; document.querySelectorAll('#presets button').forEach(b=>b.classList.remove('active')); state.page=0; render(); };
+  $('dateFrom').onchange=$('dateTo').onchange=()=>{ setCustomRange($('dateFrom').value, $('dateTo').value); state.page=0; render(); };
   $('statusFilter').onchange=e=>{ state.filter.status=e.target.value; state.page=0; render(); };
   $('managerFilter').onchange=e=>{ state.filter.manager=e.target.value; state.page=0; render(); };
   $('productFilter').onchange=e=>{ state.filter.product=e.target.value; state.page=0; render(); };
   let t; $('search').oninput=e=>{ clearTimeout(t); t=setTimeout(()=>{ state.filter.q=e.target.value.trim().toLowerCase(); state.page=0; render(); },200); };
-  document.querySelectorAll('#gran button').forEach(b=>b.onclick=()=>{ state.gran=b.dataset.g; document.querySelectorAll('#gran button').forEach(x=>x.classList.toggle('active',x===b)); saveSettings(); renderCharts(); });
+  document.querySelectorAll('#gran button, #chartGran button').forEach(b=>b.onclick=()=>{ setGran(b.dataset.g); if(state.orders.length) renderCharts(); });
+  document.querySelectorAll('#chartPeriod button').forEach(b=>b.onclick=()=>{ applyPreset(b.dataset.p); state.page=0; render(); });
+  $('chartFrom').onchange=$('chartTo').onchange=()=>{ setCustomRange($('chartFrom').value, $('chartTo').value); state.page=0; render(); };
   $('btnExport').onclick=exportCSV;
   document.querySelectorAll('#views button').forEach(b=>b.onclick=()=>showView(b.dataset.v));
   document.addEventListener('visibilitychange',()=>{
