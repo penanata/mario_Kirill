@@ -99,6 +99,9 @@
   .period-board,.mgr-board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;align-items:start}
   .period-col,.mgr-col{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;min-width:0}
   .period-col h2{margin:0 0 10px;font-size:15px;font-weight:700}
+  .period-col h2 .hint{font-weight:400;color:var(--muted);font-size:12px}
+  .period-tbl td.mgr-margin,.period-tbl tr.past td.mgr-margin{color:var(--text);font-weight:800}
+  .period-tbl tr.past.is-zero td.mgr-margin{color:#a3ab9d;font-weight:700}
   .period-tbl{max-height:480px}
   .period-tbl th{cursor:default}
   .period-tbl td,.period-tbl th{font-variant-numeric:tabular-nums}
@@ -1118,24 +1121,25 @@ function renderManagerSheet(){
   const ws=weekStart(today); const we=new Date(ws); we.setDate(ws.getDate()+6);
   const ms=new Date(today.getFullYear(), today.getMonth(), 1);
   const me=new Date(today.getFullYear(), today.getMonth()+1, 0);
+  const fmt=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
   const between=(o,a,b)=>{ const d=orderDay(o); return !!(d&&d>=a&&d<=b); };
   const fact=state.orders.filter(o=>o.statusClass==='done'&&o.date);
-  const plan=state.orders.filter(o=>o.statusClass==='progress'&&hasRealDate(o));
-  const calc=state.orders.filter(o=>o.statusClass==='lead'&&!hasRealDate(o));
-  const slices=[
-    {key:'day',title:'Этот день',tone:'now',list:fact.filter(o=>between(o,today,today))},
-    {key:'week',title:'Эта неделя',tone:'now',list:fact.filter(o=>between(o,ws,we))},
-    {key:'month',title:'Этот месяц',tone:'now',list:fact.filter(o=>between(o,ms,me))},
-    {key:'plan',title:'Запланированные',tone:'soft',list:plan},
-    {key:'lead',title:'Расчёты',tone:'soft',list:calc},
+  const blocks=[
+    {title:'Этот день', when:today.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'}), list:fact.filter(o=>between(o,today,today))},
+    {title:'Эта неделя', when:fmt(ws)+' – '+fmt(we), list:fact.filter(o=>between(o,ws,we))},
+    {title:'Этот месяц', when:today.toLocaleDateString('ru-RU',{month:'long',year:'numeric'}), list:fact.filter(o=>between(o,ms,me))},
   ];
-  const cells=SHEET_NAMES.map(name=>({name,rows:slices.map(s=>({...s,a:aggOrders(s.list.filter(o=>canonManager(o.manager)===name))}))}));
-  const cols=cells.map(c=>`<div class="mgr-col"><h2>${esc(c.name)}</h2>${metricTable(c.rows.map(r=>metricRow(r.title, r.a, r.tone==='now'?'now':'past')).join(''),'Период')}</div>`).join('');
-  const rest=state.orders.filter(o=>o.statusClass==='done'&&!SHEET_NAMES.includes(canonManager(o.manager)));
+  const rank=(list)=>{
+    const rows=SHEET_NAMES.map(name=>({name,a:aggOrders(list.filter(o=>canonManager(o.manager)===name))}));
+    rows.sort((x,y)=>(y.a.profit||0)-(x.a.profit||0)||(y.a.revenue||0)-(x.a.revenue||0)||x.name.localeCompare(y.name,'ru'));
+    return rows.map((r,i)=>`<tr class="${i?'past':'now'}${r.a.n?'':' is-zero'}"><td class="num">${i+1}</td><td>${esc(r.name)}</td><td class="num mgr-margin">${fmtMoney(r.a.profit)}</td><td class="num">${fmtMoney(r.a.revenue)}</td><td class="num">${fmtInt(r.a.n)}</td></tr>`).join('');
+  };
+  const cols=blocks.map(b=>`<div class="period-col"><h2>${esc(b.title)} <span class="hint">${esc(b.when)}</span></h2><div class="tbl period-tbl"><table><thead><tr><th class="num">#</th><th>Менеджер</th><th class="num">Маржа</th><th class="num">Выручка</th><th class="num">Заказы</th></tr></thead><tbody>${rank(b.list)}</tbody></table></div></div>`).join('');
+  const rest=fact.filter(o=>!SHEET_NAMES.includes(canonManager(o.manager)));
   const restNote=rest.length?`<div class="small muted" style="margin-top:8px">Ещё ${fmtInt(rest.length)} оплаченных заказов у других ответственных.</div>`:'';
-  $('mgrView').innerHTML=`<div class="bunat-head"><div><h2>Менеджеры</h2><div class="small muted">Маржа, выручка и заказы. Этот день, эта неделя и этот месяц — по оплаченным.</div></div></div><div class="mgr-board">${cols}</div>${restNote}`;
+  $('mgrView').innerHTML=`<div class="bunat-head"><div><h2>Менеджеры</h2><div class="small muted">Рейтинг по марже, по убыванию. Рядом выручка и заказы. Оплаченные.</div></div></div><div class="mgr-board">${cols}</div>${restNote}`;
 }
-const viewHints={owner:'Оплаченные заказы: этот день, эта неделя, этот месяц. Ниже — план с датами и расчёты.',mgr:'Наталия, Кирилл, Дарья+Ирина. Маржа, выручка, заказы.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
+const viewHints={owner:'Оплаченные заказы: этот день, эта неделя, этот месяц. Ниже — план с датами и расчёты.',mgr:'Рейтинг по марже за день, неделю и месяц.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
 function showView(view){
   state.view=view;
   const u=new URL(location.href);
