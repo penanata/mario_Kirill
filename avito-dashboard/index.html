@@ -3,25 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='10' cy='10' r='7' fill='%2300aaff'/%3E%3Ccircle cx='23' cy='9' r='5' fill='%2397cf26'/%3E%3Ccircle cx='9' cy='23' r='5' fill='%23ff4053'/%3E%3Ccircle cx='22' cy='22' r='7' fill='%23a169f7'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='10' cy='10' r='7' fill='%238fbf7f'/%3E%3Ccircle cx='23' cy='9' r='5' fill='%2339422b'/%3E%3Ccircle cx='9' cy='23' r='5' fill='%23c5a57c'/%3E%3Ccircle cx='22' cy='22' r='7' fill='%2312160f'/%3E%3C/svg%3E">
 <title>Авито · Аналитика заказов</title>
 <style>
   :root{
-    --bg:#0b1220; --panel:#111a2e; --panel2:#16223a; --line:#223052;
-    --text:#e6edf7; --muted:#8b9ab5; --accent:#00aaff; --green:#97cf26;
-    --red:#ff4053; --purple:#a169f7; --yellow:#ffd24d; --orange:#ff8a3d; --radius:14px;
+    /* Цвета dervo.ru: молочный фон, хвойный текст, листовая кнопка, песок */
+    --bg:#f0eee9; --panel:#fffcf8; --panel2:#e7e4dc; --line:#d7ddd3;
+    --text:#12160f; --muted:#4e5648; --accent:#39422b; --leaf:#8fbf7f; --leaf-ink:#0e140c;
+    --green:#39422b; --red:#a32a2a; --purple:#2a2e28; --yellow:#6b5d45; --orange:#c5a57c; --radius:14px;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.4}
+  html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.4}
   a{color:var(--accent)}
   button,select,input{font:inherit;color:inherit}
   .wrap{max-width:1400px;margin:0 auto;padding:22px 18px 60px}
   header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
   header h1{margin:0;font-size:26px;font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
-  header h1 .logo{width:34px;height:34px;border-radius:9px;background:conic-gradient(from 200deg,var(--accent),var(--green),var(--red),var(--purple),var(--accent));display:inline-block;box-shadow:0 6px 20px rgba(0,170,255,.25)}
+  header h1 .logo{width:34px;height:34px;border-radius:9px;background:conic-gradient(from 200deg,var(--leaf),var(--accent),var(--orange),var(--text),var(--leaf));display:inline-block;box-shadow:0 6px 20px rgba(57,66,43,.18)}
   .sub{color:var(--muted);font-size:13px}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
-  .panel h2{margin:0 0 12px;font-size:15px;font-weight:700;color:#c8d3ea;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .panel h2{margin:0 0 12px;font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
   .panel h2 .hint{font-weight:400;color:var(--muted);font-size:12px}
   .source{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:10px}
   .source .fields{display:grid;grid-template-columns:2fr 1fr;gap:10px}
@@ -30,20 +31,20 @@
   label.f input:focus,.filters select:focus,.filters input:focus{border-color:var(--accent)}
   .actions{display:flex;flex-wrap:wrap;gap:8px}
   .btn{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 14px;cursor:pointer;font-weight:600;white-space:nowrap;transition:.15s}
-  .btn:hover{border-color:var(--accent);color:#fff}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#04121f}
+  .btn:hover{border-color:var(--accent);color:var(--text)}
+  .btn.primary{background:var(--leaf);border-color:var(--leaf);color:var(--leaf-ink)}
   .btn.primary:hover{filter:brightness(1.08)}
   .btn.sm{padding:5px 10px;font-size:12px}
   .btn:disabled{opacity:.5;cursor:default}
   .status{margin-top:8px;font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .status.err{color:#ff8d99}
+  .status.err{color:var(--red)}
   .status.ok{color:var(--green)}
-  .notice{background:rgba(255,210,77,.08);border:1px solid rgba(255,210,77,.35);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13px;color:#ffe9a8}
+  .notice{background:rgba(197,165,124,.18);border:1px solid var(--orange);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13px;color:var(--text)}
   .notice ol{margin:8px 0 0 18px;padding:0}
   .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}
   .filters .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;overflow-x:auto;max-width:100%;scrollbar-width:none}
   .filters .seg button{background:transparent;border:0;padding:8px 12px;cursor:pointer;color:var(--muted);font-weight:600;white-space:nowrap}
-  .filters .seg button.active{background:rgba(0,170,255,.18);color:#fff}
+  .filters .seg button.active{background:var(--leaf);color:var(--leaf-ink)}
   .filters .spacer{flex:1}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-bottom:14px}
   .kpi{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
@@ -51,7 +52,7 @@
   .kpi .l{color:var(--muted);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
   .kpi .v{font-size:23px;font-weight:800;margin-top:6px;letter-spacing:-.3px}
   .kpi .d{font-size:12px;margin-top:4px;color:var(--muted)}
-  .kpi .d.up{color:var(--green)} .kpi .d.down{color:#ff8d99}
+  .kpi .d.up{color:var(--green)} .kpi .d.down{color:var(--red)}
   .charts{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
   .charts .panel{min-height:320px;display:flex;flex-direction:column}
   .charts .panel .ch{flex:1;position:relative;min-height:250px}
@@ -61,22 +62,22 @@
   table{width:100%;border-collapse:collapse;font-size:13px}
   th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
   th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel);z-index:1}
-  th.sorted{color:#fff}
+  th.sorted{color:var(--text)}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-  tr.tot td{font-weight:700;color:#fff;border-top:2px solid var(--line)}
+  tr.tot td{font-weight:700;color:var(--text);border-top:2px solid var(--line)}
   tr.clickable{cursor:pointer}
-  tr:hover td{background:rgba(255,255,255,.02)}
-  tr.detail td{background:rgba(0,170,255,.05);white-space:normal;padding:6px 10px 10px 28px}
+  tr:hover td{background:rgba(18,22,15,.04)}
+  tr.detail td{background:rgba(143,191,127,.16);white-space:normal;padding:6px 10px 10px 28px}
   .items{width:auto;font-size:12px} .items td,.items th{padding:3px 10px;border:0;background:transparent!important}
   .tbl{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:10px}
   .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-  .badge.done{background:rgba(151,207,38,.15);color:var(--green)}
-  .badge.cancel{background:rgba(255,64,83,.15);color:#ff8d99}
-  .badge.progress{background:rgba(0,170,255,.15);color:var(--accent)}
-  .badge.lead{background:rgba(161,105,247,.18);color:#c9a8ff}
-  .badge.other{background:rgba(255,255,255,.08);color:var(--muted)}
+  .badge.done{background:rgba(143,191,127,.4);color:var(--leaf-ink)}
+  .badge.cancel{background:rgba(163,42,42,.12);color:var(--red)}
+  .badge.progress{background:rgba(197,165,124,.4);color:#3a2e1c}
+  .badge.lead{background:rgba(57,66,43,.12);color:var(--accent)}
+  .badge.other{background:rgba(163,171,157,.35);color:var(--muted)}
   .pager{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:10px;color:var(--muted);font-size:13px}
-  .bar{height:6px;border-radius:3px;background:rgba(0,170,255,.18);position:relative;min-width:60px;display:inline-block;vertical-align:middle}
+  .bar{height:6px;border-radius:3px;background:rgba(57,66,43,.12);position:relative;min-width:60px;display:inline-block;vertical-align:middle}
   .bar>i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:3px}
   details.map{margin-top:12px}
   details.map summary{cursor:pointer;color:var(--muted);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
@@ -91,12 +92,12 @@
   .viewbar{display:flex;align-items:center;gap:12px;margin:14px 0;flex-wrap:wrap}
   .viewbar .seg{display:flex;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:9px;overflow:visible}
   .viewbar .seg button{background:transparent;border:0;padding:8px 14px;cursor:pointer;color:var(--muted);font-weight:700}
-  .viewbar .seg button.active{background:rgba(0,170,255,.18);color:#fff}
+  .viewbar .seg button.active{background:var(--leaf);color:var(--leaf-ink)}
   .owner-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
   .owner-grid .tbl{max-height:380px}
   .owner th{cursor:default}
   .verdict{font-size:26px;font-weight:800;letter-spacing:-.3px;margin:4px 0 8px}
-  .verdict.owe{color:#ff8d99}
+  .verdict.owe{color:var(--red)}
   .verdict.owed{color:var(--green)}
   .verdict.even{color:var(--text)}
   .bunat-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
@@ -106,11 +107,11 @@
   .bunat-sheet td{font-size:13.5px;line-height:1.35}
   .bunat-sheet .comp{margin:0;padding-left:16px}
   .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
-  .tag.ok{background:rgba(151,207,38,.16);color:var(--green)}
-  .tag.no{background:rgba(255,64,83,.16);color:#ff8d99}
-  .tag.cash{background:rgba(255,138,61,.16);color:#ffb27a}
-  .tag.bill{background:rgba(0,170,255,.16);color:#7dceff}
-  .tag.muted{background:rgba(255,255,255,.06);color:var(--muted)}
+  .tag.ok{background:rgba(143,191,127,.45);color:var(--leaf-ink)}
+  .tag.no{background:rgba(163,42,42,.12);color:var(--red)}
+  .tag.cash{background:rgba(197,165,124,.45);color:#3a2e1c}
+  .tag.bill{background:rgba(57,66,43,.12);color:var(--accent)}
+  .tag.muted{background:rgba(163,171,157,.35);color:var(--muted)}
   @media (max-width:800px){
     .bunat-sheet thead{display:none}
     .bunat-sheet tr{display:block;border:1px solid var(--line);border-radius:12px;margin:0 0 10px;padding:8px 4px}
@@ -146,7 +147,7 @@
   <header>
     <div>
       <h1><span class="logo"></span>Авито · Аналитика заказов</h1>
-      <div class="sub">Первый экран — для собственника: факт, план, Бунат и менеджеры. Таблица только читается.</div>
+      <div class="sub">Первый экран — для собственника: факт, план, Буннат и менеджеры. Таблица только читается.</div>
     </div>
     <div class="actions">
       <button class="btn" id="btnDemo" title="Показать дашборд на сгенерированных данных">Демо-данные</button>
@@ -189,7 +190,7 @@
   <div class="viewbar hidden" id="viewSwitch">
     <div class="seg" id="views">
       <button type="button" data-v="owner" class="active">Собственник</button>
-      <button type="button" data-v="bunat">Для Буната</button>
+      <button type="button" data-v="bunat">Для Бунната</button>
       <button type="button" data-v="detail">Подробно</button>
     </div>
     <span class="muted small" id="viewHint">Факт — это оплаченные заказы.</span>
@@ -204,7 +205,7 @@
     </div>
     <div class="kpis" id="planKpis"></div>
     <div class="panel" style="margin-bottom:14px">
-      <h2>Взаиморасчёты с Бунатом <span class="hint" id="bunatHint">по оплаченным</span></h2>
+      <h2>Взаиморасчёты с Буннатом <span class="hint" id="bunatHint">по оплаченным</span></h2>
       <div class="verdict" id="bunatVerdict"></div>
       <div class="kpis" id="bunatKpis" style="margin:0"></div>
       <div class="small muted" id="bunatNote" style="margin-top:10px"></div>
@@ -314,13 +315,13 @@ const DEFAULT_SHEET_ID = '1hAYm1dtDdHI7o6r2Y9ebd4Ur0PHoy-yYWI_y-V9rZ_Q';
 const DEFAULT_TAB = 'Заказы и расчеты';
 const LS_KEY = 'avitoDash.v2';
 const XLSX_CDN = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
-const COLORS = ['#00aaff','#97cf26','#ff4053','#a169f7','#ffd24d','#ff8a3d','#2dd4bf','#f472b6','#60a5fa','#c084fc'];
+const COLORS = ['#8fbf7f','#39422b','#c5a57c','#2a2e28','#a4d094','#a32a2a','#b7d6ad','#e8d6b4','#5c6556','#12160f'];
 const STAGE = {
-  done:{label:'Оплачен',color:'#97cf26'},
-  progress:{label:'План',color:'#00aaff'},
-  lead:{label:'Расчёт',color:'#a169f7'},
-  cancel:{label:'Слился',color:'#ff4053'},
-  other:{label:'Другое',color:'#8b9ab5'},
+  done:{label:'Оплачен',color:'#8fbf7f'},
+  progress:{label:'План',color:'#c5a57c'},
+  lead:{label:'Расчёт',color:'#39422b'},
+  cancel:{label:'Слился',color:'#a32a2a'},
+  other:{label:'Другое',color:'#a3ab9d'},
 };
 const STAGE_ORDER = ['lead','progress','done','cancel','other'];
 const RU_MONTHS = {'янв':0,'фев':1,'мар':2,'апр':3,'май':4,'мая':4,'июн':5,'июл':6,'авг':7,'сен':8,'окт':9,'ноя':10,'дек':11};
@@ -800,7 +801,7 @@ function canonManager(name){
 function paySide(label){
   const t=String(label||'').toLowerCase().replace(/ё/g,'е').trim();
   if(!t) return 'unknown';
-  // весь нал — деньги Буната, даже если в ячейке просто «нал»
+  // весь нал — деньги Бунната, даже если в ячейке просто «нал»
   if(/нал|бунн|(^|[^а-я])бу([^а-я]|$)/.test(t)) return 'bunat';
   if(/р\/?с|наташ|qr|карт|перевод|счет|счёт/.test(t)) return 'ours';
   return 'unknown';
@@ -988,7 +989,7 @@ function renderBunat(){
   ];
   if(groups.other.length) bits.push(section('Другие даты', 'план вне этого месяца', groups.other));
   if(groups.undated.length) bits.push(section('Без даты', 'в плане, день не указан', groups.undated));
-  $('bunatView').innerHTML=`<div class="bunat-head"><div><h2>Лист для Буната</h2><div class="small muted">Заказы со статусом «2 план». Сегодня ${fmtInt(groups.today.length)}, на неделе ещё ${fmtInt(groups.week.length)}, в месяце ещё ${fmtInt(groups.month.length)}${groups.undated.length?`, без даты ${fmtInt(groups.undated.length)}`:''}. Таблица только читается.</div></div><button type="button" class="btn noprint" id="btnBunatPrint">Печать</button></div>`+bits.join('');
+  $('bunatView').innerHTML=`<div class="bunat-head"><div><h2>Лист для Бунната</h2><div class="small muted">Заказы со статусом «2 план». Сегодня ${fmtInt(groups.today.length)}, на неделе ещё ${fmtInt(groups.week.length)}, в месяце ещё ${fmtInt(groups.month.length)}${groups.undated.length?`, без даты ${fmtInt(groups.undated.length)}`:''}. Таблица только читается.</div></div><button type="button" class="btn noprint" id="btnBunatPrint">Печать</button></div>`+bits.join('');
   const btn=$('btnBunatPrint'); if(btn) btn.onclick=()=>window.print();
 }
 function kpiCard(label, value, sub, color){
@@ -1033,15 +1034,15 @@ function renderOwner(){
   }
   const balance=received-entitled;
   const verdict=$('bunatVerdict');
-  if(balance>1){ verdict.className='verdict owed'; verdict.textContent='Итог: Бунат должен нам '+fmtMoney(balance); }
-  else if(balance<-1){ verdict.className='verdict owe'; verdict.textContent='Итог: мы должны Бунату '+fmtMoney(-balance); }
+  if(balance>1){ verdict.className='verdict owed'; verdict.textContent='Итог: Буннат должен нам '+fmtMoney(balance); }
+  else if(balance<-1){ verdict.className='verdict owe'; verdict.textContent='Итог: мы должны Буннату '+fmtMoney(-balance); }
   else { verdict.className='verdict even'; verdict.textContent='Взаиморасчёты сходятся'; }
   $('bunatKpis').innerHTML=[
-    kpiCard('Мы должны Бунату', fmtMoney(weOwe), 'его себестоимость, которой нет в наличных', 'var(--red)'),
-    kpiCard('Бунат должен нам', fmtMoney(heOwes), 'наша маржа в его наличных', 'var(--orange)'),
+    kpiCard('Мы должны Буннату', fmtMoney(weOwe), 'его себестоимость, которой нет в наличных', 'var(--red)'),
+    kpiCard('Буннат должен нам', fmtMoney(heOwes), 'наша маржа в его наличных', 'var(--orange)'),
     kpiCard('Деньги у нас', fmtMoney(ours), 'только «РС Наташа»', 'var(--green)'),
   ].join('');
-  $('bunatNote').textContent=`По оплаченным заказам, по строке «Итого». Себестоимость Буната ${fmtMoney(entitled)}. Наличными у него ${fmtMoney(received)} — весь «нал» и «Нал Буннат». На «РС Наташа» у вас ${fmtMoney(ours)}. По заказу: если в его кармане больше себестоимости, разница наша; если меньше, этот остаток мы должны ему.`+(unknown?` Не размечено, куда пришли деньги: ${fmtMoney(unknown)} (${fmtInt(unknownN)} зак.) — в карман Буната это не входит.`:'');
+  $('bunatNote').textContent=`По оплаченным заказам, по строке «Итого». Себестоимость Бунната ${fmtMoney(entitled)}. Наличными у него ${fmtMoney(received)} — весь «нал» и «Нал Буннат». На «РС Наташа» у вас ${fmtMoney(ours)}. По заказу: если в его кармане больше себестоимости, разница наша; если меньше, этот остаток мы должны ему.`+(unknown?` Не размечено, куда пришли деньги: ${fmtMoney(unknown)} (${fmtInt(unknownN)} зак.) — в карман Бунната это не входит.`:'');
   $('mgrSummary').innerHTML=mgrSummaryTable(fact);
   $('mgrDays').innerHTML=mgrPeriodTable(fact,'day');
   $('mgrWeeks').innerHTML=mgrPeriodTable(fact,'week');
@@ -1053,7 +1054,7 @@ function showView(view){
   if(view==='owner') u.searchParams.delete('view'); else u.searchParams.set('view', view);
   history.replaceState(null,'',u.pathname+u.search);
   document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('active', b.dataset.v===view));
-  const hints={owner:'Факт — это оплаченные заказы.',bunat:'Лист для Буната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
+  const hints={owner:'Факт — это оплаченные заказы.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
   if($('viewHint')) $('viewHint').textContent=hints[view]||hints.owner;
   render();
 }
@@ -1068,7 +1069,7 @@ function render(){
   $('viewSwitch').classList.remove('hidden');
   document.body.dataset.view=state.view;
   document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('active', b.dataset.v===state.view));
-  const hints={owner:'Факт — это оплаченные заказы.',bunat:'Лист для Буната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
+  const hints={owner:'Факт — это оплаченные заказы.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
   if($('viewHint')) $('viewHint').textContent=hints[state.view]||hints.owner;
   state.filtered=filterOrders(state.orders,state.filter);
   if(state.view==='detail'){
@@ -1107,7 +1108,7 @@ function renderKPIs(){
   $('kpis').innerHTML=cards.map(c=>`<div class="kpi" style="--kc:${c.c}"><div class="l">${c.l}</div><div class="v">${c.v}</div>${c.d||(c.sub?`<div class="d">${c.sub}</div>`:'')}</div>`).join('');
 }
 function chart(id,cfg){ if(state.charts[id]) state.charts[id].destroy(); state.charts[id]=new Chart($(id).getContext('2d'),cfg); }
-Chart.defaults.color='#8b9ab5'; Chart.defaults.borderColor='rgba(255,255,255,.06)'; Chart.defaults.font.family='Inter,system-ui,sans-serif';
+Chart.defaults.color='#4e5648'; Chart.defaults.borderColor='rgba(18,22,15,.08)'; Chart.defaults.font.family='Inter,system-ui,sans-serif';
 const tipMoney={callbacks:{label:c=>{ const v=c.chart.options.indexAxis==='y'?c.parsed.x:c.parsed.y; return ` ${c.dataset.label}: ${c.dataset.money===false?fmtInt(v):fmtMoney(v)}`; }}};
 const moneyTicks={callback:v=>fmtInt(v)+' ₽'};
 function renderCharts(){
@@ -1116,9 +1117,9 @@ function renderCharts(){
   $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'}`:'нет дат';
   const bar=(k,label,color)=>({type:'bar',label,data:ts.map(t=>t[k]),backgroundColor:color,stack:'rev',borderRadius:3,order:2});
   chart('chTs',{data:{labels:ts.map(t=>t.label),datasets:[
-      bar('done','Оплачено','rgba(151,207,38,.8)'), bar('progress','План','rgba(0,170,255,.6)'), bar('lead','Расчёт','rgba(161,105,247,.5)'), bar('cancel','Слился','rgba(255,64,83,.5)'),
-      {type:'line',label:'Маржа факт',data:ts.map(t=>t.profit),borderColor:'#ffd24d',backgroundColor:'#ffd24d',tension:.3,pointRadius:3,order:1},
-      {type:'line',label:'Заказов',data:ts.map(t=>t.orders),borderColor:'#e6edf7',borderDash:[4,4],backgroundColor:'#e6edf7',tension:.3,pointRadius:2,yAxisID:'y1',order:0,money:false},
+      bar('done','Оплачено','rgba(143,191,127,.9)'), bar('progress','План','rgba(197,165,124,.85)'), bar('lead','Расчёт','rgba(57,66,43,.55)'), bar('cancel','Слился','rgba(163,42,42,.75)'),
+      {type:'line',label:'Маржа факт',data:ts.map(t=>t.profit),borderColor:'#39422b',backgroundColor:'#39422b',tension:.3,pointRadius:3,order:1},
+      {type:'line',label:'Заказов',data:ts.map(t=>t.orders),borderColor:'#12160f',borderDash:[4,4],backgroundColor:'#12160f',tension:.3,pointRadius:2,yAxisID:'y1',order:0,money:false},
     ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{tooltip:tipMoney,legend:{position:'top'}},
       scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:moneyTicks},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{precision:0}}}}});
 
@@ -1136,9 +1137,9 @@ function renderCharts(){
   else { const g=groupOrders(list.filter(o=>o.date),o=>WEEKDAYS[(o.date.getDay()+6)%7]); dim=WEEKDAYS.map(w=>g.find(x=>x.key===w)||{key:w,revenue:0,profit:0,pipeline:0}); title='По дням недели'; }
   $('chDimTitle').textContent=title;
   chart('chDim',{type:'bar',data:{labels:dim.map(d=>d.key),datasets:[
-      {label:'Выручка факт',data:dim.map(d=>d.revenue),backgroundColor:'rgba(151,207,38,.8)',borderRadius:3},
-      {label:'Маржа факт',data:dim.map(d=>d.profit),backgroundColor:'rgba(255,210,77,.8)',borderRadius:3},
-      {label:'План + расчёт',data:dim.map(d=>d.pipeline),backgroundColor:'rgba(0,170,255,.45)',borderRadius:3},
+      {label:'Выручка факт',data:dim.map(d=>d.revenue),backgroundColor:'rgba(143,191,127,.9)',borderRadius:3},
+      {label:'Маржа факт',data:dim.map(d=>d.profit),backgroundColor:'rgba(57,66,43,.75)',borderRadius:3},
+      {label:'План + расчёт',data:dim.map(d=>d.pipeline),backgroundColor:'rgba(197,165,124,.8)',borderRadius:3},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{tooltip:tipMoney,legend:{position:'top'}},scales:{y:{beginAtZero:true,ticks:moneyTicks}}}});
 }
 function renderManagers(){
