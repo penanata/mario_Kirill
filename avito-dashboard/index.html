@@ -159,6 +159,7 @@
     body[data-view="bunat"] footer,
     body[data-view="bunat"] #ownerView,
     body[data-view="bunat"] #mgrView,
+    body[data-view="bunat"] #motView,
     body[data-view="bunat"] #dash,
     body[data-view="bunat"] .noprint{display:none!important}
     body[data-view="bunat"] #bunatView{display:block!important}
@@ -173,7 +174,14 @@
   .approx{color:var(--muted)}
   footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center}
   @media (max-width:1100px){.three{grid-template-columns:1fr 1fr}.three>:nth-child(3){grid-column:1 / -1}}
-  @media (max-width:980px){.charts,.two,.three,.period-board,.mgr-board{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}}
+  .mot-hero{display:grid;grid-template-columns:1.5fr .8fr .8fr;gap:12px;margin-bottom:14px}
+  .mot-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;min-width:0}
+  .mot-card .l{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .mot-card .v{font-size:28px;font-weight:800;letter-spacing:-.4px;margin-top:6px}
+  .mot-card .d{color:var(--muted);font-size:13px;margin-top:4px}
+  .mot-track{height:12px;border-radius:6px;background:rgba(57,66,43,.12);overflow:hidden;margin-top:12px}
+  .mot-track>i{display:block;height:100%;background:var(--leaf)}
+  @media (max-width:980px){.charts,.two,.three,.period-board,.mgr-board,.mot-hero{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -225,6 +233,7 @@
     <div class="seg" id="views">
       <button type="button" data-v="owner" class="active">Собственник</button>
       <button type="button" data-v="mgr">Менеджеры</button>
+      <button type="button" data-v="mot">Мотивация Дарьи</button>
       <button type="button" data-v="bunat">Для Бунната</button>
       <button type="button" data-v="detail">Подробно</button>
     </div>
@@ -243,6 +252,8 @@
   </div>
 
   <div id="mgrView" class="hidden"></div>
+
+  <div id="motView" class="hidden"></div>
 
   <div id="bunatView" class="hidden"></div>
 
@@ -1185,7 +1196,55 @@ function renderManagerSheet(){
   const restNote=rest.length?`<div class="small muted" style="margin-top:8px">Ещё ${fmtInt(rest.length)} оплаченных заказов у других ответственных.</div>`:'';
   $('mgrView').innerHTML=`<div class="bunat-head"><div><h2>Менеджеры</h2><div class="small muted">Рейтинг по марже, по убыванию. Рядом выручка и заказы. Оплаченные.</div></div></div><div class="mgr-board">${cols}</div>${restNote}`;
 }
-const viewHints={owner:'Оплаченные заказы: этот день, эта неделя, этот месяц. Ниже — план с датами и расчёты.',mgr:'Рейтинг по марже за день, неделю и месяц.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
+const DARYA_NAME='Дарья+Ирина';
+const DARYA_PLAN=1000000;
+const DARYA_RATE=0.1;
+const DARYA_RATE_PLAN=0.15;
+function daryaPay(revenue, profit){
+  const hit=(revenue||0)>=DARYA_PLAN;
+  const rate=hit?DARYA_RATE_PLAN:DARYA_RATE;
+  return {hit, rate, bonus:Math.max(0, profit||0)*rate};
+}
+function renderMotivation(){
+  const today=dayFloor(new Date());
+  const monthNow=periodKey(today,'month');
+  const isDarya=o=>canonManager(o.manager)===DARYA_NAME;
+  const paid=state.orders.filter(o=>o.statusClass==='done'&&isDarya(o)&&orderDay(o));
+  const undated=state.orders.filter(o=>o.statusClass==='done'&&isDarya(o)&&!orderDay(o));
+  const planned=state.orders.filter(o=>o.statusClass==='progress'&&isDarya(o)&&orderDay(o)&&periodKey(orderDay(o),'month')===monthNow);
+  const days=paid.map(orderDay);
+  const startD=days.length?new Date(Math.min(today.getTime(), ...days.map(d=>d.getTime()))):today;
+  const endD=days.length?new Date(Math.max(today.getTime(), ...days.map(d=>d.getTime()))):today;
+  const keys=periodKeys('month', new Date(startD.getFullYear(), startD.getMonth(), 1), new Date(endD.getFullYear(), endD.getMonth(), 1));
+  const monthAgg=k=>aggOrders(paid.filter(o=>periodKey(orderDay(o),'month')===k));
+  const cur=monthAgg(monthNow);
+  const pay=daryaPay(cur.revenue, cur.profit);
+  const pct=Math.max(0, Math.min(100, cur.revenue/DARYA_PLAN*100));
+  const left=Math.max(0, DARYA_PLAN-cur.revenue);
+  const planAgg=aggOrders(planned);
+  const monthName=today.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+  const status=pay.hit
+    ?`План ${fmtMoney(DARYA_PLAN)} выполнен. Ставка ${fmtPct(pay.rate*100)} от маржи.`
+    :`До плана ещё ${fmtMoney(left)}. Сейчас ставка ${fmtPct(DARYA_RATE*100)}. После ${fmtMoney(DARYA_PLAN)} ставка станет ${fmtPct(DARYA_RATE_PLAN*100)}.`;
+  const upside=!pay.hit&&cur.profit>0?`<div class="d">На этой марже при ${fmtPct(DARYA_RATE_PLAN*100)} бонус был бы ${fmtMoney(cur.profit*DARYA_RATE_PLAN)}.</div>`:'';
+  const planNote=planAgg.n?`<div class="small muted" style="margin-top:8px">В плане на ${esc(monthName)} ещё ${fmtMoney(planAgg.revenue)} выручки, ${fmtInt(planAgg.n)} зак. В бонус войдёт после оплаты.</div>`:'';
+  const undatedNote=undated.length?`<div class="small muted" style="margin-top:8px">Ещё ${fmtInt(undated.length)} оплаченных заказов без даты. В месяц они не входят.</div>`:'';
+  const rows=keys.slice().reverse().map(k=>{
+    const a=monthAgg(k);
+    const p=daryaPay(a.revenue, a.profit);
+    const label=fromKey(k).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+    return `<tr class="${k===monthNow?'now':'past'}${a.n?'':' is-zero'}"><td>${esc(label)}</td><td class="num">${fmtMoney(a.revenue)}</td><td class="num mgr-margin">${fmtMoney(a.profit)}</td><td class="num">${fmtPct(p.rate*100)}</td><td class="num mgr-margin">${fmtMoney(p.bonus)}</td><td class="num">${fmtInt(a.n)}</td></tr>`;
+  }).join('');
+  $('motView').innerHTML=`<div class="bunat-head"><div><h2>Мотивация Дарьи</h2><div class="small muted">Дарья и Ирина — один человек, два аккаунта на Авито. Заказы обоих аккаунтов считаются вместе. Оплаченные, по календарным месяцам.</div></div></div>
+    <div class="mot-rule panel" style="margin-bottom:14px"><b>План на месяц: ${fmtMoney(DARYA_PLAN)} выручки.</b> До плана бонус ${fmtPct(DARYA_RATE*100)} от маржи. Когда выручка месяца достигает плана, бонус становится ${fmtPct(DARYA_RATE_PLAN*100)} от маржи этого месяца.</div>
+    <div class="mot-hero">
+      <div class="mot-card"><div class="l">Выручка · ${esc(monthName)}</div><div class="v">${fmtMoney(cur.revenue)}</div><div class="d">из ${fmtMoney(DARYA_PLAN)} · ${fmtInt(cur.n)} зак.</div><div class="mot-track"><i style="width:${pct}%"></i></div><div class="d">${esc(status)}</div>${planNote}</div>
+      <div class="mot-card"><div class="l">Маржа</div><div class="v">${fmtMoney(cur.profit)}</div><div class="d">${fmtPct(cur.margin)} от выручки</div></div>
+      <div class="mot-card"><div class="l">Бонус</div><div class="v">${fmtMoney(pay.bonus)}</div><div class="d">${fmtPct(pay.rate*100)} от маржи</div>${upside}</div>
+    </div>
+    <div class="panel"><h2>По месяцам</h2><div class="tbl period-tbl"><table><thead><tr><th>Месяц</th><th class="num">Выручка</th><th class="num">Маржа</th><th class="num">Ставка</th><th class="num">Бонус</th><th class="num">Заказы</th></tr></thead><tbody>${rows}</tbody></table></div>${undatedNote}</div>`;
+}
+const viewHints={owner:'Оплаченные заказы: этот день, эта неделя, этот месяц. Ниже — план с датами и расчёты.',mgr:'Рейтинг по марже за день, неделю и месяц.',mot:'Мотивация Дарьи: 1 млн выручки в месяц. До плана бонус 10% от маржи, после плана 15%.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Все заказы, фильтры и графики.'};
 function showView(view){
   state.view=view;
   const u=new URL(location.href);
@@ -1199,7 +1258,7 @@ function showView(view){
 /* ---------- rendering ---------- */
 function render(){
   if(!state.orders.length){
-    $('dash').classList.add('hidden'); $('ownerView').classList.add('hidden'); $('bunatView').classList.add('hidden'); $('mgrView').classList.add('hidden'); $('viewSwitch').classList.add('hidden');
+    $('dash').classList.add('hidden'); $('ownerView').classList.add('hidden'); $('bunatView').classList.add('hidden'); $('mgrView').classList.add('hidden'); $('motView').classList.add('hidden'); $('viewSwitch').classList.add('hidden');
     $('emptyState').classList.remove('hidden'); return;
   }
   $('emptyState').classList.add('hidden');
@@ -1208,7 +1267,7 @@ function render(){
   document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('active', b.dataset.v===state.view));
   if($('viewHint')) $('viewHint').textContent=viewHints[state.view]||viewHints.owner;
   state.filtered=filterOrders(state.orders,state.filter);
-  $('dash').classList.add('hidden'); $('ownerView').classList.add('hidden'); $('bunatView').classList.add('hidden'); $('mgrView').classList.add('hidden');
+  $('dash').classList.add('hidden'); $('ownerView').classList.add('hidden'); $('bunatView').classList.add('hidden'); $('mgrView').classList.add('hidden'); $('motView').classList.add('hidden');
   if(state.view==='detail'){
     $('dash').classList.remove('hidden');
     $('mgrPanel').classList.toggle('hidden',!state.orders.some(o=>o.manager));
@@ -1220,6 +1279,9 @@ function render(){
   } else if(state.view==='mgr'){
     $('mgrView').classList.remove('hidden');
     renderManagerSheet();
+  } else if(state.view==='mot'){
+    $('motView').classList.remove('hidden');
+    renderMotivation();
   } else {
     $('ownerView').classList.remove('hidden');
     renderOwner();
@@ -1442,7 +1504,7 @@ function init(){
     if(Date.now()-(state.loadedAt||0)>=AUTO_MS) loadFromGoogle({silent:true});
   });
   const view=params.get('view');
-  if(view==='bunat'||view==='detail'||view==='owner'||view==='mgr') state.view=view;
+  if(view==='bunat'||view==='detail'||view==='owner'||view==='mgr'||view==='mot') state.view=view;
   if(params.get('demo')!=null) $('btnDemo').click();
   else if(parseSheetId($('sheetUrl').value)) loadFromGoogle();
 }
