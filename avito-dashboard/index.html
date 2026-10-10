@@ -102,6 +102,7 @@
   .verdict.even{color:var(--text)}
   .bunat-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
   .bunat-head h2{margin:0}
+  .bunat-sub{margin:18px 0 8px;font-size:14px}
   .bunat-sheet{width:100%;border-collapse:collapse}
   .bunat-sheet th,.bunat-sheet td{white-space:normal}
   .bunat-sheet td{font-size:13.5px;line-height:1.35}
@@ -982,8 +983,14 @@ function renderBunat(){
   const weekLabel=ws.toLocaleDateString('ru-RU',{day:'numeric',month:'long'})+' – '+we.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
   const monthLabel=today.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
   const section=(title, hint, list)=>`<div class="panel" style="margin-bottom:14px"><h2>${title} <span class="hint">${esc(hint)} · ${fmtInt(list.length)}</span></h2>${bunatTable(list)}</div>`;
+  const todayKind=c=>{ const t=c.logistics.toLowerCase(); if(t.includes('доставк')) return 'delivery'; if(t.includes('самовывоз')) return 'pickup'; return 'unknown'; };
+  const todayBlock=(title, list)=>`<h2 class="bunat-sub">${title} <span class="hint">${fmtInt(list.length)}</span></h2>${bunatTable(list)}`;
+  const todayDelivery=groups.today.filter(c=>todayKind(c)==='delivery');
+  const todayPickup=groups.today.filter(c=>todayKind(c)==='pickup');
+  const todayUnknown=groups.today.filter(c=>todayKind(c)==='unknown');
+  const todayHtml=`<div class="panel" style="margin-bottom:14px"><h2>Сегодня <span class="hint">${esc(today.toLocaleDateString('ru-RU',{day:'numeric',month:'long',weekday:'long'}))} · ${fmtInt(groups.today.length)}</span></h2>${todayBlock('Доставка', todayDelivery)}${todayBlock('Самовывоз', todayPickup)}${todayUnknown.length?todayBlock('Получение не указано', todayUnknown):''}</div>`;
   const bits=[
-    section('Сегодня', today.toLocaleDateString('ru-RU',{day:'numeric',month:'long',weekday:'long'}), groups.today),
+    todayHtml,
     section('Эта неделя', weekLabel+', кроме сегодня', groups.week),
     section('Этот месяц', monthLabel+', кроме этой недели', groups.month),
   ];
