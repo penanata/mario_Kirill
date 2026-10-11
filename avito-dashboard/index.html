@@ -1323,16 +1323,34 @@ const moneyTicks={callback:v=>fmtInt(v)+' ₽'};
 function renderCharts(){
   const list=state.filtered;
   const ts=timeSeries(list,state.gran,state.filter);
-  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · столбик — выручка, зелёная часть — маржа`:'нет дат';
+  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · столбик — выручка, яркая шапка — маржа`:'нет дат';
   const marginPart=ts.map(t=>Math.min(Math.max(0,t.profit), Math.max(0,t.done)));
   const restPart=ts.map((t,i)=>Math.max(0, t.done-marginPart[i]));
-  chart('chTs',{type:'bar',data:{labels:ts.map(t=>t.label),datasets:[
-      {label:'Маржа',data:marginPart,backgroundColor:'#8fbf7f',stack:'rev',borderSkipped:false,order:2},
-      {label:'Выручка',data:restPart,backgroundColor:'#e4e0d6',stack:'rev',borderRadius:{topLeft:4,topRight:4,bottomLeft:0,bottomRight:0},order:1},
-    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-      plugins:{legend:{position:'top',labels:{filter:item=>item.text==='Маржа'}},
-        tooltip:{callbacks:{label(c){ const t=ts[c.dataIndex]; return c.dataset.label==='Маржа'?` Маржа: ${fmtMoney(t.profit)}`:` Выручка: ${fmtMoney(t.done)}`; }}}},
-      scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:moneyTicks}}}});
+  const cap=ctx=>{
+    const has=marginPart[ctx.dataIndex]>0;
+    const top=ctx.dataset.label==='Маржа'?has:!has;
+    return top?{topLeft:10,topRight:10,bottomLeft:0,bottomRight:0}:0;
+  };
+  chart('chTs',{
+    type:'bar',
+    data:{labels:ts.map(t=>t.label),datasets:[
+      {label:'Выручка',data:restPart,backgroundColor:'#133123',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:1},
+      {label:'Маржа',data:marginPart,backgroundColor:'#d9f86c',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:2},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      datasets:{bar:{barPercentage:.72,categoryPercentage:.8,maxBarThickness:46}},
+      plugins:{
+        legend:{position:'top',align:'end',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:14}},
+        tooltip:{callbacks:{label(c){ const t=ts[c.dataIndex]; return c.dataset.label==='Маржа'?` Маржа: ${fmtMoney(t.profit)}`:` Выручка: ${fmtMoney(t.done)}`; }}},
+      },
+      scales:{
+        x:{stacked:true,grid:{display:false},border:{display:false}},
+        y:{stacked:true,beginAtZero:true,ticks:moneyTicks,grid:{color:'rgba(18,22,15,.06)'},border:{display:false}},
+      },
+    },
+  });
 
   if(state.charts.chDim){ state.charts.chDim.destroy(); delete state.charts.chDim; }
   const span=state.dimSpan||'month';
