@@ -1328,7 +1328,7 @@ const moneyTicks={callback:v=>fmtInt(v)+' ₽'};
 function renderCharts(){
   const list=state.filtered;
   const ts=timeSeries(list,state.gran,state.filter);
-  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · столбик — выручка, яркая шапка — маржа`:'нет дат';
+  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · серый столбик — выручка, зелёная часть — маржа`:'нет дат';
   const marginPart=ts.map(t=>Math.min(Math.max(0,t.profit), Math.max(0,t.done)));
   const restPart=ts.map((t,i)=>Math.max(0, t.done-marginPart[i]));
   const cap=ctx=>{
@@ -1339,8 +1339,8 @@ function renderCharts(){
   chart('chTs',{
     type:'bar',
     data:{labels:ts.map(t=>t.label),datasets:[
-      {label:'Выручка',data:restPart,backgroundColor:'#133123',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:1},
-      {label:'Маржа',data:marginPart,backgroundColor:'#d9f86c',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:2},
+      {label:'Выручка',data:restPart,backgroundColor:'#c5c5be',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:1},
+      {label:'Маржа',data:marginPart,backgroundColor:'#8fbf7f',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:2},
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
