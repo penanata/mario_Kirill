@@ -46,9 +46,28 @@
   .filters .seg button{background:transparent;border:0;padding:8px 12px;cursor:pointer;color:var(--muted);font-weight:600;white-space:nowrap}
   .filters .seg button.active{background:var(--leaf);color:var(--leaf-ink)}
   .filters .spacer{flex:1}
-  .kpi-board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
-  .kpi-group h3{margin:0 0 8px;font-size:15px;font-weight:800}
-  .kpi-group .kpis{flex-direction:column;margin:0}
+  .metric-sheet{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+  .metric-head,.metric-row{display:grid;grid-template-columns:132px 1.6fr 1.25fr .7fr;gap:12px;align-items:center}
+  .metric-head{padding:0 18px;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.35px}
+  .metric-head span:nth-child(n+2){text-align:right}
+  .metric-row{border-radius:14px;padding:12px 18px;color:#12160f}
+  .metric-row .tag{display:block;padding:0;border-radius:0;background:transparent;color:inherit;font-weight:800;font-size:16px}
+  .metric-row .m,.metric-row .r,.metric-row .n{text-align:right;font-variant-numeric:tabular-nums}
+  .metric-row .m{font-weight:800;font-size:28px;letter-spacing:-.4px}
+  .metric-row .r{font-size:18px;font-weight:700}
+  .metric-row .n{font-size:18px;font-weight:700}
+  .metric-row.fact{background:#8fbf7f}
+  .metric-row.fact .tag{font-size:18px}
+  .metric-row.fact .m{font-size:36px}
+  .metric-row.plan{background:#f4e3a1}
+  .metric-row.calc{background:#e3e3de}
+  .who-list{display:flex;flex-direction:column;gap:8px}
+  .who-row{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:end;background:var(--panel2);border-radius:12px;padding:10px 12px}
+  .who-row.top{background:#e7e4dc}
+  .who-name{font-weight:800}
+  .who-margin{font-size:28px;font-weight:800;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+  .who-row.top .who-margin{font-size:34px}
+  .who-rest{grid-column:1 / -1;color:var(--muted);font-size:13px;display:flex;gap:14px;font-variant-numeric:tabular-nums}
   .kpis{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
   .kpi{flex:1 1 168px;min-width:0;background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
   .kpi::after{content:"";position:absolute;inset:auto -30px -40px auto;width:110px;height:110px;border-radius:50%;background:var(--kc,var(--accent));opacity:.09}
@@ -58,7 +77,9 @@
   .kpi .d.up{color:var(--green)} .kpi .d.down{color:var(--red)}
   .charts{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;min-width:0}
   .charts>.panel,.two>.panel,.three>.panel{min-width:0}
-  .charts .panel{min-height:320px;display:flex;flex-direction:column}
+  .charts{align-items:start}
+  .charts .panel{min-height:0;display:flex;flex-direction:column}
+  .charts .panel:first-child{min-height:360px}
   .charts .panel .ch{flex:1;position:relative;min-height:250px}
   .charts .panel .ch canvas{position:absolute;inset:0}
   .chart-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
@@ -186,7 +207,8 @@
   .mot-card .d{color:var(--muted);font-size:13px;margin-top:4px}
   .mot-track{height:12px;border-radius:6px;background:rgba(57,66,43,.12);overflow:hidden;margin-top:12px}
   .mot-track>i{display:block;height:100%;background:var(--leaf)}
-  @media (max-width:980px){.charts,.two,.three,.period-board,.mgr-board,.mot-hero,.kpi-board{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}}
+  @media (max-width:980px){.charts,.two,.three,.period-board,.mgr-board,.mot-hero{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}}
+  @media (max-width:700px){.metric-head,.metric-row{grid-template-columns:68px 1.5fr 1.15fr .7fr;gap:6px;padding-left:10px;padding-right:10px}.metric-row .m{font-size:18px}.metric-row.fact .m{font-size:22px}.metric-row .r,.metric-row .n{font-size:14px}}
 </style>
 </head>
 <body>
@@ -291,11 +313,11 @@
       <button class="btn sm" id="btnExport">Экспорт CSV</button>
     </div>
 
-    <div class="kpi-board" id="kpis"></div>
+    <div class="metric-sheet" id="kpis"></div>
 
     <div class="charts">
       <div class="panel"><h2>Динамика по дате заказа <span class="hint" id="tsHint"></span></h2><div class="chart-tools"><div class="seg" id="chartGran"><button type="button" data-g="day">Дни</button><button type="button" data-g="week" class="active">Недели</button><button type="button" data-g="month">Месяцы</button></div><div class="seg" id="chartPeriod"><button type="button" data-p="all" class="active">Всё время</button><button type="button" data-p="7">7 дней</button><button type="button" data-p="30">30 дней</button><button type="button" data-p="90">90 дней</button><button type="button" data-p="month">Этот месяц</button><button type="button" data-p="prevmonth">Прошлый месяц</button></div><label class="chart-range">с <input type="date" id="chartFrom" title="Начало"> по <input type="date" id="chartTo" title="Конец"></label></div><div class="ch"><canvas id="chTs"></canvas></div></div>
-      <div class="panel"><h2><span><span id="chDimTitle">По ответственным</span> <span class="hint" id="dimHint"></span></span><span class="chart-tools" style="margin:0"><span class="seg" id="dimSpan"><button type="button" data-s="day">День</button><button type="button" data-s="week">Неделя</button><button type="button" data-s="month" class="active">Месяц</button></span></span></h2><div class="ch"><canvas id="chDim"></canvas></div></div>
+      <div class="panel" id="dimPanel"><h2><span><span id="chDimTitle">По ответственным</span> <span class="hint" id="dimHint"></span></span><span class="chart-tools" style="margin:0"><span class="seg" id="dimSpan"><button type="button" data-s="day">День</button><button type="button" data-s="week">Неделя</button><button type="button" data-s="month" class="active">Месяц</button></span></span></h2><div id="dimNums"></div></div>
     </div>
 
     <div class="two">
@@ -1238,7 +1260,7 @@ function renderMotivation(){
     </div>
     <div class="panel"><h2>По месяцам</h2><div class="tbl period-tbl"><table><thead><tr><th>Месяц</th><th class="num">Выручка</th><th class="num">Маржа</th><th class="num">Ставка</th><th class="num">Бонус</th><th class="num">Заказы</th></tr></thead><tbody>${rows}</tbody></table></div>${undatedNote}</div>`;
 }
-const viewHints={owner:'Оплаченные заказы: этот день, эта неделя, этот месяц. Ниже — план с датами и расчёты.',mgr:'Рейтинг по марже за день, неделю и месяц.',mot:'Мотивация Дарьи: 1 млн выручки в месяц. До плана бонус 10% от маржи, после плана 15%.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Факт, план и расчёт: выручка, маржа и заказы. Графики по дате и по трём менеджерам.'};
+const viewHints={owner:'Оплаченные заказы: этот день, эта неделя, этот месяц. Ниже — план с датами и расчёты.',mgr:'Рейтинг по марже за день, неделю и месяц.',mot:'Мотивация Дарьи: 1 млн выручки в месяц. До плана бонус 10% от маржи, после плана 15%.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Маржа, выручка и заказы: факт, план и расчёт. Столбики по дате и цифры по менеджерам.'};
 function showView(view){
   state.view=view;
   const u=new URL(location.href);
@@ -1283,21 +1305,12 @@ function render(){
   }
 }
 function renderKPIs(){
-  const f=state.filter; const s=stageSums(state.filtered);
-  let prev=null;
-  if(f.from&&f.to){ const len=f.to-f.from; prev=stageSums(filterOrders(state.orders,{...f,from:new Date(f.from-len-1),to:new Date(f.from-1)})); }
-  const delta=(cur,pr,inverse)=>{ if(!prev||pr==null||cur==null||pr===0) return ''; const d=(cur-pr)/Math.abs(pr)*100; const up=d>=0; const good=inverse?!up:up; return `<div class="d ${good?'up':'down'}">${up?'▲':'▼'} ${fmtPct(Math.abs(d))} к пред. периоду</div>`; };
-  const card=(l,v,d,c,sub)=>`<div class="kpi" style="--kc:${c}"><div class="l">${l}</div><div class="v">${v}</div>${d||(sub?`<div class="d">${sub}</div>`:'')}</div>`;
-  const group=(title, stage, color)=>{
-    const b=s[stage]; const p=prev?.[stage];
-    const margin=b.revenue?b.profit/b.revenue*100:null;
-    return `<section class="kpi-group"><h3>${title}</h3><div class="kpis">${[
-      card('Выручка', fmtMoney(b.revenue), delta(b.revenue, p?.revenue), color),
-      card('Маржа', fmtMoney(b.profit), delta(b.profit, p?.profit), color, margin==null?'':fmtPct(margin)+' от выручки'),
-      card('Заказы', fmtInt(b.orders), delta(b.orders, p?.orders), color),
-    ].join('')}</div></section>`;
+  const s=stageSums(state.filtered);
+  const row=(title, cls, stage)=>{
+    const b=s[stage];
+    return `<div class="metric-row ${cls}"><span class="tag">${title}</span><span class="m">${fmtMoney(b.profit)}</span><span class="r">${fmtMoney(b.revenue)}</span><span class="n">${fmtInt(b.orders)}</span></div>`;
   };
-  $('kpis').innerHTML=group('Факт', 'done', 'var(--green)')+group('Запланированные', 'progress', 'var(--accent)')+group('Расчёт', 'lead', 'var(--purple)');
+  $('kpis').innerHTML=`<div class="metric-head"><span></span><span>Маржа</span><span>Выручка</span><span>Заказы</span></div>${row('Факт','fact','done')}${row('План','plan','progress')}${row('Расчёт','calc','lead')}`;
 }
 function chart(id,cfg){ if(state.charts[id]) state.charts[id].destroy(); state.charts[id]=new Chart($(id).getContext('2d'),cfg); }
 Chart.defaults.color='#4e5648'; Chart.defaults.borderColor='rgba(18,22,15,.08)'; Chart.defaults.font.family='Inter,system-ui,sans-serif';
@@ -1306,14 +1319,18 @@ const moneyTicks={callback:v=>fmtInt(v)+' ₽'};
 function renderCharts(){
   const list=state.filtered;
   const ts=timeSeries(list,state.gran,state.filter);
-  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · оплаченные`:'нет дат';
-  chart('chTs',{data:{labels:ts.map(t=>t.label),datasets:[
-      {type:'line',label:'Выручка',data:ts.map(t=>t.done),borderColor:'#8fbf7f',backgroundColor:'rgba(143,191,127,.22)',fill:true,tension:.3,pointRadius:3,borderWidth:2,order:2},
-      {type:'line',label:'Маржа',data:ts.map(t=>t.profit),borderColor:'#39422b',backgroundColor:'#39422b',tension:.3,pointRadius:3,borderWidth:2,order:1},
-    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{tooltip:tipMoney,legend:{position:'top'}},
-      scales:{y:{beginAtZero:true,ticks:moneyTicks}}}});
+  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · столбик — выручка, зелёная часть — маржа`:'нет дат';
+  const marginPart=ts.map(t=>Math.min(Math.max(0,t.profit), Math.max(0,t.done)));
+  const restPart=ts.map((t,i)=>Math.max(0, t.done-marginPart[i]));
+  chart('chTs',{type:'bar',data:{labels:ts.map(t=>t.label),datasets:[
+      {label:'Маржа',data:marginPart,backgroundColor:'#8fbf7f',stack:'rev',borderSkipped:false,order:2},
+      {label:'Выручка',data:restPart,backgroundColor:'#e4e0d6',stack:'rev',borderRadius:{topLeft:4,topRight:4,bottomLeft:0,bottomRight:0},order:1},
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',labels:{filter:item=>item.text==='Маржа'}},
+        tooltip:{callbacks:{label(c){ const t=ts[c.dataIndex]; return c.dataset.label==='Маржа'?` Маржа: ${fmtMoney(t.profit)}`:` Выручка: ${fmtMoney(t.done)}`; }}}},
+      scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:moneyTicks}}}});
 
-  let dim,title,horizontal=false;
+  if(state.charts.chDim){ state.charts.chDim.destroy(); delete state.charts.chDim; }
   const span=state.dimSpan||'month';
   const spanRange=()=>{
     const today=dayFloor(new Date()); const end=new Date(today); end.setHours(23,59,59,999);
@@ -1322,27 +1339,22 @@ function renderCharts(){
     const ms=new Date(today.getFullYear(),today.getMonth(),1); const me=new Date(today.getFullYear(),today.getMonth()+1,0,23,59,59,999);
     return {from:ms,to:me,label:today.toLocaleDateString('ru-RU',{month:'long',year:'numeric'})};
   };
+  let dim=[];
   if(list.some(o=>o.manager)){
     const range=spanRange();
     const f={...state.filter,from:range.from,to:range.to};
     if(f.status==='cancel') f.status='all';
-    const people=filterOrders(state.orders,f).filter(o=>o.statusClass!=='cancel'&&SHEET_NAMES.includes(canonManager(o.manager)));
+    const people=filterOrders(state.orders,f).filter(o=>o.statusClass==='done'&&SHEET_NAMES.includes(canonManager(o.manager)));
     const grouped=groupOrders(people,o=>canonManager(o.manager));
-    dim=SHEET_NAMES.map(name=>grouped.find(x=>x.key===name)||{key:name,revenue:0,profit:0,pipeline:0});
+    dim=SHEET_NAMES.map(name=>grouped.find(x=>x.key===name)||{key:name,revenue:0,profit:0,done:0});
     dim.sort((a,b)=>(b.profit||0)-(a.profit||0)||(b.revenue||0)-(a.revenue||0)||String(a.key).localeCompare(String(b.key),'ru'));
-    title='По ответственным';
-    horizontal=true;
+    $('chDimTitle').textContent='По ответственным';
     if($('dimHint')) $('dimHint').textContent=range.label;
-  } else { const g=groupOrders(list.filter(o=>o.date),o=>WEEKDAYS[(o.date.getDay()+6)%7]); dim=WEEKDAYS.map(w=>g.find(x=>x.key===w)||{key:w,revenue:0,profit:0,pipeline:0}); title='По дням недели'; if($('dimHint')) $('dimHint').textContent=''; }
-  $('chDimTitle').textContent=title;
-  chart('chDim',{type:'bar',data:{labels:dim.map(d=>d.key),datasets:[
-      {label:'Выручка факт',data:dim.map(d=>d.revenue),backgroundColor:'rgba(143,191,127,.9)',borderRadius:3},
-      {label:'Маржа факт',data:dim.map(d=>d.profit),backgroundColor:'rgba(57,66,43,.75)',borderRadius:3},
-      {label:'План + расчёт',data:dim.map(d=>d.pipeline),backgroundColor:'rgba(197,165,124,.8)',borderRadius:3},
-    ]},options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,plugins:{tooltip:tipMoney,legend:{position:'top'}},
-      scales:horizontal
-        ?{x:{beginAtZero:true,ticks:{maxTicksLimit:6,callback:v=>{ const n=Math.abs(v); if(n>=1e6) return (v/1e6).toLocaleString('ru-RU',{maximumFractionDigits:1})+' млн'; if(n>=1e3) return fmtInt(v/1000)+' тыс.'; return fmtInt(v); }}},y:{ticks:{autoSkip:false}}}
-        :{y:{beginAtZero:true,ticks:moneyTicks}}}});
+  } else {
+    $('chDimTitle').textContent='По ответственным';
+    if($('dimHint')) $('dimHint').textContent='';
+  }
+  $('dimNums').innerHTML=`<div class="who-list">${dim.map((d,i)=>`<div class="who-row${i?'':' top'}"><div class="who-name">${esc(d.key)}</div><div class="who-margin">${fmtMoney(d.profit)}</div><div class="who-rest"><span>выручка ${fmtMoney(d.revenue)}</span><span>${fmtInt(d.done)} зак.</span></div></div>`).join('')}</div>`;
 }
 function renderPayments(){
   const done=state.filtered.filter(o=>o.statusClass==='done');
