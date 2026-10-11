@@ -10,7 +10,7 @@ import type { Action } from "@/lib/types";
 type Proposal = { proposal: { id: string; summary: string; status: string }; actions: Action[]; lines: string[] };
 type Message = { id: string; role: string; content: string };
 
-export function ProposalCard({ proposal, onDone }: { proposal: Proposal; onDone?: () => void }) {
+export function ProposalCard({ proposal }: { proposal: Proposal }) {
   const router = useRouter();
   const [actions, setActions] = useState(proposal.actions);
   const [editing, setEditing] = useState(false);
@@ -24,9 +24,8 @@ export function ProposalCard({ proposal, onDone }: { proposal: Proposal; onDone?
     try {
       if (editing) await api(`/api/ai/proposals/${proposal.proposal.id}`, { method: "PATCH", body: JSON.stringify({ actions: next }) });
       const data = await api<{ lines: string[] }>(`/api/ai/proposals/${proposal.proposal.id}/confirm`, { method: "POST" });
-      setResult(data.lines);
+      setResult(data.lines?.length ? data.lines : ["Изменение сохранено."]);
       router.refresh();
-      onDone?.();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не сохранилось");
     } finally {
@@ -40,7 +39,6 @@ export function ProposalCard({ proposal, onDone }: { proposal: Proposal; onDone?
       await api(`/api/ai/proposals/${proposal.proposal.id}/cancel`, { method: "POST" });
       setResult(["Ничего не изменено."]);
       router.refresh();
-      onDone?.();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не отменилось");
     } finally {
@@ -194,7 +192,7 @@ export function Assistant() {
                 <p key={message.id} className={message.role === "user" ? "ml-8 rounded-2xl bg-[var(--accent-soft)] p-3 text-sm" : "text-sm whitespace-pre-wrap"}>{message.content}</p>
               ))}
               {pending.filter((item) => item.proposal.status === "pending").map((item) => (
-                <ProposalCard key={item.proposal.id} proposal={item} onDone={() => setPending((current) => current.filter((entry) => entry.proposal.id !== item.proposal.id))} />
+                <ProposalCard key={item.proposal.id} proposal={item} />
               ))}
               {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
             </div>

@@ -38,7 +38,7 @@ export function HabitsView({ data }: { data: Data }) {
       <h1 className="font-display text-4xl md:text-5xl">Привычки</h1>
       <p className="max-w-xl text-sm text-[var(--muted)]">{data.monthLabel}. Пропуск не считается выполнением и не уменьшает цель месяца.</p>
       {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
-      {proposal && <ProposalCard proposal={proposal} onDone={() => { setProposal(null); router.refresh(); }} />}
+      {proposal && <ProposalCard proposal={proposal} />}
       {data.habits.map((habit) => (
         <section key={habit.id} className="card p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
