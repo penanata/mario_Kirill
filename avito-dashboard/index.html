@@ -147,6 +147,8 @@
   .period-tbl thead tr.plan-sum th:first-child{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
   .period-tbl tr.week-band td{background:#F3F0EA;color:var(--text);font-weight:800;font-size:13px}
   .period-tbl tr.week-band.now td{background:#E7EFE0}
+  .period-tbl tr.week-day td:first-child{padding-left:22px}
+  .plan-weeks.period-tbl{max-height:none}
   .city-map{margin-top:16px}
   .city-map h3{margin:0 0 8px;font-size:15px;font-weight:700}
   .city-map-canvas{height:520px;border-radius:16px;border:1px solid var(--line);background:#e7efe4;overflow:hidden}
@@ -1215,23 +1217,29 @@ function plannedTable(planDated, planOpen){
   const today=dayFloor(new Date());
   const nowWeek=periodKey(today,'week');
   const todayKey=isoDay(today);
-  const byWeek=new Map();
+  const byDay=new Map();
+  const days=[];
   for(const o of planDated){
-    const k=periodKey(orderDay(o),'week');
-    if(!byWeek.has(k)) byWeek.set(k,[]);
-    byWeek.get(k).push(o);
+    const d=orderDay(o);
+    const dk=isoDay(d);
+    if(!byDay.has(dk)) byDay.set(dk,[]);
+    byDay.get(dk).push(o);
+    days.push(d);
   }
   const body=[];
-  for(const k of [...byWeek.keys()].sort()){
-    const orders=byWeek.get(k);
-    body.push(`<tr class="week-band${k===nowWeek?' now':''}"><td colspan="4">${esc(granLabel(k,'week'))}</td></tr>`);
-    const byDay=new Map();
-    for(const o of orders){
-      const dk=isoDay(orderDay(o));
-      if(!byDay.has(dk)) byDay.set(dk,[]);
-      byDay.get(dk).push(o);
+  if(days.length){
+    const start=weekStart(new Date(Math.min(...days.map(d=>d.getTime()))));
+    const end=weekStart(new Date(Math.max(...days.map(d=>d.getTime()))));
+    for(const k of periodKeys('week', start, end)){
+      const ws=fromKey(k);
+      body.push(`<tr class="week-band${k===nowWeek?' now':''}"><td colspan="4">Неделя ${esc(granLabel(k,'week'))}</td></tr>`);
+      for(let i=0;i<7;i++){
+        const d=new Date(ws); d.setDate(ws.getDate()+i);
+        const dk=isoDay(d);
+        const label=WEEKDAYS[i]+', '+d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'});
+        body.push(metricRow(label, aggOrders(byDay.get(dk)||[]), (dk===todayKey?'now':'past')+' week-day'));
+      }
     }
-    for(const dk of [...byDay.keys()].sort()) body.push(metricRow(granLabel(dk,'day'), aggOrders(byDay.get(dk)), dk===todayKey?'now':'past'));
   }
   if(planOpen.length){
     body.push('<tr class="week-band"><td colspan="4">Без даты</td></tr>');
@@ -1240,7 +1248,7 @@ function plannedTable(planDated, planOpen){
   const all=aggOrders(planDated.concat(planOpen));
   const sum=`<tr class="plan-sum"><th>Результат</th><th class="num">${fmtMoney(all.profit)}</th><th class="num">${fmtMoney(all.revenue)}</th><th class="num">${fmtInt(all.n)}</th></tr>`;
   const rows=body.join('')||'<tr><td colspan="4" class="muted">Нет запланированных заказов</td></tr>';
-  return `<div class="tbl period-tbl"><table><thead>${sum}<tr><th>Дата</th><th class="num">Маржа</th><th class="num">Выручка</th><th class="num">Заказы</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="tbl period-tbl plan-weeks"><table><thead>${sum}<tr><th>Дата</th><th class="num">Маржа</th><th class="num">Выручка</th><th class="num">Заказы</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 let cityMap=null;
 function deliveryMap(orders){
