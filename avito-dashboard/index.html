@@ -255,8 +255,13 @@
   .approx{color:var(--muted)}
   footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center}
   @media (max-width:1100px){.three{grid-template-columns:1fr 1fr}.three>:nth-child(3){grid-column:1 / -1}}
-  .mot-chart{position:relative;margin:4px 0 8px;height:460px}
-  @media (max-width:700px){.mot-chart{height:380px}}
+  .mot-tbl{max-height:none}
+  .mot-tbl td.share,.mot-tbl th.share{width:36%;min-width:260px}
+  .mot-inline{display:flex;align-items:center;gap:8px}
+  .mot-inline .track{position:relative;flex:1;height:18px;border-radius:6px;background:#F3F0EA;min-width:140px}
+  .mot-inline .track>i{display:block;height:100%;border-radius:6px;background:#7E9460}
+  .mot-inline .track>s{position:absolute;top:-4px;bottom:-4px;border-left:1.5px dashed #2A2418}
+  .mot-inline>b{flex:0 0 auto;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
   .mot-hero{display:grid;grid-template-columns:1.5fr .8fr .8fr;gap:12px;margin-bottom:14px}
   .mot-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;min-width:0}
   .mot-card .l{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
@@ -1466,16 +1471,8 @@ function daryaPay(revenue, profit){
   const rate=hit?DARYA_RATE_PLAN:DARYA_RATE;
   return {hit, rate, bonus:Math.max(0, profit||0)*rate};
 }
-function motCompact(n){
-  const sign=n<0?'−':'';
-  const v=Math.abs(Math.round(n||0));
-  if(v>=1000000) return sign+(Math.round(v/100000)/10).toString().replace('.',',')+' млн';
-  if(v>=1000) return sign+Math.round(v/1000)+' тыс';
-  return sign+String(v);
-}
 function renderMotivation(){
   const today=dayFloor(new Date());
-  const gran=state.motGran||'month';
   const monthNow=periodKey(today,'month');
   const isDarya=o=>canonManager(o.manager)===DARYA_NAME;
   const paid=state.orders.filter(o=>o.statusClass==='done'&&isDarya(o)&&orderDay(o));
@@ -1484,129 +1481,28 @@ function renderMotivation(){
   const days=paid.map(orderDay);
   const startD=days.length?new Date(Math.min(...days.map(d=>d.getTime()))):today;
   const endD=days.length?new Date(Math.max(today.getTime(), ...days.map(d=>d.getTime()))):today;
-  const start=gran==='month'?new Date(startD.getFullYear(), startD.getMonth(), 1):gran==='week'?weekStart(startD):dayFloor(startD);
-  const end=gran==='month'?new Date(endD.getFullYear(), endD.getMonth(), 1):gran==='week'?weekStart(endD):dayFloor(endD);
-  const keys=periodKeys(gran, start, end);
-  const aggs=keys.map(k=>aggOrders(paid.filter(o=>periodKey(orderDay(o),gran)===k)));
-  const labels=keys.map(k=>gran==='day'?fromKey(k).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):granLabel(k, gran));
-  const revenues=aggs.map(a=>a.revenue||0);
-  const profits=aggs.map(a=>a.profit||0);
-  const marginPart=aggs.map(a=>Math.min(Math.max(0,a.profit), Math.max(0,a.revenue)));
-  const restPart=aggs.map((a,i)=>Math.max(0,(a.revenue||0)-marginPart[i]));
-  const peak=Math.max(0, ...revenues);
-  const yMax=(gran==='month'?Math.max(peak, DARYA_PLAN)*1.28:peak*1.45)||1;
-  const moneyLabel=n=>keys.length>6?motCompact(n):fmtMoney(n);
-  const monthA=aggOrders(paid.filter(o=>periodKey(orderDay(o),'month')===monthNow));
-  const pay=daryaPay(monthA.revenue, monthA.profit);
+  const keys=periodKeys('month', new Date(startD.getFullYear(), startD.getMonth(), 1), new Date(endD.getFullYear(), endD.getMonth(), 1)).slice().reverse();
+  const rows=keys.map(k=>{
+    const a=aggOrders(paid.filter(o=>periodKey(orderDay(o),'month')===k));
+    return {k, a, label:granLabel(k,'month'), pay:daryaPay(a.revenue, a.profit)};
+  });
+  const scale=Math.max(DARYA_PLAN*1.5, ...rows.map(r=>(r.a.revenue||0)*1.15), 1);
+  const planX=Math.min(100, DARYA_PLAN/scale*100);
+  const bar=rev=>{
+    const fill=Math.max(0, Math.min(100, (rev||0)/scale*100));
+    const share=DARYA_PLAN?(rev||0)/DARYA_PLAN*100:0;
+    return `<span class="mot-inline" title="черта — 1 млн"><span class="track"><i style="width:${fill}%"></i><s style="left:${planX}%"></s></span><b>${fmtPct(share)}</b></span>`;
+  };
+  const body=rows.map(r=>`<tr class="${r.k===monthNow?'now':''}${r.a.n?'':' is-zero'}"><td>${esc(r.label)}</td><td class="num">${fmtMoney(r.a.revenue)}</td><td class="share">${bar(r.a.revenue)}</td><td class="num mgr-margin">${fmtMoney(r.a.profit)}</td><td class="num">${fmtPct(r.pay.rate*100)}</td><td class="num mgr-margin">${fmtMoney(r.pay.bonus)}</td><td class="num">${fmtInt(r.a.n)}</td></tr>`).join('');
   const monthName=today.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
   const planAgg=aggOrders(planned);
   const planNote=planAgg.n?`<div class="small muted" style="margin-top:8px">В плане на ${esc(monthName)} ещё ${fmtMoney(planAgg.revenue)} выручки, ${fmtInt(planAgg.n)} зак. В бонус войдёт после оплаты.</div>`:'';
   const undatedNote=undated.length?`<div class="small muted" style="margin-top:8px">Ещё ${fmtInt(undated.length)} оплаченных заказов без даты. В месяц они не входят.</div>`:'';
-  const cap=ctx=>{
-    const i=ctx.dataIndex;
-    const rest=restPart[i]>0;
-    const top=ctx.dataset.label==='Выручка'?rest:(!rest&&marginPart[i]>0);
-    return top?{topLeft:8,topRight:8,bottomLeft:0,bottomRight:0}:0;
-  };
   if(state.charts.chMot){ state.charts.chMot.destroy(); delete state.charts.chMot; }
-  $('motView').innerHTML=`<div class="bunat-head"><div><h2>Мотивация Дарьи</h2><div class="small muted">${esc(monthName)}: выручка ${fmtMoney(monthA.revenue)}, маржа ${fmtMoney(monthA.profit)}, бонус ${fmtMoney(pay.bonus)} (${fmtPct(pay.rate*100)} от маржи). План месяца ${fmtMoney(DARYA_PLAN)}.</div></div></div>
-    <div class="panel"><h2>Выручка и маржа <span class="hint">столбик — выручка, тёмная часть от нуля — маржа</span><span class="chart-tools" style="margin:0"><span class="seg" id="motGran"><button type="button" data-g="day"${gran==='day'?' class="active"':''}>Дни</button><button type="button" data-g="week"${gran==='week'?' class="active"':''}>Недели</button><button type="button" data-g="month"${gran==='month'?' class="active"':''}>Месяцы</button></span></span></h2><div class="mot-chart"><canvas id="chMot"></canvas></div>${planNote}${undatedNote}</div>`;
-  document.querySelectorAll('#motGran button').forEach(b=>b.onclick=()=>{ state.motGran=b.dataset.g; renderMotivation(); });
-  chart('chMot',{
-    type:'bar',
-    data:{labels,datasets:[
-      {label:'Маржа',data:marginPart,backgroundColor:'#1F2A18',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:1},
-      {label:'Выручка',data:restPart,backgroundColor:'#E6E0D4',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:2},
-    ]},
-    options:{
-      responsive:true,maintainAspectRatio:false,animation:{duration:400},
-      interaction:{mode:'index',intersect:false},
-      layout:{padding:{top:28,right:12,left:4}},
-      datasets:{bar:{barPercentage:gran==='month'?.62:.8,categoryPercentage:gran==='month'?.52:.88,maxBarThickness:gran==='month'?84:gran==='week'?40:18}},
-      plugins:{
-        legend:{position:'top',align:'end',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:14}},
-        tooltip:{callbacks:{
-          title(items){ return granLabel(keys[items[0].dataIndex], gran); },
-          label(c){ const a=aggs[c.dataIndex]; return c.dataset.label==='Маржа'?` Маржа: ${fmtMoney(a.profit)}`:` Выручка: ${fmtMoney(a.revenue)}`; },
-          afterBody(items){
-            if(!items.length) return;
-            const a=aggs[items[0].dataIndex];
-            const lines=[`Заказы: ${fmtInt(a.n)}`];
-            if(gran==='month'){
-              const p=daryaPay(a.revenue, a.profit);
-              lines.unshift(`Доля плана: ${fmtPct(DARYA_PLAN?a.revenue/DARYA_PLAN*100:0)}`,`Бонус ${fmtPct(p.rate*100)}: ${fmtMoney(p.bonus)}`);
-            }
-            return lines;
-          }
-        }}
-      },
-      scales:{
-        x:{stacked:true,grid:{display:false},border:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:gran==='day'?12:16}},
-        y:{stacked:true,beginAtZero:true,max:yMax,grid:{color:'rgba(42,36,24,.08)'},border:{display:false},ticks:{callback(v){ if(!v) return '0'; if(v>=1000000) return (Math.round(v/100000)/10).toString().replace('.',',')+' млн'; if(v>=1000) return Math.round(v/1000)+' тыс'; return fmtInt(v); }}}
-      }
-    },
-    plugins:[{
-      id:'motLabels',
-      afterDatasetsDraw(ch){
-        const {ctx,chartArea,scales}=ch;
-        if(gran==='month'){
-          const y=scales.y.getPixelForValue(DARYA_PLAN);
-          ctx.save();
-          ctx.strokeStyle='#2A2418';
-          ctx.setLineDash([4,3]);
-          ctx.lineWidth=1.5;
-          ctx.beginPath();
-          ctx.moveTo(chartArea.left, y);
-          ctx.lineTo(chartArea.right, y);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.fillStyle='#2A2418';
-          ctx.font='700 12px Manrope,system-ui,sans-serif';
-          ctx.textAlign='right';
-          ctx.textBaseline='bottom';
-          ctx.fillText('1 млн', chartArea.right-4, Math.max(y-3, 14));
-          ctx.restore();
-        }
-        const metaM=ch.getDatasetMeta(0);
-        const metaR=ch.getDatasetMeta(1);
-        const revSize=keys.length>14?10:11;
-        const marSize=keys.length>14?12:14;
-        const placed=[];
-        const items=metaM.data.map((bar,i)=>{
-          const topBar=restPart[i]>0&&metaR.data[i]?metaR.data[i]:bar;
-          return {i, bar, top:topBar.y, x:topBar.x};
-        }).filter(it=>revenues[it.i]||profits[it.i]).sort((a,b)=>a.top-b.top);
-        ctx.save();
-        ctx.textAlign='center';
-        ctx.textBaseline='bottom';
-        items.forEach(it=>{
-          const revText=moneyLabel(revenues[it.i]);
-          const marText=moneyLabel(profits[it.i]);
-          ctx.font=`800 ${marSize}px Manrope,system-ui,sans-serif`;
-          const marW=ctx.measureText(marText).width;
-          ctx.font=`600 ${revSize}px Manrope,system-ui,sans-serif`;
-          const w=Math.max(marW, ctx.measureText(revText).width)+8;
-          let x=it.x;
-          if(x-w/2<chartArea.left) x=chartArea.left+w/2;
-          if(x+w/2>chartArea.right) x=chartArea.right-w/2;
-          const marY=it.top-3;
-          const revY=marY-marSize-2;
-          const box={l:x-w/2, r:x+w/2, t:revY-revSize, b:marY};
-          if(placed.some(p=>box.l<p.r&&box.r>p.l&&box.t<p.b&&box.b>p.t)) return;
-          placed.push(box);
-          ctx.font=`800 ${marSize}px Manrope,system-ui,sans-serif`;
-          ctx.fillStyle='#141910';
-          ctx.fillText(marText, x, marY);
-          ctx.font=`600 ${revSize}px Manrope,system-ui,sans-serif`;
-          ctx.fillStyle='#A89F93';
-          ctx.fillText(revText, x, revY);
-        });
-        ctx.restore();
-      }
-    }]
-  });
+  $('motView').innerHTML=`<div class="bunat-head"><div><h2>Мотивация Дарьи</h2><div class="small muted">Только оплаченные, по месяцам. Столбик в строке — доля плана ${fmtMoney(DARYA_PLAN)}. Пунктир — 1 млн.</div></div></div>
+    <div class="panel"><h2>По месяцам</h2><div class="tbl period-tbl mot-tbl"><table><thead><tr><th>Месяц</th><th class="num">Выручка</th><th class="share">Доля плана</th><th class="num">Маржа</th><th class="num">Ставка</th><th class="num">Бонус</th><th class="num">Заказы</th></tr></thead><tbody>${body||'<tr><td colspan="7" class="muted">Нет оплаченных заказов</td></tr>'}</tbody></table></div>${planNote}${undatedNote}</div>`;
 }
-const viewHints={owner:'Оплаченные заказы: сегодня, эта неделя, этот месяц. Ниже план теми же столбцами: месяцы, внутри недели и семь дней.',mgr:'Рейтинг по марже по месяцам. Месяц раскрывается в недели.',mot:'Мотивация Дарьи: один график по дням, неделям или месяцам. Сверху бледно — выручка, контрастно — маржа.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Маржа, выручка и заказы. Столбик — выручка, зелёная часть от нуля — маржа.'};
+const viewHints={owner:'Оплаченные заказы: сегодня, эта неделя, этот месяц. Ниже план теми же столбцами: месяцы, внутри недели и семь дней.',mgr:'Рейтинг по марже по месяцам. Месяц раскрывается в недели.',mot:'Мотивация Дарьи по месяцам: столбик доли плана стоит в строке таблицы.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Маржа, выручка и заказы. Столбик — выручка, зелёная часть от нуля — маржа.'};
 function showView(view){
   state.view=view;
   const u=new URL(location.href);
