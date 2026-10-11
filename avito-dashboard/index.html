@@ -243,6 +243,7 @@
   .approx{color:var(--muted)}
   footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center}
   @media (max-width:1100px){.three{grid-template-columns:1fr 1fr}.three>:nth-child(3){grid-column:1 / -1}}
+  .mot-chart{position:relative;margin:4px 0 16px;min-height:180px}
   .mot-hero{display:grid;grid-template-columns:1.5fr .8fr .8fr;gap:12px;margin-bottom:14px}
   .mot-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;min-width:0}
   .mot-card .l{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
@@ -1401,37 +1402,71 @@ function renderMotivation(){
   const endD=days.length?new Date(Math.max(today.getTime(), ...days.map(d=>d.getTime()))):today;
   const keys=periodKeys('month', new Date(startD.getFullYear(), startD.getMonth(), 1), new Date(endD.getFullYear(), endD.getMonth(), 1));
   const monthAgg=k=>aggOrders(paid.filter(o=>periodKey(orderDay(o),'month')===k));
-  const cur=monthAgg(monthNow);
-  const pay=daryaPay(cur.revenue, cur.profit);
-  const scaleMax=Math.max(DARYA_PLAN*1.5, (cur.revenue||0)*1.15);
-  const planPct=DARYA_PLAN/scaleMax*100;
-  const fillPct=Math.max(0, Math.min(100, (cur.revenue||0)/scaleMax*100));
-  const scaleCap=scaleMax>=1000000?(Math.round(scaleMax/100000)/10).toString().replace('.',',')+' млн':fmtMoney(scaleMax);
-  const left=Math.max(0, DARYA_PLAN-cur.revenue);
   const planAgg=aggOrders(planned);
   const monthName=today.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
-  const status=pay.hit
-    ?`План ${fmtMoney(DARYA_PLAN)} выполнен. Ставка ${fmtPct(pay.rate*100)} от маржи.`
-    :`До плана ещё ${fmtMoney(left)}. Сейчас ставка ${fmtPct(DARYA_RATE*100)}. После ${fmtMoney(DARYA_PLAN)} ставка станет ${fmtPct(DARYA_RATE_PLAN*100)}.`;
-  const upside=!pay.hit&&cur.profit>0?`<div class="d">На этой марже при ${fmtPct(DARYA_RATE_PLAN*100)} бонус был бы ${fmtMoney(cur.profit*DARYA_RATE_PLAN)}.</div>`:'';
   const planNote=planAgg.n?`<div class="small muted" style="margin-top:8px">В плане на ${esc(monthName)} ещё ${fmtMoney(planAgg.revenue)} выручки, ${fmtInt(planAgg.n)} зак. В бонус войдёт после оплаты.</div>`:'';
   const undatedNote=undated.length?`<div class="small muted" style="margin-top:8px">Ещё ${fmtInt(undated.length)} оплаченных заказов без даты. В месяц они не входят.</div>`:'';
-  const rows=keys.slice().reverse().map(k=>{
+  const keysRev=keys.slice().reverse();
+  const rows=keysRev.map(k=>{
     const a=monthAgg(k);
     const p=daryaPay(a.revenue, a.profit);
+    const share=DARYA_PLAN?(a.revenue||0)/DARYA_PLAN*100:0;
     const label=fromKey(k).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
-    return `<tr class="${k===monthNow?'now':'past'}${a.n?'':' is-zero'}"><td>${esc(label)}</td><td class="num">${fmtMoney(a.revenue)}</td><td class="num mgr-margin">${fmtMoney(a.profit)}</td><td class="num">${fmtPct(p.rate*100)}</td><td class="num mgr-margin">${fmtMoney(p.bonus)}</td><td class="num">${fmtInt(a.n)}</td></tr>`;
+    return `<tr class="${k===monthNow?'now':'past'}${a.n?'':' is-zero'}"><td>${esc(label)}</td><td class="num">${fmtMoney(a.revenue)}</td><td class="num">${fmtPct(share)}</td><td class="num mgr-margin">${fmtMoney(a.profit)}</td><td class="num">${fmtPct(p.rate*100)}</td><td class="num mgr-margin">${fmtMoney(p.bonus)}</td><td class="num">${fmtInt(a.n)}</td></tr>`;
   }).join('');
-  $('motView').innerHTML=`<div class="bunat-head"><div><h2>Мотивация Дарьи</h2><div class="small muted">Дарья и Ирина — один человек, два аккаунта на Авито. Заказы обоих аккаунтов считаются вместе. Оплаченные, по календарным месяцам.</div></div></div>
-    <div class="mot-rule panel" style="margin-bottom:14px"><b>План на месяц: ${fmtMoney(DARYA_PLAN)} выручки.</b> До плана бонус ${fmtPct(DARYA_RATE*100)} от маржи. Когда выручка месяца достигает плана, бонус становится ${fmtPct(DARYA_RATE_PLAN*100)} от маржи этого месяца.</div>
-    <div class="mot-hero">
-      <div class="mot-card"><div class="l">Выручка · ${esc(monthName)}</div><div class="v">${fmtMoney(cur.revenue)}</div><div class="d">заполнено ${fmtMoney(cur.revenue)} из ${fmtMoney(DARYA_PLAN)} · ${fmtInt(cur.n)} зак.</div><div class="mot-scale"><div class="mot-scale-cap"><span>0</span><span>${esc(scaleCap)}</span></div><div class="mot-scale-tags"><span style="width:${planPct}%">до 1 млн · 10%</span><span>после 1 млн · 15%</span></div><div class="mot-scale-track"><div class="mot-zone low" style="width:${planPct}%"></div><div class="mot-zone high" style="left:${planPct}%;width:${100-planPct}%"></div><div class="mot-fill" style="width:${fillPct}%"></div><div class="mot-tick" style="left:${planPct}%"></div><div class="mot-now" style="left:${fillPct}%"></div><div class="mot-scale-mark" style="left:${planPct}%">1 млн</div></div><div class="mot-scale-note">Левее отметки 1 млн бонус 10% от маржи. Правее отметки бонус 15% от маржи. Точка — выручка на сегодня.</div></div><div class="d">${esc(status)}</div>${planNote}</div>
-      <div class="mot-card"><div class="l">Маржа</div><div class="v">${fmtMoney(cur.profit)}</div><div class="d">${fmtPct(cur.margin)} от выручки</div></div>
-      <div class="mot-card"><div class="l">Бонус на сегодня</div><div class="v">${fmtMoney(pay.bonus)}</div><div class="d">${fmtPct(pay.rate*100)} от маржи ${fmtMoney(cur.profit)}</div>${upside}</div>
-    </div>
-    <div class="panel"><h2>По месяцам</h2><div class="tbl period-tbl"><table><thead><tr><th>Месяц</th><th class="num">Выручка</th><th class="num">Маржа</th><th class="num">Ставка</th><th class="num">Бонус</th><th class="num">Заказы</th></tr></thead><tbody>${rows}</tbody></table></div>${undatedNote}</div>`;
+  const revenues=keysRev.map(k=>monthAgg(k).revenue||0);
+  const labels=keysRev.map(k=>fromKey(k).toLocaleDateString('ru-RU',{month:'long',year:'numeric'}));
+  const scaleMax=Math.max(DARYA_PLAN*1.5, ...revenues.map(v=>v*1.15), DARYA_PLAN);
+  if(state.charts.chMot){ state.charts.chMot.destroy(); delete state.charts.chMot; }
+  $('motView').innerHTML=`<div class="bunat-head"><div><h2>Мотивация Дарьи</h2><div class="small muted">Только оплаченные, по месяцам. Столбик — какая доля плана ${fmtMoney(DARYA_PLAN)} выполнена. Черта — 1 млн.</div></div></div>
+    <div class="panel"><h2>По месяцам</h2><div class="mot-chart" style="height:${Math.max(190, keysRev.length*78+48)}px"><canvas id="chMot"></canvas></div><div class="tbl period-tbl"><table><thead><tr><th>Месяц</th><th class="num">Выручка</th><th class="num">Доля плана</th><th class="num">Маржа</th><th class="num">Ставка</th><th class="num">Бонус</th><th class="num">Заказы</th></tr></thead><tbody>${rows}</tbody></table></div>${planNote}${undatedNote}</div>`;
+  chart('chMot',{
+    type:'bar',
+    data:{labels,datasets:[{label:'Выручка',data:revenues,backgroundColor:'#7E9460',borderRadius:6,barThickness:26,maxBarThickness:32}]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      layout:{padding:{top:18,right:64}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label(c){ const rev=c.parsed.x||0; return ` ${fmtMoney(rev)} · ${fmtPct(DARYA_PLAN?rev/DARYA_PLAN*100:0)} плана`; }}}
+      },
+      scales:{
+        x:{beginAtZero:true,max:scaleMax,grid:{color:'rgba(42,36,24,.08)'},ticks:{callback(v){ if(!v) return '0'; if(v>=1000000) return (Math.round(v/100000)/10).toString().replace('.',',')+' млн'; return fmtInt(v); }}},
+        y:{grid:{display:false}}
+      }
+    },
+    plugins:[{
+      id:'planShare',
+      afterDatasetsDraw(ch){
+        const {ctx,chartArea,scales}=ch;
+        const x=scales.x.getPixelForValue(DARYA_PLAN);
+        ctx.save();
+        ctx.strokeStyle='#2A2418';
+        ctx.setLineDash([4,3]);
+        ctx.lineWidth=1.5;
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle='#2A2418';
+        ctx.font='700 12px Manrope,system-ui,sans-serif';
+        ctx.textAlign='left';
+        ctx.textBaseline='bottom';
+        ctx.fillText('1 млн', x+6, chartArea.top-2);
+        const meta=ch.getDatasetMeta(0);
+        meta.data.forEach((bar,i)=>{
+          const rev=revenues[i]||0;
+          const text=fmtPct(DARYA_PLAN?rev/DARYA_PLAN*100:0);
+          ctx.textBaseline='middle';
+          ctx.fillText(text, bar.x+8, bar.y);
+        });
+        ctx.restore();
+      }
+    }]
+  });
 }
-const viewHints={owner:'Оплаченные заказы: сегодня, эта неделя, этот месяц. Ниже — план по неделям и карта доставок.',mgr:'Рейтинг по марже: каждый месяц и каждая неделя.',mot:'Мотивация Дарьи: шкала длиннее 1 млн. Левее отметки бонус 10% от маржи, правее — 15%.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Маржа, выручка и заказы. Столбик — выручка, зелёная часть от нуля — маржа.'};
+const viewHints={owner:'Оплаченные заказы: сегодня, эта неделя, этот месяц. Ниже — план по неделям и карта доставок.',mgr:'Рейтинг по марже: каждый месяц и каждая неделя.',mot:'Мотивация Дарьи по месяцам: горизонтальный столбик — доля плана 1 млн.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Маржа, выручка и заказы. Столбик — выручка, зелёная часть от нуля — маржа.'};
 function showView(view){
   state.view=view;
   const u=new URL(location.href);
