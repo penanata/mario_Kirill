@@ -161,6 +161,7 @@
   .leaflet-tooltip.pin-tip{background:#fffefb;color:#2A2418;border:none;border-radius:9px;box-shadow:0 4px 14px rgba(40,36,24,.16);font-family:"Manrope",system-ui,sans-serif;font-weight:700;font-size:12px;padding:5px 8px;line-height:1.25}
   .leaflet-tooltip.pin-tip .pin-where{display:block;font-weight:600;color:#6B6256}
   .leaflet-tooltip.pin-tip .pin-mgr{display:block;font-weight:800;color:#1C2416;margin-top:1px}
+  .leaflet-tooltip.pin-tip .pin-sum{display:block;font-weight:800;color:#1C2416;margin-top:1px;font-variant-numeric:tabular-nums}
   .leaflet-tooltip.pin-tip:before{display:none}
   .leaflet-popup-content-wrapper{border-radius:12px}
   .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.35}
@@ -1359,16 +1360,18 @@ function deliveryMap(orders){
     const spot=citySpot(blob);
     const day=card.date?card.date.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'без даты';
     const manager=card.manager||'';
-    if(!spot){ missed.push({day, name:card.name, manager, address:card.address==='не указан'?'адрес не указан':card.address}); continue; }
+    const sum=o.revenue||0;
+    if(!spot){ missed.push({day, name:card.name, manager, address:card.address==='не указан'?'адрес не указан':card.address, sum}); continue; }
     const n=used.get(spot.name)||0; used.set(spot.name, n+1);
-    pins.push({name:spot.name, lat:spot.lat+n*0.004, lon:spot.lon+n*0.005, day, address:card.address, client:card.name, manager});
+    pins.push({name:spot.name, lat:spot.lat+n*0.004, lon:spot.lon+n*0.005, day, address:card.address, client:card.name, manager, sum});
   }
   if(!pins.length&&!missed.length) return {html:'', pins:[]};
   const who=p=>p.manager?` · ${esc(p.manager)}`:'';
-  const list=pins.map(p=>`<li><b>${esc(p.day)}</b> · ${esc(p.name)}${who(p)} <span class="muted">${esc(p.address)}</span></li>`).join('');
-  const miss=missed.length?`<div class="small muted" style="margin-top:8px">Доставка без точки: ${missed.map(m=>esc(m.day+' · '+m.name+(m.manager?' · '+m.manager:'')+(m.address?', '+m.address:''))).join('; ')}</div>`:'';
-  const canvas=pins.length?'<div id="deliveryMap" class="city-map-canvas" role="img" aria-label="Карта доставок"></div><div class="small muted" style="margin-top:6px">Карту можно двигать и приближать. Подпись на точке — день, часть города и менеджер.</div>':'<div class="small muted">В плане нет доставок с понятной частью города.</div>';
-  return {html:`<div class="city-map"><h3>Доставки <span class="hint">день, часть города и менеджер</span></h3>${canvas}<ul class="map-list">${list}</ul>${miss}</div>`, pins};
+  const money=p=>` · ${esc(fmtMoney(p.sum))}`;
+  const list=pins.map(p=>`<li><b>${esc(p.day)}</b> · ${esc(p.name)}${who(p)}${money(p)} <span class="muted">${esc(p.address)}</span></li>`).join('');
+  const miss=missed.length?`<div class="small muted" style="margin-top:8px">Доставка без точки: ${missed.map(m=>esc(m.day+' · '+m.name+(m.manager?' · '+m.manager:'')+' · '+fmtMoney(m.sum)+(m.address?', '+m.address:''))).join('; ')}</div>`:'';
+  const canvas=pins.length?'<div id="deliveryMap" class="city-map-canvas" role="img" aria-label="Карта доставок"></div><div class="small muted" style="margin-top:6px">Карту можно двигать и приближать. Подпись на точке — день, часть города, менеджер и сумма заказа.</div>':'<div class="small muted">В плане нет доставок с понятной частью города.</div>';
+  return {html:`<div class="city-map"><h3>Доставки <span class="hint">день, часть города, менеджер и сумма</span></h3>${canvas}<ul class="map-list">${list}</ul>${miss}</div>`, pins};
 }
 function mountDeliveryMap(pins){
   if(cityMap){ cityMap.remove(); cityMap=null; }
@@ -1382,9 +1385,9 @@ function mountDeliveryMap(pins){
   const pinHtml='<svg viewBox="0 0 28 36" width="26" height="34" aria-hidden="true"><path d="M14 35s12-11.2 12-20.6C26 6.4 20.6 1 14 1S2 6.4 2 14.4C2 23.8 14 35 14 35z" fill="#5d7c44" stroke="#fff" stroke-width="1.6"/><circle cx="14" cy="14" r="4.2" fill="#fff"/></svg>';
   const icon=L.divIcon({className:'pin-icon',html:pinHtml,iconSize:[26,34],iconAnchor:[13,32]});
   const markers=pins.map(p=>{
-    const marker=L.marker([p.lat,p.lon],{icon,title:[p.day,p.name,p.manager].filter(Boolean).join(' · ')}).addTo(map);
+    const marker=L.marker([p.lat,p.lon],{icon,title:[p.day,p.name,p.manager,fmtMoney(p.sum)].filter(Boolean).join(' · ')}).addTo(map);
     marker._pin=p;
-    marker.bindPopup(`<b>${esc(p.day)} · ${esc(p.name)}</b>${p.manager?`<div>${esc(p.manager)}</div>`:''}<div>${esc(p.address)}</div><div class="muted">${esc(p.client)}</div>`);
+    marker.bindPopup(`<b>${esc(p.day)} · ${esc(p.name)}</b>${p.manager?`<div>${esc(p.manager)}</div>`:''}<div class="pin-sum">${esc(fmtMoney(p.sum))}</div><div>${esc(p.address)}</div><div class="muted">${esc(p.client)}</div>`);
     return marker;
   });
   const bounds=L.latLngBounds(markers.map(m=>m.getLatLng()));
@@ -1409,9 +1412,10 @@ function mountDeliveryMap(pins){
     const placed=[];
     markers.forEach(marker=>{
       const p=marker._pin;
+      const sumHtml=`<span class="pin-sum">${esc(fmtMoney(p.sum))}</span>`;
       marker._label=narrow
-        ? `<span class="pin-where">${esc(p.day)}</span><span class="pin-mgr">${esc(p.manager||p.name)}</span>`
-        : `<span class="pin-where">${esc(p.day)} · ${esc(p.name)}</span>${p.manager?`<span class="pin-mgr">${esc(p.manager)}</span>`:''}`;
+        ? `<span class="pin-where">${esc(p.day)}</span><span class="pin-mgr">${esc(p.manager||p.name)}</span>${sumHtml}`
+        : `<span class="pin-where">${esc(p.day)} · ${esc(p.name)}</span>${p.manager?`<span class="pin-mgr">${esc(p.manager)}</span>`:''}${sumHtml}`;
       let choice=dirs[0], best=Infinity, bestBox=null;
       for(const dir of dirs){
         if(marker.getTooltip()) marker.unbindTooltip();
