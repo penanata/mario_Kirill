@@ -452,6 +452,7 @@ const state = {
   filter:{ preset:'all', from:null, to:null, status:'all', manager:'', product:'', q:'' },
   gran:'week', dimSpan:'month', prodSort:{col:'revenue',dir:-1}, sort:{col:'date',dir:-1}, page:0, pageSize:25, expanded:new Set(), charts:{}, sourceLabel:'',
   view:'owner', loading:false, loadedAt:0, autoTimer:null, planFold:new Set(), mgrFold:new Set(),
+  bunatGran:'day', bunatPreset:'today', bunatFrom:null, bunatTo:null,
 };
 const AUTO_MS = 60000;
 const OWNER_MANAGERS = ['Дарья+Ирина','Наталия','Кирилл','Света'];
@@ -1059,7 +1060,9 @@ function bunatCard(o){
     const q=i.qty!=null&&isFinite(i.qty)?fmtInt(i.qty)+' × ':'';
     return q+String(i.name).trim();
   });
-  return {name, address:address.join('; ')||'не указан', phones:phones.join(', ')||'не указан', contacts:uniq(contacts), composition, pay, logistics, confirmed, clues:uniq(clues).slice(0,3), manager:o.manager?canonManager(o.manager):'', date:o.date&&!o.dateApprox?o.date:null, past:false};
+  const date=o.date&&!o.dateApprox?o.date:null;
+  const past=!!(date&&dayFloor(date)<dayFloor(new Date()));
+  return {name, address:address.join('; ')||'не указан', phones:phones.join(', ')||'не указан', contacts:uniq(contacts), composition, pay, logistics, confirmed, clues:uniq(clues).slice(0,3), manager:o.manager?canonManager(o.manager):'', date, past};
 }
 function bunatBucket(card, today){
   if(!card.date) return 'undated';
@@ -1096,48 +1099,107 @@ function bunatGrouped(groups){
   const body=groups.map(g=>`<tr class="bunat-group"><td colspan="8">${esc(g.title)} <span class="hint">${fmtInt(g.cards.length)}</span></td></tr>${bunatRows(g.cards)}`).join('');
   return `<table class="bunat-sheet">${BUNAT_COLS}${BUNAT_HEAD}<tbody>${body}</tbody></table>`;
 }
+function bunatBounds(){
+  const today=dayFloor(new Date());
+  const p=state.bunatPreset||'today';
+  let from=today, to=today;
+  if(p==='today'){ from=today; to=new Date(today); }
+  else if(p==='week'){ from=weekStart(today); to=new Date(from); to.setDate(from.getDate()+6); }
+  else if(p==='month'){ from=new Date(today.getFullYear(), today.getMonth(), 1); to=new Date(today.getFullYear(), today.getMonth()+1, 0); }
+  else if(p==='next7'){ from=today; to=new Date(today); to.setDate(today.getDate()+6); }
+  else if(p==='next30'){ from=today; to=new Date(today); to.setDate(today.getDate()+29); }
+  else if(p==='upcoming'){ from=today; to=null; }
+  else {
+    from=state.bunatFrom?dayFloor(state.bunatFrom):null;
+    to=state.bunatTo?dayFloor(state.bunatTo):null;
+    if(from&&to&&from>to){ const swap=from; from=to; to=swap; }
+    if(!from&&!to){ from=today; to=null; }
+  }
+  return {from, to, today};
+}
+function bunatRangeLabel(bounds){
+  const fmt=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+  const p=state.bunatPreset||'today';
+  if(p==='today') return 'сегодня, '+fmt(bounds.today);
+  if(p==='week') return 'эта неделя, '+fmt(bounds.from)+' – '+fmt(bounds.to);
+  if(p==='month') return 'этот месяц, '+bounds.from.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+  if(p==='next7') return 'ближайшие 7 дней, '+fmt(bounds.from)+' – '+fmt(bounds.to);
+  if(p==='next30') return 'ближайшие 30 дней, '+fmt(bounds.from)+' – '+fmt(bounds.to);
+  if(p==='upcoming'||(!bounds.from&&!bounds.to)) return 'предстоящие с '+fmt(bounds.from||bounds.today);
+  if(bounds.from&&bounds.to) return fmt(bounds.from)+' – '+fmt(bounds.to);
+  if(bounds.from) return 'с '+fmt(bounds.from);
+  return 'по '+fmt(bounds.to);
+}
+function bunatDayBody(cards){
+  const kind=c=>{ const t=c.logistics.toLowerCase(); if(t.includes('доставк')) return 'delivery'; if(t.includes('самовывоз')) return 'pickup'; return 'unknown'; };
+  const groups=[
+    {title:'Доставка', cards:cards.filter(c=>kind(c)==='delivery')},
+    {title:'Самовывоз', cards:cards.filter(c=>kind(c)==='pickup')},
+  ].filter(g=>g.cards.length);
+  const unknown=cards.filter(c=>kind(c)==='unknown');
+  if(unknown.length) groups.push({title:'Получение не указано', cards:unknown});
+  if(groups.length>1) return bunatGrouped(groups);
+  return bunatTable(cards);
+}
 function renderBunat(){
-  const today=new Date(); today.setHours(0,0,0,0);
-  const ws=new Date(today); ws.setDate(today.getDate()-((today.getDay()+6)%7));
-  const we=new Date(ws); we.setDate(ws.getDate()+6);
-  const groups={today:[],week:[],month:[],other:[],undated:[]};
+  const bounds=bunatBounds();
+  const today=bounds.today;
+  const gran=state.bunatGran==='week'||state.bunatGran==='month'?state.bunatGran:'day';
+  const preset=state.bunatPreset||'today';
+  const cards=[], undated=[];
   for(const o of state.orders){
     if(o.statusClass!=='progress') continue;
     const card=bunatCard(o);
-    if(card.date){
-      const d=new Date(card.date); d.setHours(0,0,0,0);
-      if(d<today) continue;
-    }
-    groups[bunatBucket(card, today)].push(card);
+    if(!card.date){ if(bounds.to==null) undated.push(card); continue; }
+    const d=dayFloor(card.date);
+    if(bounds.from&&d<bounds.from) continue;
+    if(bounds.to&&d>bounds.to) continue;
+    cards.push(card);
   }
   const byDate=(a,b)=>((a.date?a.date.getTime():9e15)-(b.date?b.date.getTime():9e15))||a.name.localeCompare(b.name,'ru');
-  Object.values(groups).forEach(list=>list.sort(byDate));
-  const fmtDay=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
-  const tomorrow=new Date(today); tomorrow.setDate(today.getDate()+1);
-  const weekLabel=tomorrow<=we?fmtDay(tomorrow)+' – '+fmtDay(we):'на этой неделе предстоящих дней нет';
-  const monthStart=new Date(we); monthStart.setDate(we.getDate()+1); monthStart.setHours(0,0,0,0);
-  const monthEnd=new Date(today.getFullYear(), today.getMonth()+1, 0);
-  const monthLabel=monthStart<=monthEnd?fmtDay(monthStart)+' – '+fmtDay(monthEnd):'после этой недели в месяце дней нет';
-  const section=(title, hint, list)=>`<div class="panel" style="margin-bottom:14px"><h2>${title} <span class="hint">${esc(hint)} · ${fmtInt(list.length)}</span></h2>${bunatTable(list)}</div>`;
-  const todayKind=c=>{ const t=c.logistics.toLowerCase(); if(t.includes('доставк')) return 'delivery'; if(t.includes('самовывоз')) return 'pickup'; return 'unknown'; };
-  const todayGroups=[
-    {title:'Доставка', cards:groups.today.filter(c=>todayKind(c)==='delivery')},
-    {title:'Самовывоз', cards:groups.today.filter(c=>todayKind(c)==='pickup')},
-  ];
-  const todayUnknown=groups.today.filter(c=>todayKind(c)==='unknown');
-  if(todayUnknown.length) todayGroups.push({title:'Получение не указано', cards:todayUnknown});
-  const todayHtml=`<div class="panel" style="margin-bottom:14px"><h2>Сегодня <span class="hint">${esc(today.toLocaleDateString('ru-RU',{day:'numeric',month:'long',weekday:'long'}))} · ${fmtInt(groups.today.length)}</span></h2>${bunatGrouped(todayGroups)}</div>`;
-  const bits=[
-    todayHtml,
-    section('Эта неделя', weekLabel, groups.week),
-    section('Этот месяц', monthLabel, groups.month),
-  ];
-  if(groups.other.length) bits.push(section('Другие даты', 'план вне этого месяца', groups.other));
-  if(groups.undated.length) bits.push(section('Без даты', 'в плане, день не указан', groups.undated));
-  const later=groups.other.length?`, дальше ${fmtInt(groups.other.length)}`:'';
-  const nodate=groups.undated.length?`, без даты ${fmtInt(groups.undated.length)}`:'';
-  $('bunatView').innerHTML=`<div class="bunat-head"><div><h2>Лист для Бунната</h2><div class="small muted">Заказы со статусом «2 план» на сегодня и предстоящие дни. Сегодня ${fmtInt(groups.today.length)}, на неделе ещё ${fmtInt(groups.week.length)}, в месяце ещё ${fmtInt(groups.month.length)}${later}${nodate}. Таблица только читается.</div></div><button type="button" class="btn noprint" id="btnBunatPrint">Печать</button></div>`+bits.join('');
+  cards.sort(byDate); undated.sort(byDate);
+  const buckets=new Map();
+  for(const c of cards){
+    const k=periodKey(c.date, gran);
+    if(!buckets.has(k)) buckets.set(k, []);
+    buckets.get(k).push(c);
+  }
+  const granWord=gran==='week'?'по неделям':gran==='month'?'по месяцам':'по дням';
+  const bits=[];
+  for(const k of [...buckets.keys()].sort()){
+    const list=buckets.get(k);
+    const isNow=periodKey(today, gran)===k;
+    let title;
+    if(gran==='day'){
+      const d=fromKey(k);
+      title=isNow?'Сегодня':WEEKDAYS[(d.getDay()+6)%7]+', '+d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+    } else if(gran==='week') title=isNow?'Эта неделя':granLabel(k,'week');
+    else title=isNow?'Этот месяц':granLabel(k,'month');
+    const hint=gran==='day'
+      ?(isNow?today.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'}):'')
+      :(isNow?granLabel(k, gran):'');
+    const body=gran==='day'?bunatDayBody(list):bunatTable(list);
+    const hintHtml=hint?`${esc(hint)} · ${fmtInt(list.length)}`:fmtInt(list.length);
+    bits.push(`<div class="panel" style="margin-bottom:14px"><h2>${esc(title)} <span class="hint">${hintHtml}</span></h2>${body}</div>`);
+  }
+  if(undated.length) bits.push(`<div class="panel" style="margin-bottom:14px"><h2>Без даты <span class="hint">в плане, день не указан · ${fmtInt(undated.length)}</span></h2>${bunatTable(undated)}</div>`);
+  if(!bits.length) bits.push('<div class="panel"><div class="empty">Нет заказов за выбранный период</div></div>');
+  const shown=cards.length+undated.length;
+  const on=(id,v)=>preset===v?' class="active"':'';
+  const gn=(g)=>gran===g?' class="active"':'';
+  const tools=`<div class="chart-tools noprint" id="bunatTools"><div class="seg" id="bunatGran"><button type="button" data-g="day"${gn('day')}>День</button><button type="button" data-g="week"${gn('week')}>Неделя</button><button type="button" data-g="month"${gn('month')}>Месяц</button></div><div class="seg" id="bunatPeriod"><button type="button" data-p="today"${on(0,'today')}>Сегодня</button><button type="button" data-p="week"${on(0,'week')}>Эта неделя</button><button type="button" data-p="month"${on(0,'month')}>Этот месяц</button><button type="button" data-p="next7"${on(0,'next7')}>7 дней</button><button type="button" data-p="next30"${on(0,'next30')}>30 дней</button><button type="button" data-p="upcoming"${on(0,'upcoming')}>Предстоящие</button></div><label class="chart-range">с <input type="date" id="bunatFrom" title="Начало" value="${bounds.from?isoDay(bounds.from):''}"> по <input type="date" id="bunatTo" title="Конец" value="${bounds.to?isoDay(bounds.to):''}"></label></div>`;
+  $('bunatView').innerHTML=`<div class="bunat-head"><div><h2>Лист для Бунната</h2><div class="small muted">Заказы со статусом «2 план», ${esc(bunatRangeLabel(bounds))}. Группировка ${granWord}, ${fmtInt(shown)}. Таблица только читается.</div></div><button type="button" class="btn noprint" id="btnBunatPrint">Печать</button></div>${tools}`+bits.join('');
   const btn=$('btnBunatPrint'); if(btn) btn.onclick=()=>window.print();
+  document.querySelectorAll('#bunatGran button').forEach(b=>b.onclick=()=>{ state.bunatGran=b.dataset.g; renderBunat(); });
+  document.querySelectorAll('#bunatPeriod button').forEach(b=>b.onclick=()=>{ state.bunatPreset=b.dataset.p; renderBunat(); });
+  const onRange=()=>{
+    state.bunatPreset='custom';
+    state.bunatFrom=$('bunatFrom').value?new Date($('bunatFrom').value+'T00:00:00'):null;
+    state.bunatTo=$('bunatTo').value?new Date($('bunatTo').value+'T00:00:00'):null;
+    renderBunat();
+  };
+  if($('bunatFrom')) $('bunatFrom').onchange=onRange;
+  if($('bunatTo')) $('bunatTo').onchange=onRange;
 }
 function kpiCard(label, value, sub, color){
   return `<div class="kpi" style="--kc:${color}"><div class="l">${label}</div><div class="v">${value}</div>${sub?`<div class="d">${sub}</div>`:''}</div>`;
@@ -1502,7 +1564,7 @@ function renderMotivation(){
   $('motView').innerHTML=`<div class="bunat-head"><div><h2>Мотивация Дарьи</h2><div class="small muted">Только оплаченные, по месяцам. Столбик в строке — доля плана ${fmtMoney(DARYA_PLAN)}. Пунктир — 1 млн.</div></div></div>
     <div class="panel"><h2>По месяцам</h2><div class="tbl period-tbl mot-tbl"><table><thead><tr><th>Месяц</th><th class="num">Выручка</th><th class="share">Доля плана</th><th class="num">Маржа</th><th class="num">Ставка</th><th class="num">Бонус</th><th class="num">Заказы</th></tr></thead><tbody>${body||'<tr><td colspan="7" class="muted">Нет оплаченных заказов</td></tr>'}</tbody></table></div>${planNote}${undatedNote}</div>`;
 }
-const viewHints={owner:'Оплаченные заказы: сегодня, эта неделя, этот месяц. Ниже план теми же столбцами: месяцы, внутри недели и семь дней.',mgr:'Рейтинг по марже по месяцам. Месяц раскрывается в недели.',mot:'Мотивация Дарьи по месяцам: столбик доли плана стоит в строке таблицы.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Маржа, выручка и заказы. Столбик — выручка, зелёная часть от нуля — маржа.'};
+const viewHints={owner:'Оплаченные заказы: сегодня, эта неделя, этот месяц. Ниже план теми же столбцами: месяцы, внутри недели и семь дней.',mgr:'Рейтинг по марже по месяцам. Месяц раскрывается в недели.',mot:'Мотивация Дарьи по месяцам: столбик доли плана стоит в строке таблицы.',bunat:'Лист для Бунната: план на день, неделю или месяц. Период выбирается, таблица только читается.',detail:'Маржа, выручка и заказы. Столбик — выручка, зелёная часть от нуля — маржа.'};
 function showView(view){
   state.view=view;
   const u=new URL(location.href);
