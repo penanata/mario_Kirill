@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+dist
+*.log
+.env
+.env.local
+data/*.sqlite
+data/*.sqlite-*
+data/secret.key
+coverage
+next-env.d.ts
