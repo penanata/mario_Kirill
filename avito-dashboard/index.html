@@ -154,13 +154,18 @@
   .city-map-canvas{height:520px;border-radius:16px;border:1px solid var(--line);background:#e7efe4;overflow:hidden}
   .city-map-canvas .leaflet-container{font-family:"Manrope",system-ui,sans-serif;background:#e7efe4}
   .pin-icon{background:none;border:none}
-  .leaflet-tooltip.pin-tip{background:#fffefb;color:#2A2418;border:none;border-radius:9px;box-shadow:0 4px 14px rgba(40,36,24,.16);font-family:"Manrope",system-ui,sans-serif;font-weight:700;font-size:12px;padding:4px 8px;line-height:1.3}
+  .leaflet-tooltip.pin-tip{background:#fffefb;color:#2A2418;border:none;border-radius:9px;box-shadow:0 4px 14px rgba(40,36,24,.16);font-family:"Manrope",system-ui,sans-serif;font-weight:700;font-size:12px;padding:5px 8px;line-height:1.25}
+  .leaflet-tooltip.pin-tip .pin-where{display:block;font-weight:600;color:#6B6256}
+  .leaflet-tooltip.pin-tip .pin-mgr{display:block;font-weight:800;color:#1C2416;margin-top:1px}
   .leaflet-tooltip.pin-tip:before{display:none}
   .leaflet-popup-content-wrapper{border-radius:12px}
   .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.35}
   .leaflet-control-attribution{font-size:10px;background:rgba(255,255,255,.85)}
   .map-list{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:13px}
-  @media (max-width:700px){.city-map-canvas{height:380px}}
+  @media (max-width:700px){
+    .city-map-canvas{height:420px}
+    .leaflet-tooltip.pin-tip{max-width:148px;white-space:normal;font-size:11px}
+  }
   .mgr-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
   .mgr-block>h2{margin:0 0 10px;font-size:18px}
   .mgr-stack{display:flex;flex-direction:column;gap:12px;max-height:920px;overflow:auto}
@@ -1262,15 +1267,17 @@ function deliveryMap(orders){
     const blob=[card.address, ...(card.contacts||[]), ...(o.items||[]).map(i=>i.name||'')].join(' ');
     const spot=citySpot(blob);
     const day=card.date?card.date.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'без даты';
-    if(!spot){ missed.push({day, name:card.name, address:card.address==='не указан'?'адрес не указан':card.address}); continue; }
+    const manager=card.manager||'';
+    if(!spot){ missed.push({day, name:card.name, manager, address:card.address==='не указан'?'адрес не указан':card.address}); continue; }
     const n=used.get(spot.name)||0; used.set(spot.name, n+1);
-    pins.push({name:spot.name, lat:spot.lat+n*0.004, lon:spot.lon+n*0.005, day, address:card.address, client:card.name});
+    pins.push({name:spot.name, lat:spot.lat+n*0.004, lon:spot.lon+n*0.005, day, address:card.address, client:card.name, manager});
   }
   if(!pins.length&&!missed.length) return {html:'', pins:[]};
-  const list=pins.map(p=>`<li><b>${esc(p.day)}</b> · ${esc(p.name)} <span class="muted">${esc(p.address)}</span></li>`).join('');
-  const miss=missed.length?`<div class="small muted" style="margin-top:8px">Доставка без точки: ${missed.map(m=>esc(m.day+' · '+m.name+(m.address?', '+m.address:''))).join('; ')}</div>`:'';
-  const canvas=pins.length?'<div id="deliveryMap" class="city-map-canvas" role="img" aria-label="Карта доставок"></div><div class="small muted" style="margin-top:6px">Карту можно двигать и приближать. Подпись на точке — день и часть города.</div>':'<div class="small muted">В плане нет доставок с понятной частью города.</div>';
-  return {html:`<div class="city-map"><h3>Доставки <span class="hint">в какой день и в какой части города</span></h3>${canvas}<ul class="map-list">${list}</ul>${miss}</div>`, pins};
+  const who=p=>p.manager?` · ${esc(p.manager)}`:'';
+  const list=pins.map(p=>`<li><b>${esc(p.day)}</b> · ${esc(p.name)}${who(p)} <span class="muted">${esc(p.address)}</span></li>`).join('');
+  const miss=missed.length?`<div class="small muted" style="margin-top:8px">Доставка без точки: ${missed.map(m=>esc(m.day+' · '+m.name+(m.manager?' · '+m.manager:'')+(m.address?', '+m.address:''))).join('; ')}</div>`:'';
+  const canvas=pins.length?'<div id="deliveryMap" class="city-map-canvas" role="img" aria-label="Карта доставок"></div><div class="small muted" style="margin-top:6px">Карту можно двигать и приближать. Подпись на точке — день, часть города и менеджер.</div>':'<div class="small muted">В плане нет доставок с понятной частью города.</div>';
+  return {html:`<div class="city-map"><h3>Доставки <span class="hint">день, часть города и менеджер</span></h3>${canvas}<ul class="map-list">${list}</ul>${miss}</div>`, pins};
 }
 function mountDeliveryMap(pins){
   if(cityMap){ cityMap.remove(); cityMap=null; }
@@ -1284,30 +1291,52 @@ function mountDeliveryMap(pins){
   const pinHtml='<svg viewBox="0 0 28 36" width="26" height="34" aria-hidden="true"><path d="M14 35s12-11.2 12-20.6C26 6.4 20.6 1 14 1S2 6.4 2 14.4C2 23.8 14 35 14 35z" fill="#5d7c44" stroke="#fff" stroke-width="1.6"/><circle cx="14" cy="14" r="4.2" fill="#fff"/></svg>';
   const icon=L.divIcon({className:'pin-icon',html:pinHtml,iconSize:[26,34],iconAnchor:[13,32]});
   const markers=pins.map(p=>{
-    const marker=L.marker([p.lat,p.lon],{icon,title:p.day+' · '+p.name}).addTo(map);
-    marker._label=esc(p.day+' · '+p.name);
-    marker.bindPopup(`<b>${esc(p.day)} · ${esc(p.name)}</b><div>${esc(p.address)}</div><div class="muted">${esc(p.client)}</div>`);
+    const marker=L.marker([p.lat,p.lon],{icon,title:[p.day,p.name,p.manager].filter(Boolean).join(' · ')}).addTo(map);
+    marker._pin=p;
+    marker.bindPopup(`<b>${esc(p.day)} · ${esc(p.name)}</b>${p.manager?`<div>${esc(p.manager)}</div>`:''}<div>${esc(p.address)}</div><div class="muted">${esc(p.client)}</div>`);
     return marker;
   });
   const bounds=L.latLngBounds(markers.map(m=>m.getLatLng()));
   const placeLabels=()=>{
-    const dirs=[{d:'right',o:[12,-16]},{d:'left',o:[-12,-16]},{d:'top',o:[0,-20]},{d:'bottom',o:[0,4]}];
+    const size=map.getSize();
+    const dirs=[
+      {d:'right',o:[14,-18]},{d:'left',o:[-14,-18]},{d:'top',o:[0,-28]},{d:'bottom',o:[0,8]},
+      {d:'right',o:[14,-64]},{d:'left',o:[-14,-64]},{d:'top',o:[0,-70]},{d:'bottom',o:[0,36]},
+      {d:'right',o:[14,20]},{d:'left',o:[-14,20]}
+    ];
+    const root=()=>map.getContainer().getBoundingClientRect();
+    const rectOf=marker=>{
+      const el=marker.getTooltip()&&marker.getTooltip().getElement();
+      if(!el) return null;
+      const base=root(), r=el.getBoundingClientRect();
+      return {l:r.left-base.left, r:r.right-base.left, t:r.top-base.top, b:r.bottom-base.top};
+    };
+    const overlaps=(a,b)=>a&&b&&a.l<b.r-1&&a.r>b.l+1&&a.t<b.b-1&&a.b>b.t+1;
+    const penalty=b=>!b?12:(b.l<2||b.r>size.x-2||b.t<2||b.b>size.y-2)?8:0;
+    const narrow=size.x<560;
+    const bind=(marker,dir)=>marker.bindTooltip(marker._label,{permanent:true,direction:dir.d,offset:dir.o,className:'pin-tip',opacity:1});
     const placed=[];
     markers.forEach(marker=>{
-      const pt=map.latLngToContainerPoint(marker.getLatLng());
-      let choice=dirs[0];
+      const p=marker._pin;
+      marker._label=narrow
+        ? `<span class="pin-where">${esc(p.day)}</span><span class="pin-mgr">${esc(p.manager||p.name)}</span>`
+        : `<span class="pin-where">${esc(p.day)} · ${esc(p.name)}</span>${p.manager?`<span class="pin-mgr">${esc(p.manager)}</span>`:''}`;
+      let choice=dirs[0], best=Infinity, bestBox=null;
       for(const dir of dirs){
-        const x=pt.x+dir.o[0], y=pt.y+dir.o[1];
-        if(!placed.some(q=>Math.abs(q.x-x)<140 && Math.abs(q.y-y)<24)){ choice=dir; break; }
+        if(marker.getTooltip()) marker.unbindTooltip();
+        bind(marker, dir);
+        const b=rectOf(marker);
+        const score=penalty(b)+placed.filter(q=>overlaps(b,q)).length*10;
+        if(score<best){ choice=dir; best=score; bestBox=b; if(!score) break; }
       }
       if(marker.getTooltip()) marker.unbindTooltip();
-      marker.bindTooltip(marker._label,{permanent:true,direction:choice.d,offset:choice.o,className:'pin-tip',opacity:1});
-      placed.push({x:pt.x+choice.o[0], y:pt.y+choice.o[1]});
+      bind(marker, choice);
+      placed.push(bestBox||rectOf(marker));
     });
   };
-  map.fitBounds(bounds.pad(0.4),{padding:[56,56],maxZoom:11,animate:false});
+  map.fitBounds(bounds.pad(0.45),{padding:[72,110],maxZoom:10,animate:false});
   setTimeout(()=>{ map.invalidateSize(); placeLabels(); }, 80);
-  map.on('zoomend', placeLabels);
+  map.on('zoomend resize', placeLabels);
   cityMap=map;
 }
 function renderOwner(){
