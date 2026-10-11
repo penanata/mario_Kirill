@@ -272,14 +272,31 @@
   .mot-track>i{display:block;height:100%;background:var(--leaf)}
   @media (max-width:980px){.charts,.two,.three,.period-board,.mgr-board,.mgr-split,.mot-hero{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}}
   @media (max-width:700px){.metric-head,.metric-row{grid-template-columns:96px 1.35fr 1.05fr .55fr;gap:6px;padding-left:10px;padding-right:10px}.metric-row .tag{font-size:12px}.metric-row .m{font-size:18px}.metric-row.fact .m{font-size:22px}.metric-row .r,.metric-row .n{font-size:14px}}
+  html[data-access="bunat"] .source,
+  html[data-access="bunat"] #btnDemo,
+  html[data-access="bunat"] #btnFile,
+  html[data-access="bunat"] #viewSwitch,
+  html[data-access="bunat"] #mapDetails,
+  html[data-access="gate"] #sourcePanel,
+  html[data-access="gate"] #viewSwitch,
+  html[data-access="gate"] #emptyState,
+  html[data-access="gate"] #ownerView,
+  html[data-access="gate"] #mgrView,
+  html[data-access="gate"] #motView,
+  html[data-access="gate"] #bunatView,
+  html[data-access="gate"] #dash{display:none!important}
+  #teamGate{max-width:440px}
+  #teamGate h2{margin:0 0 8px}
+  #teamCodeErr{min-height:1.2em;color:var(--red);margin-top:8px}
 </style>
+<script>if(new URLSearchParams(location.search).get('for')==='bunat')document.documentElement.dataset.access='bunat';</script>
 </head>
 <body>
 <div class="wrap" id="app">
   <header>
     <div>
       <h1><span class="logo"></span>Авито · Аналитика заказов</h1>
-      <div class="sub">Первый экран — для собственника: сегодня, неделя, месяц. Таблица только читается.</div>
+      <div class="sub" id="pageSub">Первый экран — для собственника: сегодня, неделя, месяц. Таблица только читается.</div>
     </div>
     <div class="actions">
       <button class="btn" id="btnDemo" title="Показать дашборд на сгенерированных данных">Демо-данные</button>
@@ -288,7 +305,17 @@
     </div>
   </header>
 
-  <section class="panel">
+  <section class="panel hidden" id="teamGate">
+    <h2>Доступ команды</h2>
+    <p class="small">Собственник, менеджеры, мотивация и подробный разбор открываются по коду команды.</p>
+    <label class="f">Код
+      <input id="teamCodeInput" type="password" autocomplete="current-password">
+    </label>
+    <button class="btn primary" id="btnTeamEnter" type="button">Войти</button>
+    <div class="small" id="teamCodeErr"></div>
+  </section>
+
+  <section class="panel" id="sourcePanel">
     <div class="source">
       <div class="fields">
         <label class="f">Ссылка или ID Google Таблицы
@@ -333,12 +360,6 @@
   <div id="ownerView" class="hidden">
     <div class="period-board" id="ownerPeriods"></div>
     <div id="ownerNext"></div>
-    <div class="panel" style="margin-bottom:14px">
-      <h2>Взаиморасчёты с Буннатом <span class="hint" id="bunatHint">по оплаченным</span></h2>
-      <div class="verdict" id="bunatVerdict"></div>
-      <div class="kpis" id="bunatKpis" style="margin:0"></div>
-      <div class="small muted" id="bunatNote" style="margin-top:10px"></div>
-    </div>
   </div>
 
   <div id="mgrView" class="hidden"></div>
@@ -416,6 +437,35 @@
 /* ---------- constants ---------- */
 const DEFAULT_SHEET_ID = '1hAYm1dtDdHI7o6r2Y9ebd4Ur0PHoy-yYWI_y-V9rZ_Q';
 const DEFAULT_TAB = 'Заказы и расчеты';
+const bunatOnly = new URLSearchParams(location.search).get('for')==='bunat';
+const TEAM_CODE = 'dervo1840';
+const TEAM_KEY = 'avitoDash.team';
+function teamUnlocked(){
+  const params=new URLSearchParams(location.search);
+  if(params.get('team')===TEAM_CODE){
+    try{ localStorage.setItem(TEAM_KEY,'1'); }catch(e){}
+    return true;
+  }
+  try{ return localStorage.getItem(TEAM_KEY)==='1'; }catch(e){ return false; }
+}
+function pageUrl(){
+  const u=new URL(location.href);
+  if(bunatOnly){
+    u.searchParams.set('for','bunat');
+    u.searchParams.delete('view');
+    u.searchParams.delete('team');
+    u.searchParams.delete('sheet');
+    u.searchParams.delete('tab');
+  } else {
+    if(state.sheetId && state.sheetId!=='demo' && !String(state.sheetId).startsWith('file:')){
+      u.searchParams.set('sheet', state.sheetId);
+      u.searchParams.set('tab', state.tab||DEFAULT_TAB);
+    }
+    if(state.view && state.view!=='owner') u.searchParams.set('view', state.view);
+    else u.searchParams.delete('view');
+  }
+  return u.pathname+u.search;
+}
 const LS_KEY = 'avitoDash.v2';
 const XLSX_CDN = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
 const STAGE = {
@@ -800,7 +850,7 @@ async function loadFromGoogle(opts){
     }
     state.loadedAt=Date.now();
     if(silent){ state.page=page; render(); window.scrollTo(0, scroll); }
-    else history.replaceState(null,'',`?sheet=${id}&tab=${encodeURIComponent(state.tab)}${state.view&&state.view!=='owner'?'&view='+encodeURIComponent(state.view):''}`);
+    else history.replaceState(null,'',pageUrl());
     scheduleAuto();
   }catch(e){
     if(!silent){
@@ -1187,10 +1237,13 @@ function renderBunat(){
   if(!bits.length) bits.push('<div class="panel"><div class="empty">Нет заказов за выбранный период</div></div>');
   const shown=cards.length+undated.length;
   const rangeText=bunatRangeLabel(bounds).replace(/\.$/,'');
+  const planMap=deliveryMap(state.orders.filter(o=>o.statusClass==='progress'));
+  if(cityMap){ try{ cityMap.remove(); }catch(e){} cityMap=null; }
   const on=(id,v)=>preset===v?' class="active"':'';
   const gn=(g)=>gran===g?' class="active"':'';
   const tools=`<div class="chart-tools noprint" id="bunatTools"><div class="seg" id="bunatGran"><button type="button" data-g="day"${gn('day')}>День</button><button type="button" data-g="week"${gn('week')}>Неделя</button><button type="button" data-g="month"${gn('month')}>Месяц</button></div><div class="seg" id="bunatPeriod"><button type="button" data-p="today"${on(0,'today')}>Сегодня</button><button type="button" data-p="week"${on(0,'week')}>Эта неделя</button><button type="button" data-p="month"${on(0,'month')}>Этот месяц</button><button type="button" data-p="next7"${on(0,'next7')}>7 дней</button><button type="button" data-p="next30"${on(0,'next30')}>30 дней</button><button type="button" data-p="upcoming"${on(0,'upcoming')}>Предстоящие</button></div><label class="chart-range">с <input type="date" id="bunatFrom" title="Начало" value="${bounds.from?isoDay(bounds.from):''}"> по <input type="date" id="bunatTo" title="Конец" value="${bounds.to?isoDay(bounds.to):''}"></label></div>`;
-  $('bunatView').innerHTML=`<div class="bunat-head"><div><h2>Лист для Бунната</h2><div class="small muted">Заказы со статусом «2 план»: ${esc(rangeText)}. Группировка ${granWord}, ${fmtInt(shown)}. Таблица только читается.</div></div><button type="button" class="btn noprint" id="btnBunatPrint">Печать</button></div>${tools}`+bits.join('');
+  $('bunatView').innerHTML=`<div class="bunat-head"><div><h2>Лист для Бунната</h2><div class="small muted">Заказы со статусом «2 план»: ${esc(rangeText)}. Группировка ${granWord}, ${fmtInt(shown)}. Таблица только читается.</div></div><button type="button" class="btn noprint" id="btnBunatPrint">Печать</button></div>${tools}`+bits.join('')+planMap.html+settlementPanel();
+  mountDeliveryMap(planMap.pins);
   const btn=$('btnBunatPrint'); if(btn) btn.onclick=()=>window.print();
   document.querySelectorAll('#bunatGran button').forEach(b=>b.onclick=()=>{ state.bunatGran=b.dataset.g; renderBunat(); });
   document.querySelectorAll('#bunatPeriod button').forEach(b=>b.onclick=()=>{ state.bunatPreset=b.dataset.p; renderBunat(); });
@@ -1371,7 +1424,7 @@ function deliveryMap(orders){
   const list=pins.map(p=>`<li><b>${esc(p.day)}</b> · ${esc(p.name)}${who(p)}${money(p)} <span class="muted">${esc(p.address)}</span></li>`).join('');
   const miss=missed.length?`<div class="small muted" style="margin-top:8px">Доставка без точки: ${missed.map(m=>esc(m.day+' · '+m.name+(m.manager?' · '+m.manager:'')+' · '+fmtMoney(m.sum)+(m.address?', '+m.address:''))).join('; ')}</div>`:'';
   const canvas=pins.length?'<div id="deliveryMap" class="city-map-canvas" role="img" aria-label="Карта доставок"></div><div class="small muted" style="margin-top:6px">Карту можно двигать и приближать. Подпись на точке — день, часть города, менеджер и сумма заказа.</div>':'<div class="small muted">В плане нет доставок с понятной частью города.</div>';
-  return {html:`<div class="city-map"><h3>Доставки <span class="hint">день, часть города, менеджер и сумма</span></h3>${canvas}<ul class="map-list">${list}</ul>${miss}</div>`, pins};
+  return {html:`<div class="city-map"><h3>Доставки <span class="hint">все запланированные: день, часть города, менеджер и сумма</span></h3>${canvas}<ul class="map-list">${list}</ul>${miss}</div>`, pins};
 }
 function mountDeliveryMap(pins){
   if(cityMap){ cityMap.remove(); cityMap=null; }
@@ -1452,9 +1505,7 @@ function renderOwner(){
   const leads=state.orders.filter(o=>o.statusClass==='lead');
   const calc=leads.filter(o=>!hasRealDate(o)), calcDated=leads.filter(hasRealDate);
   const calcRow=calcDated.length?metricTable(metricRow('С датой', aggOrders(calcDated), 'past')):'';
-  const planMap=deliveryMap(plan);
-  if(cityMap){ cityMap.remove(); cityMap=null; }
-  $('ownerNext').innerHTML=`<div class="panel" style="margin-bottom:14px"><h2>Запланированные <span class="hint">как факт: месяц, по раскрытию недели, неделя — 7 дней</span></h2><div id="planTreeHost"></div>${planMap.html}</div><div class="panel" style="margin-bottom:14px"><h2>Расчёты <span class="hint">без даты, в обсуждении</span></h2>${sumCards(aggOrders(calc))}${calcRow}</div>`;
+  $('ownerNext').innerHTML=`<div class="panel" style="margin-bottom:14px"><h2>Запланированные <span class="hint">как факт: месяц, по раскрытию недели, неделя — 7 дней</span></h2><div id="planTreeHost"></div></div><div class="panel" style="margin-bottom:14px"><h2>Расчёты <span class="hint">без даты, в обсуждении</span></h2>${sumCards(aggOrders(calc))}${calcRow}</div>`;
   const paintPlan=()=>{ const host=$('planTreeHost'); if(host) host.innerHTML=plannedTable(planDated, planOpen); };
   paintPlan();
   const planHost=$('planTreeHost');
@@ -1465,29 +1516,28 @@ function renderOwner(){
     if(state.planFold.has(k)) state.planFold.delete(k); else state.planFold.add(k);
     paintPlan();
   };
-  mountDeliveryMap(planMap.pins);
-  const factPaid=factAll;
+}
+function settlementPanel(){
+  const factPaid=state.orders.filter(o=>o.statusClass==='done');
   let entitled=0, received=0, ours=0, unknown=0, unknownN=0, heOwes=0, weOwe=0;
   for(const o of factPaid){
     entitled+=o.cost||0;
     const sides=moneySides(o);
     received+=sides.bunat; ours+=sides.ours; unknown+=sides.unknown;
     if(sides.unknown) unknownN++;
-    // его карман минус его себестоимость: плюс — наша маржа у него, минус — его доля у нас
     const diff=(sides.bunat||0)-(o.cost||0);
     if(diff>1) heOwes+=diff; else if(diff<-1) weOwe+=-diff;
   }
   const balance=received-entitled;
-  const verdict=$('bunatVerdict');
-  if(balance>1){ verdict.className='verdict owed'; verdict.textContent='Итог: Буннат должен нам '+fmtMoney(balance); }
-  else if(balance<-1){ verdict.className='verdict owe'; verdict.textContent='Итог: мы должны Буннату '+fmtMoney(-balance); }
-  else { verdict.className='verdict even'; verdict.textContent='Взаиморасчёты сходятся'; }
-  $('bunatKpis').innerHTML=[
+  let verdictCls='even', verdictText='Взаиморасчёты сходятся';
+  if(balance>1){ verdictCls='owed'; verdictText='Итог: Буннат должен нам '+fmtMoney(balance); }
+  else if(balance<-1){ verdictCls='owe'; verdictText='Итог: мы должны Буннату '+fmtMoney(-balance); }
+  const note=`По оплаченным заказам, по строке «Итого». Себестоимость Бунната ${fmtMoney(entitled)}. Наличными у него ${fmtMoney(received)} — весь «нал» и «Нал Буннат». На «РС Наташа» у вас ${fmtMoney(ours)}. По заказу: если в его кармане больше себестоимости, разница наша; если меньше, этот остаток мы должны ему.`+(unknown?` Не размечено, куда пришли деньги: ${fmtMoney(unknown)} (${fmtInt(unknownN)} зак.) — в карман Бунната это не входит.`:'');
+  return `<div class="panel" id="bunatSettle" style="margin-bottom:14px"><h2>Взаиморасчёты <span class="hint">по оплаченным</span></h2><div class="verdict ${verdictCls}">${esc(verdictText)}</div><div class="kpis" style="margin:0">${[
     kpiCard('Мы должны Буннату', fmtMoney(weOwe), 'его себестоимость, которой нет в наличных', 'var(--red)'),
     kpiCard('Буннат должен нам', fmtMoney(heOwes), 'наша маржа в его наличных', 'var(--orange)'),
     kpiCard('Деньги у нас', fmtMoney(ours), 'только «РС Наташа»', 'var(--green)'),
-  ].join('');
-  $('bunatNote').textContent=`По оплаченным заказам, по строке «Итого». Себестоимость Бунната ${fmtMoney(entitled)}. Наличными у него ${fmtMoney(received)} — весь «нал» и «Нал Буннат». На «РС Наташа» у вас ${fmtMoney(ours)}. По заказу: если в его кармане больше себестоимости, разница наша; если меньше, этот остаток мы должны ему.`+(unknown?` Не размечено, куда пришли деньги: ${fmtMoney(unknown)} (${fmtInt(unknownN)} зак.) — в карман Бунната это не входит.`:'');
+  ].join('')}</div><div class="small muted" style="margin-top:10px">${esc(note)}</div></div>`;
 }
 const SHEET_NAMES=['Наталия','Кирилл','Дарья+Ирина'];
 function renderManagerSheet(){
@@ -1569,12 +1619,11 @@ function renderMotivation(){
   $('motView').innerHTML=`<div class="bunat-head"><div><h2>Мотивация Дарьи</h2><div class="small muted">Только оплаченные, по месяцам. Столбик в строке — доля плана ${fmtMoney(DARYA_PLAN)}. Пунктир — 1 млн.</div></div></div>
     <div class="panel"><h2>По месяцам</h2><div class="tbl period-tbl mot-tbl"><table><thead><tr><th>Месяц</th><th class="num">Выручка</th><th class="share">Доля плана</th><th class="num">Маржа</th><th class="num">Ставка</th><th class="num">Бонус</th><th class="num">Заказы</th></tr></thead><tbody>${body||'<tr><td colspan="7" class="muted">Нет оплаченных заказов</td></tr>'}</tbody></table></div>${planNote}${undatedNote}</div>`;
 }
-const viewHints={owner:'Оплаченные заказы: сегодня, эта неделя, этот месяц. Ниже план теми же столбцами: месяцы, внутри недели и семь дней.',mgr:'Рейтинг по марже по месяцам. Месяц раскрывается в недели.',mot:'Мотивация Дарьи по месяцам: столбик доли плана стоит в строке таблицы.',bunat:'Лист для Бунната: план на день, неделю или месяц. Период выбирается, таблица только читается.',detail:'Маржа, выручка и заказы. Столбик — выручка, зелёная часть от нуля — маржа.'};
+const viewHints={owner:'Оплаченные заказы: сегодня, эта неделя, этот месяц. Ниже план теми же столбцами: месяцы, внутри недели и семь дней.',mgr:'Рейтинг по марже по месяцам. Месяц раскрывается в недели.',mot:'Мотивация Дарьи по месяцам: столбик доли плана стоит в строке таблицы.',bunat:'Лист для Бунната: план, карта доставок и взаиморасчёты. Период выбирается, таблица только читается.',detail:'Маржа, выручка и заказы. Столбик — выручка, зелёная часть от нуля — маржа.'};
 function showView(view){
+  if(bunatOnly) view='bunat';
   state.view=view;
-  const u=new URL(location.href);
-  if(view==='owner') u.searchParams.delete('view'); else u.searchParams.set('view', view);
-  history.replaceState(null,'',u.pathname+u.search);
+  history.replaceState(null,'',pageUrl());
   document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('active', b.dataset.v===view));
   if($('viewHint')) $('viewHint').textContent=viewHints[view]||viewHints.owner;
   render();
@@ -1587,7 +1636,8 @@ function render(){
     $('emptyState').classList.remove('hidden'); return;
   }
   $('emptyState').classList.add('hidden');
-  $('viewSwitch').classList.remove('hidden');
+  if(bunatOnly) state.view='bunat';
+  $('viewSwitch').classList.toggle('hidden', bunatOnly);
   document.body.dataset.view=state.view;
   document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('active', b.dataset.v===state.view));
   if($('viewHint')) $('viewHint').textContent=viewHints[state.view]||viewHints.owner;
@@ -1797,20 +1847,42 @@ function exportCSV(){
 /* ---------- wiring ---------- */
 function init(){
   const params=new URLSearchParams(location.search); const settings=loadSettings();
+  if(!bunatOnly && !teamUnlocked()){
+    document.documentElement.dataset.access='gate';
+    $('teamGate').classList.remove('hidden');
+    $('emptyState').classList.add('hidden');
+    const enter=()=>{
+      const code=$('teamCodeInput').value.trim();
+      if(code!==TEAM_CODE){ $('teamCodeErr').textContent='Код не подошёл.'; return; }
+      try{ localStorage.setItem(TEAM_KEY,'1'); }catch(e){}
+      const u=new URL(location.href);
+      u.searchParams.set('team', TEAM_CODE);
+      location.href=u.pathname+u.search;
+    };
+    $('btnTeamEnter').onclick=enter;
+    $('teamCodeInput').onkeydown=e=>{ if(e.key==='Enter') enter(); };
+    return;
+  }
+  if(bunatOnly){
+    document.documentElement.dataset.access='bunat';
+    state.view='bunat';
+    if($('pageSub')) $('pageSub').textContent='Лист для Бунната: заказы, карта доставок и взаиморасчёты. Таблица только читается.';
+    if($('emptyState')) $('emptyState').textContent='Заказы ещё не загрузились. Обновите страницу.';
+  }
   $('sheetUrl').value=params.get('sheet')?`https://docs.google.com/spreadsheets/d/${params.get('sheet')}/edit`:(settings.lastSheet||`https://docs.google.com/spreadsheets/d/${DEFAULT_SHEET_ID}/edit`);
   state.tab=params.get('tab')||settings.lastTab||DEFAULT_TAB; fillTabSelect(state.tab);
   if(settings.gran) setGran(settings.gran);
   $('btnLoad').onclick=loadFromGoogle;
   $('sheetUrl').onkeydown=e=>{ if(e.key==='Enter') loadFromGoogle(); };
   $('sheetUrl').onchange=()=>{ if(parseSheetId($('sheetUrl').value)!==state.sheetId){ state.workbook=null; state.tabNames=[]; fillTabSelect(DEFAULT_TAB); } };
-  $('tabSelect').onchange=e=>{ if(state.workbook){ useTab(e.target.value); history.replaceState(null,'',`?sheet=${state.sheetId}&tab=${encodeURIComponent(state.tab)}`); } else state.tab=e.target.value; };
-  $('btnDemo').onclick=()=>{ stopAuto(); state.sheetId='demo'; state.workbook=null; state.tabNames=[]; state.tab='Демо'; fillTabSelect('Демо'); ingestMatrix(demoData(),'Демо-данные'); };
-  $('btnFile').onclick=()=>$('fileInput').click();
-  $('fileInput').onchange=e=>{ loadFile(e.target.files[0]); e.target.value=''; };
+  $('tabSelect').onchange=e=>{ if(state.workbook){ useTab(e.target.value); history.replaceState(null,'',pageUrl()); } else state.tab=e.target.value; };
+  $('btnDemo').onclick=()=>{ if(bunatOnly) return; stopAuto(); state.sheetId='demo'; state.workbook=null; state.tabNames=[]; state.tab='Демо'; fillTabSelect('Демо'); ingestMatrix(demoData(),'Демо-данные'); };
+  $('btnFile').onclick=()=>{ if(!bunatOnly) $('fileInput').click(); };
+  $('fileInput').onchange=e=>{ if(!bunatOnly) loadFile(e.target.files[0]); e.target.value=''; };
   const app=$('app');
-  app.addEventListener('dragover',e=>{ e.preventDefault(); app.classList.add('drop'); });
+  app.addEventListener('dragover',e=>{ if(bunatOnly) return; e.preventDefault(); app.classList.add('drop'); });
   app.addEventListener('dragleave',()=>app.classList.remove('drop'));
-  app.addEventListener('drop',e=>{ e.preventDefault(); app.classList.remove('drop'); if(e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]); });
+  app.addEventListener('drop',e=>{ if(bunatOnly) return; e.preventDefault(); app.classList.remove('drop'); if(e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]); });
   document.querySelectorAll('#presets button').forEach(b=>b.onclick=()=>{ applyPreset(b.dataset.p); state.page=0; render(); });
   $('dateFrom').onchange=$('dateTo').onchange=()=>{ setCustomRange($('dateFrom').value, $('dateTo').value); state.page=0; render(); };
   $('statusFilter').onchange=e=>{ state.filter.status=e.target.value; state.page=0; render(); };
@@ -1828,7 +1900,7 @@ function init(){
     if(Date.now()-(state.loadedAt||0)>=AUTO_MS) loadFromGoogle({silent:true});
   });
   const view=params.get('view');
-  if(view==='bunat'||view==='detail'||view==='owner'||view==='mgr'||view==='mot') state.view=view;
+  if(!bunatOnly && (view==='bunat'||view==='detail'||view==='owner'||view==='mgr'||view==='mot')) state.view=view;
   if(params.get('demo')!=null) $('btnDemo').click();
   else if(parseSheetId($('sheetUrl').value)) loadFromGoogle();
 }
