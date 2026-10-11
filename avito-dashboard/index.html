@@ -149,14 +149,16 @@
   .period-tbl tr.week-band.now td{background:#E7EFE0}
   .city-map{margin-top:16px}
   .city-map h3{margin:0 0 8px;font-size:15px;font-weight:700}
-  .city-map svg{width:100%;height:auto;display:block}
-  .map-land{fill:#F3F6F0}
-  .map-city{fill:#E5F0D8;stroke:#B7C9A4}
-  .map-city-label{fill:#6B6256;font-size:12px;font-weight:700}
-  .map-region{fill:#8A8175;font-size:12px;font-weight:700}
-  .pin circle{fill:#6E8B52;stroke:#fff;stroke-width:2}
-  .pin text{fill:#2A2418;font-size:12px;font-weight:700}
+  .city-map-canvas{height:520px;border-radius:16px;border:1px solid var(--line);background:#e7efe4;overflow:hidden}
+  .city-map-canvas .leaflet-container{font-family:"Manrope",system-ui,sans-serif;background:#e7efe4}
+  .pin-icon{background:none;border:none}
+  .leaflet-tooltip.pin-tip{background:#fffefb;color:#2A2418;border:none;border-radius:9px;box-shadow:0 4px 14px rgba(40,36,24,.16);font-family:"Manrope",system-ui,sans-serif;font-weight:700;font-size:12px;padding:4px 8px;line-height:1.3}
+  .leaflet-tooltip.pin-tip:before{display:none}
+  .leaflet-popup-content-wrapper{border-radius:12px}
+  .leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.35}
+  .leaflet-control-attribution{font-size:10px;background:rgba(255,255,255,.85)}
   .map-list{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:13px}
+  @media (max-width:700px){.city-map-canvas{height:380px}}
   .mgr-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
   .mgr-block>h2{margin:0 0 10px;font-size:18px}
   .mgr-stack{display:flex;flex-direction:column;gap:12px;max-height:920px;overflow:auto}
@@ -384,6 +386,8 @@
   <footer>Дашборд работает полностью в браузере: данные никуда не отправляются, кроме запроса к Google Таблице на чтение.</footer>
 </div>
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 'use strict';
@@ -1238,6 +1242,7 @@ function plannedTable(planDated, planOpen){
   const rows=body.join('')||'<tr><td colspan="4" class="muted">Нет запланированных заказов</td></tr>';
   return `<div class="tbl period-tbl"><table><thead>${sum}<tr><th>Дата</th><th class="num">Маржа</th><th class="num">Выручка</th><th class="num">Заказы</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
+let cityMap=null;
 function deliveryMap(orders){
   const pins=[], missed=[];
   const used=new Map();
@@ -1249,38 +1254,51 @@ function deliveryMap(orders){
     const day=card.date?card.date.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'без даты';
     if(!spot){ missed.push({day, name:card.name, address:card.address==='не указан'?'адрес не указан':card.address}); continue; }
     const n=used.get(spot.name)||0; used.set(spot.name, n+1);
-    const lat=spot.lat+Math.sin(n*1.2)*0.012*n;
-    const lon=spot.lon+Math.cos(n*1.2)*0.02*n;
-    pins.push({name:spot.name, lat, lon, day, address:card.address, client:card.name});
+    pins.push({name:spot.name, lat:spot.lat+n*0.004, lon:spot.lon+n*0.005, day, address:card.address, client:card.name});
   }
-  if(!pins.length&&!missed.length) return '';
-  const moscow={lat:55.7558, lon:37.6173};
-  const pts=pins.length?pins.concat([moscow]):[moscow];
-  let minLat=Math.min(...pts.map(p=>p.lat)), maxLat=Math.max(...pts.map(p=>p.lat));
-  let minLon=Math.min(...pts.map(p=>p.lon)), maxLon=Math.max(...pts.map(p=>p.lon));
-  const padLat=Math.max(0.08,(maxLat-minLat)*0.22);
-  const padLon=Math.max(0.12,(maxLon-minLon)*0.16);
-  minLat-=padLat; maxLat+=padLat; minLon-=padLon; maxLon+=padLon;
-  const W=720, H=420, L=28, R=168, T=36, B=28;
-  const X=lon=>L+(lon-minLon)/(maxLon-minLon)*(W-L-R);
-  const Y=lat=>T+(maxLat-lat)/(maxLat-minLat)*(H-T-B);
-  const mx=X(moscow.lon), my=Y(moscow.lat);
-  const rx=0.29/(maxLon-minLon)*(W-L-R);
-  const ry=0.18/(maxLat-minLat)*(H-T-B);
-  const placed=[];
-  const marks=pins.map(p=>{
-    const px=X(p.lon), py=Y(p.lat);
-    let ly=py+4;
-    const away=py<my?-18:18;
-    for(const q of placed){ if(Math.abs(q.x-px)<160 && Math.abs(q.y-ly)<18) ly=q.y+away; }
-    ly=Math.max(16, Math.min(H-12, ly));
-    placed.push({x:px,y:ly});
-    return `<g class="pin"><circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="6.5"/><text x="${(px+12).toFixed(1)}" y="${ly.toFixed(1)}">${esc(p.day+' · '+p.name)}</text></g>`;
-  }).join('');
+  if(!pins.length&&!missed.length) return {html:'', pins:[]};
   const list=pins.map(p=>`<li><b>${esc(p.day)}</b> · ${esc(p.name)} <span class="muted">${esc(p.address)}</span></li>`).join('');
   const miss=missed.length?`<div class="small muted" style="margin-top:8px">Доставка без точки: ${missed.map(m=>esc(m.day+' · '+m.name+(m.address?', '+m.address:''))).join('; ')}</div>`:'';
-  const empty=pins.length?'':`<div class="small muted">В плане нет доставок с понятной частью города.</div>`;
-  return `<div class="city-map"><h3>Доставки <span class="hint">в какой день и в какой части города</span></h3>${empty}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Карта доставок по частям города"><rect class="map-land" x="8" y="8" width="${W-16}" height="${H-16}" rx="16"/><ellipse class="map-city" cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" rx="${Math.max(rx,18).toFixed(1)}" ry="${Math.max(ry,14).toFixed(1)}"/><text class="map-city-label" x="${mx.toFixed(1)}" y="${(my+4).toFixed(1)}" text-anchor="middle">Москва</text><text class="map-region" x="24" y="28">Москва и область</text>${marks}</svg><ul class="map-list">${list}</ul>${miss}</div>`;
+  const canvas=pins.length?'<div id="deliveryMap" class="city-map-canvas" role="img" aria-label="Карта доставок"></div><div class="small muted" style="margin-top:6px">Карту можно двигать и приближать. Подпись на точке — день и часть города.</div>':'<div class="small muted">В плане нет доставок с понятной частью города.</div>';
+  return {html:`<div class="city-map"><h3>Доставки <span class="hint">в какой день и в какой части города</span></h3>${canvas}<ul class="map-list">${list}</ul>${miss}</div>`, pins};
+}
+function mountDeliveryMap(pins){
+  if(cityMap){ cityMap.remove(); cityMap=null; }
+  const el=$('deliveryMap');
+  if(!el||!pins.length||typeof L==='undefined') return;
+  const map=L.map(el,{scrollWheelZoom:false,zoomControl:true});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom:19
+  }).addTo(map);
+  const pinHtml='<svg viewBox="0 0 28 36" width="26" height="34" aria-hidden="true"><path d="M14 35s12-11.2 12-20.6C26 6.4 20.6 1 14 1S2 6.4 2 14.4C2 23.8 14 35 14 35z" fill="#5d7c44" stroke="#fff" stroke-width="1.6"/><circle cx="14" cy="14" r="4.2" fill="#fff"/></svg>';
+  const icon=L.divIcon({className:'pin-icon',html:pinHtml,iconSize:[26,34],iconAnchor:[13,32]});
+  const markers=pins.map(p=>{
+    const marker=L.marker([p.lat,p.lon],{icon,title:p.day+' · '+p.name}).addTo(map);
+    marker._label=esc(p.day+' · '+p.name);
+    marker.bindPopup(`<b>${esc(p.day)} · ${esc(p.name)}</b><div>${esc(p.address)}</div><div class="muted">${esc(p.client)}</div>`);
+    return marker;
+  });
+  const bounds=L.latLngBounds(markers.map(m=>m.getLatLng()));
+  const placeLabels=()=>{
+    const dirs=[{d:'right',o:[12,-16]},{d:'left',o:[-12,-16]},{d:'top',o:[0,-20]},{d:'bottom',o:[0,4]}];
+    const placed=[];
+    markers.forEach(marker=>{
+      const pt=map.latLngToContainerPoint(marker.getLatLng());
+      let choice=dirs[0];
+      for(const dir of dirs){
+        const x=pt.x+dir.o[0], y=pt.y+dir.o[1];
+        if(!placed.some(q=>Math.abs(q.x-x)<140 && Math.abs(q.y-y)<24)){ choice=dir; break; }
+      }
+      if(marker.getTooltip()) marker.unbindTooltip();
+      marker.bindTooltip(marker._label,{permanent:true,direction:choice.d,offset:choice.o,className:'pin-tip',opacity:1});
+      placed.push({x:pt.x+choice.o[0], y:pt.y+choice.o[1]});
+    });
+  };
+  map.fitBounds(bounds.pad(0.4),{padding:[56,56],maxZoom:11,animate:false});
+  setTimeout(()=>{ map.invalidateSize(); placeLabels(); }, 80);
+  map.on('zoomend', placeLabels);
+  cityMap=map;
 }
 function renderOwner(){
   const today=dayFloor(new Date());
@@ -1300,7 +1318,10 @@ function renderOwner(){
   const leads=state.orders.filter(o=>o.statusClass==='lead');
   const calc=leads.filter(o=>!hasRealDate(o)), calcDated=leads.filter(hasRealDate);
   const calcRow=calcDated.length?metricTable(metricRow('С датой', aggOrders(calcDated), 'past')):'';
-  $('ownerNext').innerHTML=`<div class="panel" style="margin-bottom:14px"><h2>Запланированные <span class="hint">статус «2 план», по неделям</span></h2>${plannedTable(planDated, planOpen)}${deliveryMap(plan)}</div><div class="panel" style="margin-bottom:14px"><h2>Расчёты <span class="hint">без даты, в обсуждении</span></h2>${sumCards(aggOrders(calc))}${calcRow}</div>`;
+  const planMap=deliveryMap(plan);
+  if(cityMap){ cityMap.remove(); cityMap=null; }
+  $('ownerNext').innerHTML=`<div class="panel" style="margin-bottom:14px"><h2>Запланированные <span class="hint">статус «2 план», по неделям</span></h2>${plannedTable(planDated, planOpen)}${planMap.html}</div><div class="panel" style="margin-bottom:14px"><h2>Расчёты <span class="hint">без даты, в обсуждении</span></h2>${sumCards(aggOrders(calc))}${calcRow}</div>`;
+  mountDeliveryMap(planMap.pins);
   const factPaid=factAll;
   let entitled=0, received=0, ours=0, unknown=0, unknownN=0, heOwes=0, weOwe=0;
   for(const o of factPaid){
