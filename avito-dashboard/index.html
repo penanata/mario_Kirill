@@ -1419,7 +1419,7 @@ function renderMotivation(){
   const marginPart=aggs.map(a=>Math.min(Math.max(0,a.profit), Math.max(0,a.revenue)));
   const restPart=aggs.map((a,i)=>Math.max(0,(a.revenue||0)-marginPart[i]));
   const peak=Math.max(0, ...revenues);
-  const yMax=(gran==='month'?Math.max(peak, DARYA_PLAN):peak)*1.28||1;
+  const yMax=(gran==='month'?Math.max(peak, DARYA_PLAN)*1.28:peak*1.45)||1;
   const moneyLabel=n=>keys.length>6?motCompact(n):fmtMoney(n);
   const monthA=aggOrders(paid.filter(o=>periodKey(orderDay(o),'month')===monthNow));
   const pay=daryaPay(monthA.revenue, monthA.profit);
@@ -1446,7 +1446,7 @@ function renderMotivation(){
     options:{
       responsive:true,maintainAspectRatio:false,animation:{duration:400},
       interaction:{mode:'index',intersect:false},
-      layout:{padding:{top:8,right:8}},
+      layout:{padding:{top:28,right:12,left:4}},
       datasets:{bar:{barPercentage:gran==='month'?.62:.8,categoryPercentage:gran==='month'?.52:.88,maxBarThickness:gran==='month'?84:gran==='week'?40:18}},
       plugins:{
         legend:{position:'top',align:'end',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:14}},
@@ -1496,32 +1496,35 @@ function renderMotivation(){
         const metaR=ch.getDatasetMeta(1);
         const revSize=keys.length>14?10:11;
         const marSize=keys.length>14?12:14;
+        const placed=[];
+        const items=metaM.data.map((bar,i)=>{
+          const topBar=restPart[i]>0&&metaR.data[i]?metaR.data[i]:bar;
+          return {i, bar, top:topBar.y, x:topBar.x};
+        }).filter(it=>revenues[it.i]||profits[it.i]).sort((a,b)=>a.top-b.top);
         ctx.save();
         ctx.textAlign='center';
-        let lastRight=-Infinity;
-        metaM.data.forEach((bar,i)=>{
-          const rev=revenues[i]||0;
-          const profit=profits[i]||0;
-          if(!rev&&!profit) return;
-          const topBar=restPart[i]>0&&metaR.data[i]?metaR.data[i]:bar;
-          const x=topBar.x;
-          const top=topBar.y;
-          const revText=moneyLabel(rev);
-          const marText=moneyLabel(profit);
+        ctx.textBaseline='bottom';
+        items.forEach(it=>{
+          const revText=moneyLabel(revenues[it.i]);
+          const marText=moneyLabel(profits[it.i]);
           ctx.font=`800 ${marSize}px Manrope,system-ui,sans-serif`;
           const marW=ctx.measureText(marText).width;
           ctx.font=`600 ${revSize}px Manrope,system-ui,sans-serif`;
-          const w=Math.max(marW, ctx.measureText(revText).width)+10;
-          if(x-w/2<lastRight) return;
-          if(x+w/2>chartArea.right+8) return;
-          lastRight=x+w/2;
+          const w=Math.max(marW, ctx.measureText(revText).width)+8;
+          let x=it.x;
+          if(x-w/2<chartArea.left) x=chartArea.left+w/2;
+          if(x+w/2>chartArea.right) x=chartArea.right-w/2;
+          const marY=it.top-3;
+          const revY=marY-marSize-2;
+          const box={l:x-w/2, r:x+w/2, t:revY-revSize, b:marY};
+          if(placed.some(p=>box.l<p.r&&box.r>p.l&&box.t<p.b&&box.b>p.t)) return;
+          placed.push(box);
           ctx.font=`800 ${marSize}px Manrope,system-ui,sans-serif`;
           ctx.fillStyle='#141910';
-          ctx.textBaseline='bottom';
-          ctx.fillText(marText, x, top-3);
+          ctx.fillText(marText, x, marY);
           ctx.font=`600 ${revSize}px Manrope,system-ui,sans-serif`;
           ctx.fillStyle='#A89F93';
-          ctx.fillText(revText, x, top-3-marSize-1);
+          ctx.fillText(revText, x, revY);
         });
         ctx.restore();
       }
