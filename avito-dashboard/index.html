@@ -51,11 +51,11 @@
   .filters .seg button.active{background:var(--leaf);color:var(--leaf-ink)}
   .filters .spacer{flex:1}
   .metric-sheet{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px}
-  .metric-head,.metric-row{display:grid;grid-template-columns:108px 1.5fr 1.15fr .62fr;gap:12px;align-items:baseline}
+  .metric-head,.metric-row{display:grid;grid-template-columns:210px 1.5fr 1.15fr .62fr;gap:12px;align-items:center}
   .metric-head{padding:6px 16px 2px;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.08em}
   .metric-head span:nth-child(n+2){text-align:right}
   .metric-row{border-radius:12px;padding:11px 16px;color:#1c2418}
-  .metric-row .tag{display:block;padding:0;border-radius:0;background:transparent;color:var(--muted);font-weight:700;font-size:14px}
+  .metric-row .tag{display:block;padding:0;border-radius:0;background:transparent;color:var(--muted);font-weight:700;font-size:14px;line-height:1.2;white-space:normal}
   .metric-row .m,.metric-row .r,.metric-row .n{text-align:right;font-variant-numeric:tabular-nums}
   .metric-row .m{font-weight:800;font-size:26px;letter-spacing:-.03em}
   .metric-row .r{font-size:16px;font-weight:650;color:#3a4334}
@@ -217,7 +217,7 @@
   .mot-track{height:12px;border-radius:6px;background:rgba(57,66,43,.12);overflow:hidden;margin-top:12px}
   .mot-track>i{display:block;height:100%;background:var(--leaf)}
   @media (max-width:980px){.charts,.two,.three,.period-board,.mgr-board,.mot-hero{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}}
-  @media (max-width:700px){.metric-head,.metric-row{grid-template-columns:64px 1.5fr 1.15fr .7fr;gap:6px;padding-left:10px;padding-right:10px}.metric-row .m{font-size:18px}.metric-row.fact .m{font-size:22px}.metric-row .r,.metric-row .n{font-size:14px}}
+  @media (max-width:700px){.metric-head,.metric-row{grid-template-columns:96px 1.35fr 1.05fr .55fr;gap:6px;padding-left:10px;padding-right:10px}.metric-row .tag{font-size:12px}.metric-row .m{font-size:18px}.metric-row.fact .m{font-size:22px}.metric-row .r,.metric-row .n{font-size:14px}}
 </style>
 </head>
 <body>
@@ -307,7 +307,7 @@
       <select id="statusFilter">
         <option value="all">Все статусы</option>
         <option value="done">Оплачен</option>
-        <option value="progress">План</option>
+        <option value="progress">Запланированные заказы</option>
         <option value="lead">Расчёт</option>
       </select>
       <select id="managerFilter"><option value="">Все ответственные</option></select>
@@ -1269,7 +1269,7 @@ function renderMotivation(){
     </div>
     <div class="panel"><h2>По месяцам</h2><div class="tbl period-tbl"><table><thead><tr><th>Месяц</th><th class="num">Выручка</th><th class="num">Маржа</th><th class="num">Ставка</th><th class="num">Бонус</th><th class="num">Заказы</th></tr></thead><tbody>${rows}</tbody></table></div>${undatedNote}</div>`;
 }
-const viewHints={owner:'Оплаченные заказы: этот день, эта неделя, этот месяц. Ниже — план с датами и расчёты.',mgr:'Рейтинг по марже за день, неделю и месяц.',mot:'Мотивация Дарьи: 1 млн выручки в месяц. До плана бонус 10% от маржи, после плана 15%.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Маржа, выручка и заказы: факт, план и расчёт. Столбики по дате и цифры по менеджерам.'};
+const viewHints={owner:'Оплаченные заказы: этот день, эта неделя, этот месяц. Ниже — план с датами и расчёты.',mgr:'Рейтинг по марже за день, неделю и месяц.',mot:'Мотивация Дарьи: 1 млн выручки в месяц. До плана бонус 10% от маржи, после плана 15%.',bunat:'Лист для Бунната: что везти сегодня, на этой неделе и в этом месяце.',detail:'Маржа, выручка и заказы: факт, запланированные заказы и расчёт. Столбики по дате и цифры по менеджерам.'};
 function showView(view){
   state.view=view;
   const u=new URL(location.href);
@@ -1319,7 +1319,7 @@ function renderKPIs(){
     const b=s[stage];
     return `<div class="metric-row ${cls}"><span class="tag">${title}</span><span class="m">${fmtMoney(b.profit)}</span><span class="r">${fmtMoney(b.revenue)}</span><span class="n">${fmtInt(b.orders)}</span></div>`;
   };
-  $('kpis').innerHTML=`<div class="metric-head"><span></span><span>Маржа</span><span>Выручка</span><span>Заказы</span></div>${row('Факт','fact','done')}${row('План','plan','progress')}${row('Расчёт','calc','lead')}`;
+  $('kpis').innerHTML=`<div class="metric-head"><span></span><span>Маржа</span><span>Выручка</span><span>Заказы</span></div>${row('Факт','fact','done')}${row('Запланированные заказы','plan','progress')}${row('Расчёт','calc','lead')}`;
 }
 function chart(id,cfg){ if(state.charts[id]) state.charts[id].destroy(); state.charts[id]=new Chart($(id).getContext('2d'),cfg); }
 Chart.defaults.color='#4e5648'; Chart.defaults.borderColor='rgba(18,22,15,.08)'; Chart.defaults.font.family='Manrope,system-ui,sans-serif';
