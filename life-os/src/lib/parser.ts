@@ -156,7 +156,7 @@ function taskTitle(ctx: InterpContext, id: string) {
 }
 
 function ideaTitle(clause: string) {
-  const withoutLead = clause.replace(/^.*?\bиде[яюи]\s+/i, "").replace(/^(придумал[аи]?|пришла|появилась)\s+/i, "");
+  const withoutLead = clause.replace(/^.*иде[яюи]\s+/i, "").replace(/^(придумал[аи]?|пришла|появилась)\s+/i, "");
   const title = withoutLead.replace(/[.]+$/g, "").trim() || clause.trim();
   return title.charAt(0).toUpperCase() + title.slice(1);
 }

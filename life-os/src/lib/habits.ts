@@ -14,32 +14,25 @@ export type HabitReconcile = {
   note: string;
 };
 
-function greedyPick(days: string[], remaining: number, minIndexGap: number, maxRun: number) {
+function pickWithStep(days: string[], remaining: number, step: number) {
   const picked: string[] = [];
-  let lastIndex = -999;
-  let run = 0;
-  for (let index = 0; index < days.length && picked.length < remaining; index++) {
-    if (index - lastIndex < minIndexGap + 1 && lastIndex >= 0) continue;
-    if (minIndexGap === 0 && run >= maxRun && index < days.length - (remaining - picked.length)) {
-      continue;
-    }
-    picked.push(days[index]);
-    if (lastIndex === index - 1) run += 1;
-    else run = 1;
-    lastIndex = index;
-  }
+  for (let index = 0; index < days.length && picked.length < remaining; index += step) picked.push(days[index]);
   return picked;
 }
 
 export function planRemainingDates(days: string[], remaining: number, preferredGapDays: number) {
   if (remaining <= 0 || days.length === 0) return [];
-  const minGap = Math.max(0, preferredGapDays);
-  for (let gap = minGap; gap >= 1; gap--) {
-    const picked = greedyPick(days, remaining, gap, 1);
-    if (picked.length >= remaining) return picked.slice(0, remaining);
+  if (remaining >= days.length) return days.slice();
+  const preferred = pickWithStep(days, remaining, Math.max(1, preferredGapDays + 1));
+  if (preferred.length >= remaining) return preferred.slice(0, remaining);
+  const paired: string[] = [];
+  let index = 0;
+  while (index < days.length && paired.length < remaining) {
+    paired.push(days[index]);
+    const run = paired.length % 3;
+    index += run === 0 ? 2 : 1;
   }
-  const withPairs = greedyPick(days, remaining, 0, 2);
-  if (withPairs.length >= remaining) return withPairs.slice(0, remaining);
+  if (paired.length >= remaining) return paired.slice(0, remaining);
   return days.slice(0, remaining);
 }
 
@@ -93,14 +86,10 @@ export function demoPastDoneDates(today: string, tz: string, target: number) {
   const bounds = monthBounds(today);
   const days = eachDay(bounds.start, bounds.end, tz);
   const past = days.filter((day) => day < today);
-  const futureCapacity = planRemainingDates(
-    days.filter((day) => day >= today),
-    target,
-    1,
-  ).length;
-  const pastBudget = Math.max(0, target - Math.min(target, futureCapacity));
+  const futureCount = days.length - past.length;
   const everyOther = past.filter((_, index) => index % 2 === 0);
-  return everyOther.slice(0, pastBudget);
+  const budget = Math.max(0, Math.min(everyOther.length, target - Math.ceil(futureCount / 2)));
+  return everyOther.slice(0, budget);
 }
 
 export function initialMonthPlan(today: string, tz: string, target: number) {

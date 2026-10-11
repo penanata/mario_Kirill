@@ -382,6 +382,8 @@ async function proposeMiss(habitId: string, input: unknown) {
   const date = parse(z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }), input).date;
   const habit = listHabits().find((item) => item.id === habitId);
   if (!habit) throw new HttpError("Привычка не найдена", 404);
+  const existing = listHabitLogs(habit.id, date, date)[0];
+  if (existing?.status === "done") throw new HttpError("Этот день уже засчитан выполненным. Сама на пропуск не меняю.");
   const ctx = loadContext();
   const boundsStart = `${date.slice(0, 7)}-01`;
   const logs = listHabitLogs(habit.id, boundsStart, `${date.slice(0, 7)}-31`).map((log) => (log.date === date ? { ...log, status: "missed" } : log));

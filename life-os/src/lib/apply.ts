@@ -142,6 +142,10 @@ function applyOne(action: Action, actor: string) {
     case "setHabitStatus": {
       const habit = listHabits().find((item) => item.id === action.habitId);
       if (!habit) throw new HttpError("Привычка не найдена", 404);
+      const already = listHabitLogs(habit.id, action.date, action.date)[0];
+      if (already?.status === "done" && action.status === "missed") {
+        throw new HttpError("Этот день уже засчитан выполненным. Сама на пропуск не меняю.");
+      }
       const tz = getUser().timezone;
       const userToday = todayKey(new Date(), tz);
       const bounds = monthBounds(userToday);

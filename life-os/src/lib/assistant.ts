@@ -171,13 +171,14 @@ function continueReflection(conversation: ConversationRow, text: string) {
       priority: "normal",
     });
   }
-  const proposal = actions.length
+  const created = actions.length
     ? createProposal({
         conversationId: conversation.id,
         summary: "Завтрашний фокус из ваших слов. В календарь само не встанет.",
         actions,
       })
     : null;
+  const proposal = created ? proposalView(created.id) : null;
   const extra = proposal ? "\n\nМогу сделать из вашего «важного завтра» задачу. Это отдельное подтверждение, само не сохраню." : "";
   return { reply: `Сохранила рефлексию. Ниже только ваши ответы.\n\n${summary}${extra}`, proposal };
 }
@@ -232,9 +233,7 @@ export async function answerMessage(conversationId: string | undefined, text: st
   return {
     conversationId: conversation.id,
     reply: full,
-    proposal: proposal
-      ? { ...proposal, lines: actions.map((action) => describeAction(action, ctx)) }
-      : null,
+    proposal: proposal ? proposalView(proposal.id, ctx) : null,
     mode,
   };
 }

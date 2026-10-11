@@ -154,7 +154,7 @@ describe("parser scenarios", () => {
     const result = interpret("Мне пришла идея создать AI-страницу про животных", ctx());
     expect(result.actions.some((action) => action.type === "createTask")).toBe(false);
     expect(result.actions[0]).toMatchObject({ type: "createIdea" });
-    if (result.actions[0].type === "createIdea") expect(result.actions[0].title.toLowerCase()).toContain("ai");
+    if (result.actions[0].type === "createIdea") expect(result.actions[0].title).toBe("Создать AI-страницу про животных");
   });
 
   it("splits a messy note into completion, miss, schedule, event and idea", () => {

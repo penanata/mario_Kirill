@@ -10,3 +10,4 @@ data/*.sqlite-*
 data/secret.key
 coverage
 next-env.d.ts
+*.tsbuildinfo
