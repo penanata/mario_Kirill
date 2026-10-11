@@ -6,6 +6,10 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='10' cy='10' r='7' fill='%238fbf7f'/%3E%3Ccircle cx='23' cy='9' r='5' fill='%2339422b'/%3E%3Ccircle cx='9' cy='23' r='5' fill='%23c5a57c'/%3E%3Ccircle cx='22' cy='22' r='7' fill='%2312160f'/%3E%3C/svg%3E">
 <title>Авито · Аналитика заказов</title>
 <style>
+  @font-face{font-family:"Manrope";font-style:normal;font-weight:400 800;font-display:swap;src:url("fonts/manrope-cyrillic-ext.woff2") format("woff2");unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
+  @font-face{font-family:"Manrope";font-style:normal;font-weight:400 800;font-display:swap;src:url("fonts/manrope-cyrillic.woff2") format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+  @font-face{font-family:"Manrope";font-style:normal;font-weight:400 800;font-display:swap;src:url("fonts/manrope-latin-ext.woff2") format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
+  @font-face{font-family:"Manrope";font-style:normal;font-weight:400 800;font-display:swap;src:url("fonts/manrope-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
   :root{
     /* Цвета dervo.ru: молочный фон, хвойный текст, листовая кнопка, песок */
     --bg:#f0eee9; --panel:#fffcf8; --panel2:#e7e4dc; --line:#d7ddd3;
@@ -13,12 +17,12 @@
     --green:#39422b; --red:#a32a2a; --purple:#2a2e28; --yellow:#6b5d45; --orange:#c5a57c; --radius:14px;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.4}
+  html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light;font-family:"Manrope",system-ui,sans-serif;font-size:14px;line-height:1.45}
   a{color:var(--accent)}
   button,select,input{font:inherit;color:inherit}
   .wrap{max-width:1400px;margin:0 auto;padding:22px 18px 60px}
   header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
-  header h1{margin:0;font-size:26px;font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
+  header h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.03em;display:flex;align-items:center;gap:10px}
   header h1 .logo{width:34px;height:34px;border-radius:9px;background:conic-gradient(from 200deg,var(--leaf),var(--accent),var(--orange),var(--text),var(--leaf));display:inline-block;box-shadow:0 6px 20px rgba(57,66,43,.18)}
   .sub{color:var(--muted);font-size:13px}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
@@ -1313,7 +1317,7 @@ function renderKPIs(){
   $('kpis').innerHTML=`<div class="metric-head"><span></span><span>Маржа</span><span>Выручка</span><span>Заказы</span></div>${row('Факт','fact','done')}${row('План','plan','progress')}${row('Расчёт','calc','lead')}`;
 }
 function chart(id,cfg){ if(state.charts[id]) state.charts[id].destroy(); state.charts[id]=new Chart($(id).getContext('2d'),cfg); }
-Chart.defaults.color='#4e5648'; Chart.defaults.borderColor='rgba(18,22,15,.08)'; Chart.defaults.font.family='Inter,system-ui,sans-serif';
+Chart.defaults.color='#4e5648'; Chart.defaults.borderColor='rgba(18,22,15,.08)'; Chart.defaults.font.family='Manrope,system-ui,sans-serif';
 const tipMoney={callbacks:{label:c=>{ const v=c.chart.options.indexAxis==='y'?c.parsed.x:c.parsed.y; return ` ${c.dataset.label}: ${c.dataset.money===false?fmtInt(v):fmtMoney(v)}`; }}};
 const moneyTicks={callback:v=>fmtInt(v)+' ₽'};
 function renderCharts(){
