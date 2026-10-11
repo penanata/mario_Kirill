@@ -209,7 +209,8 @@
   #bunatView .panel{width:100%}
   #bunatView .empty{text-align:left;padding:4px 0 8px}
   .bunat-sheet{width:100%;border-collapse:collapse;table-layout:fixed}
-  .bunat-sheet th,.bunat-sheet td{white-space:normal;overflow-wrap:break-word;vertical-align:top;text-align:left}
+  .bunat-sheet th,.bunat-sheet td{white-space:normal;overflow-wrap:break-word;vertical-align:top;text-align:left;padding:8px 6px}
+  .bunat-sheet th{letter-spacing:0;font-size:11px;cursor:default}
   .bunat-sheet th:first-child,.bunat-sheet td:first-child{padding-left:0}
   .bunat-sheet td{font-size:13.5px;line-height:1.35}
   .bunat-sheet .comp{margin:0;padding-left:16px}
@@ -1127,7 +1128,7 @@ function bunatBucket(card, today){
   if(d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth()) return 'month';
   return 'other';
 }
-const BUNAT_COLS='<colgroup><col style="width:8%"><col style="width:10%"><col style="width:13%"><col style="width:10%"><col style="width:16%"><col style="width:9%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:9%"></colgroup>';
+const BUNAT_COLS='<colgroup><col style="width:8%"><col style="width:10%"><col style="width:12%"><col style="width:11%"><col style="width:14%"><col style="width:9%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:11%"></colgroup>';
 const BUNAT_HEAD='<thead><tr><th>Дата</th><th>Клиент</th><th>Адрес</th><th>Телефон</th><th>Состав</th><th class="money">Сумма заказа</th><th class="money">Сумма Буннату</th><th>Оплата</th><th>Получение</th><th>Подтверждение</th></tr></thead>';
 function bunatRows(cards){
   if(!cards.length) return '<tr class="bunat-empty"><td colspan="10" class="muted">Нет таких заказов</td></tr>';
