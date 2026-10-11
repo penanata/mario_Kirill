@@ -50,21 +50,21 @@
   .filters .seg button{background:transparent;border:0;padding:8px 12px;cursor:pointer;color:var(--muted);font-weight:600;white-space:nowrap}
   .filters .seg button.active{background:var(--leaf);color:var(--leaf-ink)}
   .filters .spacer{flex:1}
-  .metric-sheet{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
-  .metric-head,.metric-row{display:grid;grid-template-columns:132px 1.6fr 1.25fr .7fr;gap:12px;align-items:center}
-  .metric-head{padding:0 18px;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.35px}
+  .metric-sheet{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px}
+  .metric-head,.metric-row{display:grid;grid-template-columns:108px 1.5fr 1.15fr .62fr;gap:12px;align-items:baseline}
+  .metric-head{padding:6px 16px 2px;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.08em}
   .metric-head span:nth-child(n+2){text-align:right}
-  .metric-row{border-radius:14px;padding:12px 18px;color:#12160f}
-  .metric-row .tag{display:block;padding:0;border-radius:0;background:transparent;color:inherit;font-weight:800;font-size:16px}
+  .metric-row{border-radius:12px;padding:11px 16px;color:#1c2418}
+  .metric-row .tag{display:block;padding:0;border-radius:0;background:transparent;color:var(--muted);font-weight:700;font-size:14px}
   .metric-row .m,.metric-row .r,.metric-row .n{text-align:right;font-variant-numeric:tabular-nums}
-  .metric-row .m{font-weight:800;font-size:28px;letter-spacing:-.4px}
-  .metric-row .r{font-size:18px;font-weight:700}
-  .metric-row .n{font-size:18px;font-weight:700}
-  .metric-row.fact{background:#8fbf7f}
-  .metric-row.fact .tag{font-size:18px}
-  .metric-row.fact .m{font-size:36px}
-  .metric-row.plan{background:#f4e3a1}
-  .metric-row.calc{background:#e3e3de}
+  .metric-row .m{font-weight:800;font-size:26px;letter-spacing:-.03em}
+  .metric-row .r{font-size:16px;font-weight:650;color:#3a4334}
+  .metric-row .n{font-size:16px;font-weight:650;color:#3a4334}
+  .metric-row.fact{background:#e7f0df}
+  .metric-row.fact .tag{color:#12160f;font-weight:800}
+  .metric-row.fact .m{font-size:32px}
+  .metric-row.plan{background:#f7f3e4}
+  .metric-row.calc{background:#f3f2ee}
   .who-list{display:flex;flex-direction:column;gap:8px}
   .who-row{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:end;background:var(--panel2);border-radius:12px;padding:10px 12px}
   .who-row.top{background:#e7e4dc}
@@ -158,8 +158,12 @@
   .bunat-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
   .bunat-head h2{margin:0}
   .bunat-sub{margin:18px 0 8px;font-size:14px}
+  #bunatView{width:100%}
+  #bunatView .panel{width:100%}
+  #bunatView .empty{text-align:left;padding:4px 0 8px}
   .bunat-sheet{width:100%;border-collapse:collapse;table-layout:fixed}
-  .bunat-sheet th,.bunat-sheet td{white-space:normal;overflow-wrap:break-word;vertical-align:top}
+  .bunat-sheet th,.bunat-sheet td{white-space:normal;overflow-wrap:break-word;vertical-align:top;text-align:left}
+  .bunat-sheet th:first-child,.bunat-sheet td:first-child{padding-left:0}
   .bunat-sheet td{font-size:13.5px;line-height:1.35}
   .bunat-sheet .comp{margin:0;padding-left:16px}
   .bunat-sheet .tag{white-space:normal}
@@ -172,12 +176,13 @@
   .tag.bill{background:rgba(57,66,43,.12);color:var(--accent)}
   .tag.muted{background:rgba(163,171,157,.35);color:var(--muted)}
   @media (max-width:800px){
-    .bunat-sheet{table-layout:auto}
+    .bunat-sheet{display:block;width:100%;table-layout:auto}
+    .bunat-sheet tbody{display:block;width:100%}
     .bunat-sheet thead{display:none}
-    .bunat-sheet tr{display:block;border:1px solid var(--line);border-radius:12px;margin:0 0 10px;padding:8px 4px}
+    .bunat-sheet tr{display:block;width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;margin:0 0 10px;padding:8px 0}
     .bunat-sheet tr.bunat-group{border:0;padding:8px 0 0;background:transparent}
-    .bunat-sheet td{display:block;border:0;padding:3px 8px}
-    .bunat-sheet tr.bunat-group td{display:block;background:transparent;padding:4px 8px}
+    .bunat-sheet td{display:block;width:100%;box-sizing:border-box;border:0;padding:3px 0;text-align:left}
+    .bunat-sheet tr.bunat-group td{display:block;width:100%;background:transparent;padding:4px 0}
     .bunat-sheet td::before{content:attr(data-l);display:block;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
     .bunat-sheet tr.bunat-group td::before,.bunat-sheet tr.bunat-empty td::before{content:none}
   }
@@ -212,7 +217,7 @@
   .mot-track{height:12px;border-radius:6px;background:rgba(57,66,43,.12);overflow:hidden;margin-top:12px}
   .mot-track>i{display:block;height:100%;background:var(--leaf)}
   @media (max-width:980px){.charts,.two,.three,.period-board,.mgr-board,.mot-hero{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}}
-  @media (max-width:700px){.metric-head,.metric-row{grid-template-columns:68px 1.5fr 1.15fr .7fr;gap:6px;padding-left:10px;padding-right:10px}.metric-row .m{font-size:18px}.metric-row.fact .m{font-size:22px}.metric-row .r,.metric-row .n{font-size:14px}}
+  @media (max-width:700px){.metric-head,.metric-row{grid-template-columns:64px 1.5fr 1.15fr .7fr;gap:6px;padding-left:10px;padding-right:10px}.metric-row .m{font-size:18px}.metric-row.fact .m{font-size:22px}.metric-row .r,.metric-row .n{font-size:14px}}
 </style>
 </head>
 <body>
@@ -1323,40 +1328,31 @@ const moneyTicks={callback:v=>fmtInt(v)+' ₽'};
 function renderCharts(){
   const list=state.filtered;
   const ts=timeSeries(list,state.gran,state.filter);
-  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · заливка — выручка, линия внутри — маржа`:'нет дат';
-  const wash=(rgb,alpha)=>ctx=>{
-    const area=ctx.chart.chartArea;
-    if(!area) return `rgba(${rgb},${alpha})`;
-    const g=ctx.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
-    g.addColorStop(0, `rgba(${rgb},${alpha})`);
-    g.addColorStop(0.78, `rgba(${rgb},${(alpha*0.34).toFixed(3)})`);
-    g.addColorStop(1, `rgba(${rgb},0)`);
-    return g;
+  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · столбик — выручка, яркая шапка — маржа`:'нет дат';
+  const marginPart=ts.map(t=>Math.min(Math.max(0,t.profit), Math.max(0,t.done)));
+  const restPart=ts.map((t,i)=>Math.max(0, t.done-marginPart[i]));
+  const cap=ctx=>{
+    const has=marginPart[ctx.dataIndex]>0;
+    const top=ctx.dataset.label==='Маржа'?has:!has;
+    return top?{topLeft:8,topRight:8,bottomLeft:0,bottomRight:0}:0;
   };
-  const dots=ts.length>24?0:4;
-  const line=(label,data,rgb,alpha,order)=>({
-    label,data,order,
-    borderColor:`rgb(${rgb})`,
-    backgroundColor:wash(rgb,alpha),
-    fill:true,tension:0,borderWidth:2.5,borderJoinStyle:'round',borderCapStyle:'round',
-    pointRadius:dots,pointHoverRadius:6,pointBackgroundColor:`rgb(${rgb})`,pointBorderWidth:0,
-  });
   chart('chTs',{
-    type:'line',
+    type:'bar',
     data:{labels:ts.map(t=>t.label),datasets:[
-      line('Выручка', ts.map(t=>t.done), '46,104,64', 0.62, 2),
-      line('Маржа', ts.map(t=>t.profit), '111,148,72', 0.0, 1),
+      {label:'Выручка',data:restPart,backgroundColor:'#133123',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:1},
+      {label:'Маржа',data:marginPart,backgroundColor:'#d9f86c',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:2},
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
+      datasets:{bar:{barPercentage:.72,categoryPercentage:.8,maxBarThickness:36}},
       plugins:{
         legend:{position:'top',align:'end',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:14}},
-        tooltip:{callbacks:{label:(c)=>` ${c.dataset.label}: ${fmtMoney(c.parsed.y)}`}},
+        tooltip:{callbacks:{label(c){ const t=ts[c.dataIndex]; return c.dataset.label==='Маржа'?` Маржа: ${fmtMoney(t.profit)}`:` Выручка: ${fmtMoney(t.done)}`; }}},
       },
       scales:{
-        x:{grid:{display:false},border:{display:false}},
-        y:{beginAtZero:true,ticks:moneyTicks,grid:{color:'rgba(18,22,15,.06)'},border:{display:false}},
+        x:{stacked:true,grid:{display:false},border:{display:false},ticks:{maxRotation:0,autoSkip:true}},
+        y:{stacked:true,beginAtZero:true,ticks:moneyTicks,grid:{color:'rgba(18,22,15,.06)'},border:{display:false}},
       },
     },
   });
