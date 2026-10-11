@@ -1129,7 +1129,7 @@ function bunatBucket(card, today){
   return 'other';
 }
 const BUNAT_COLS='<colgroup><col style="width:8%"><col style="width:10%"><col style="width:12%"><col style="width:11%"><col style="width:14%"><col style="width:9%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:11%"></colgroup>';
-const BUNAT_HEAD='<thead><tr><th>Дата</th><th>Клиент</th><th>Адрес</th><th>Телефон</th><th>Состав</th><th class="money">Сумма заказа</th><th class="money">Сумма Буннату</th><th>Оплата</th><th>Получение</th><th>Подтверждение</th></tr></thead>';
+const BUNAT_HEAD='<thead><tr><th>Дата</th><th>Клиент</th><th>Адрес</th><th>Телефон</th><th>Состав</th><th class="money">Сумма заказа</th><th class="money">Сумма Буннату</th><th>Оплата</th><th>Получение</th><th>Комментарий</th></tr></thead>';
 function bunatRows(cards){
   if(!cards.length) return '<tr class="bunat-empty"><td colspan="10" class="muted">Нет таких заказов</td></tr>';
   return cards.map(c=>{
@@ -1142,7 +1142,7 @@ function bunatRows(cards){
     const when=c.date?c.date.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}):(c.past?'':'без даты');
     const whenHtml=esc(when)+(c.past?'<div class="small muted">дата уже прошла</div>':'');
     const cell=(l,html,cls)=>`<td data-l="${l}"${cls?` class="${cls}"`:''}>${html}</td>`;
-    return `<tr>${cell('Дата',whenHtml)}${cell('Клиент',who)}${cell('Адрес',esc(c.address))}${cell('Телефон',esc(c.phones))}${cell('Состав',comp)}${cell('Сумма заказа',esc(fmtMoney(c.orderSum)),'money')}${cell('Сумма Буннату',esc(fmtMoney(c.bunatSum)),'money')}${cell('Оплата',`<span class="tag ${payCls}">${esc(c.pay)}</span>`)}${cell('Получение',`<span class="tag ${logCls}">${esc(c.logistics)}</span>`)}${cell('Подтверждение',conf+(clue?`<div class="small muted">${esc(clue)}</div>`:''))}</tr>`;
+    return `<tr>${cell('Дата',whenHtml)}${cell('Клиент',who)}${cell('Адрес',esc(c.address))}${cell('Телефон',esc(c.phones))}${cell('Состав',comp)}${cell('Сумма заказа',esc(fmtMoney(c.orderSum)),'money')}${cell('Сумма Буннату',esc(fmtMoney(c.bunatSum)),'money')}${cell('Оплата',`<span class="tag ${payCls}">${esc(c.pay)}</span>`)}${cell('Получение',`<span class="tag ${logCls}">${esc(c.logistics)}</span>`)}${cell('Комментарий',conf+(clue?`<div class="small muted">${esc(clue)}</div>`:''))}</tr>`;
   }).join('');
 }
 function bunatTable(cards){
