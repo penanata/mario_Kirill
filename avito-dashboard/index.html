@@ -213,6 +213,7 @@
   .bunat-sheet th:first-child,.bunat-sheet td:first-child{padding-left:0}
   .bunat-sheet td{font-size:13.5px;line-height:1.35}
   .bunat-sheet .comp{margin:0;padding-left:16px}
+  .bunat-sheet td.money,.bunat-sheet th.money{text-align:right;font-variant-numeric:tabular-nums;font-weight:800}
   .bunat-sheet .tag{white-space:normal}
   .bunat-sheet tr.bunat-group td{background:var(--panel2);font-weight:800;font-size:14px;color:var(--text);border-bottom:0}
   .bunat-sheet tr.bunat-group .hint{font-weight:600;color:var(--muted);margin-left:6px}
@@ -229,6 +230,7 @@
     .bunat-sheet tr{display:block;width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;margin:0 0 10px;padding:8px 0}
     .bunat-sheet tr.bunat-group{border:0;padding:8px 0 0;background:transparent}
     .bunat-sheet td{display:block;width:100%;box-sizing:border-box;border:0;padding:3px 0;text-align:left}
+    .bunat-sheet td.money{text-align:left}
     .bunat-sheet tr.bunat-group td{display:block;width:100%;background:transparent;padding:4px 0}
     .bunat-sheet td::before{content:attr(data-l);display:block;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
     .bunat-sheet tr.bunat-group td::before,.bunat-sheet tr.bunat-empty td::before{content:none}
@@ -1113,7 +1115,7 @@ function bunatCard(o){
   });
   const date=o.date&&!o.dateApprox?o.date:null;
   const past=!!(date&&dayFloor(date)<dayFloor(new Date()));
-  return {name, address:address.join('; ')||'не указан', phones:phones.join(', ')||'не указан', contacts:uniq(contacts), composition, pay, logistics, confirmed, clues:uniq(clues).slice(0,3), manager:o.manager?canonManager(o.manager):'', date, past};
+  return {name, address:address.join('; ')||'не указан', phones:phones.join(', ')||'не указан', contacts:uniq(contacts), composition, pay, logistics, confirmed, clues:uniq(clues).slice(0,3), manager:o.manager?canonManager(o.manager):'', date, past, orderSum:o.revenue||0, bunatSum:o.cost||0};
 }
 function bunatBucket(card, today){
   if(!card.date) return 'undated';
@@ -1125,10 +1127,10 @@ function bunatBucket(card, today){
   if(d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth()) return 'month';
   return 'other';
 }
-const BUNAT_COLS='<colgroup><col style="width:9%"><col style="width:11%"><col style="width:16%"><col style="width:12%"><col style="width:18%"><col style="width:9%"><col style="width:11%"><col style="width:14%"></colgroup>';
-const BUNAT_HEAD='<thead><tr><th>Дата</th><th>Клиент</th><th>Адрес</th><th>Телефон</th><th>Состав</th><th>Оплата</th><th>Получение</th><th>Подтверждение</th></tr></thead>';
+const BUNAT_COLS='<colgroup><col style="width:8%"><col style="width:10%"><col style="width:13%"><col style="width:10%"><col style="width:16%"><col style="width:9%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:9%"></colgroup>';
+const BUNAT_HEAD='<thead><tr><th>Дата</th><th>Клиент</th><th>Адрес</th><th>Телефон</th><th>Состав</th><th class="money">Сумма заказа</th><th class="money">Сумма Буннату</th><th>Оплата</th><th>Получение</th><th>Подтверждение</th></tr></thead>';
 function bunatRows(cards){
-  if(!cards.length) return '<tr class="bunat-empty"><td colspan="8" class="muted">Нет таких заказов</td></tr>';
+  if(!cards.length) return '<tr class="bunat-empty"><td colspan="10" class="muted">Нет таких заказов</td></tr>';
   return cards.map(c=>{
     const comp=c.composition.length?`<ul class="comp">${c.composition.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<span class="muted">состав не указан</span>';
     const payCls=c.pay==='Наличка'?'cash':c.pay==='Счёт'?'bill':c.pay==='Наличка и счёт'?'cash':'muted';
@@ -1138,8 +1140,8 @@ function bunatRows(cards){
     const who=`<b>${esc(c.name)}</b>${c.contacts.length?`<div class="small muted">${esc(c.contacts.join(', '))}</div>`:''}`;
     const when=c.date?c.date.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}):(c.past?'':'без даты');
     const whenHtml=esc(when)+(c.past?'<div class="small muted">дата уже прошла</div>':'');
-    const cell=(l,html)=>`<td data-l="${l}">${html}</td>`;
-    return `<tr>${cell('Дата',whenHtml)}${cell('Клиент',who)}${cell('Адрес',esc(c.address))}${cell('Телефон',esc(c.phones))}${cell('Состав',comp)}${cell('Оплата',`<span class="tag ${payCls}">${esc(c.pay)}</span>`)}${cell('Получение',`<span class="tag ${logCls}">${esc(c.logistics)}</span>`)}${cell('Подтверждение',conf+(clue?`<div class="small muted">${esc(clue)}</div>`:''))}</tr>`;
+    const cell=(l,html,cls)=>`<td data-l="${l}"${cls?` class="${cls}"`:''}>${html}</td>`;
+    return `<tr>${cell('Дата',whenHtml)}${cell('Клиент',who)}${cell('Адрес',esc(c.address))}${cell('Телефон',esc(c.phones))}${cell('Состав',comp)}${cell('Сумма заказа',esc(fmtMoney(c.orderSum)),'money')}${cell('Сумма Буннату',esc(fmtMoney(c.bunatSum)),'money')}${cell('Оплата',`<span class="tag ${payCls}">${esc(c.pay)}</span>`)}${cell('Получение',`<span class="tag ${logCls}">${esc(c.logistics)}</span>`)}${cell('Подтверждение',conf+(clue?`<div class="small muted">${esc(clue)}</div>`:''))}</tr>`;
   }).join('');
 }
 function bunatTable(cards){
@@ -1147,7 +1149,7 @@ function bunatTable(cards){
   return `<table class="bunat-sheet">${BUNAT_COLS}${BUNAT_HEAD}<tbody>${bunatRows(cards)}</tbody></table>`;
 }
 function bunatGrouped(groups){
-  const body=groups.map(g=>`<tr class="bunat-group"><td colspan="8">${esc(g.title)} <span class="hint">${fmtInt(g.cards.length)}</span></td></tr>${bunatRows(g.cards)}`).join('');
+  const body=groups.map(g=>`<tr class="bunat-group"><td colspan="10">${esc(g.title)} <span class="hint">${fmtInt(g.cards.length)}</span></td></tr>${bunatRows(g.cards)}`).join('');
   return `<table class="bunat-sheet">${BUNAT_COLS}${BUNAT_HEAD}<tbody>${body}</tbody></table>`;
 }
 function bunatBounds(){
