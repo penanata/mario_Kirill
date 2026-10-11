@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='10' cy='10' r='7' fill='%238fbf7f'/%3E%3Ccircle cx='23' cy='9' r='5' fill='%2339422b'/%3E%3Ccircle cx='9' cy='23' r='5' fill='%23c5a57c'/%3E%3Ccircle cx='22' cy='22' r='7' fill='%2312160f'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='10' cy='10' r='7' fill='%23889063'/%3E%3Ccircle cx='23' cy='9' r='5' fill='%23354024'/%3E%3Ccircle cx='9' cy='23' r='5' fill='%23CFBB99'/%3E%3Ccircle cx='22' cy='22' r='7' fill='%234C3D19'/%3E%3C/svg%3E">
 <title>Авито · Аналитика заказов</title>
 <style>
   @font-face{font-family:"Manrope";font-style:normal;font-weight:400 800;font-display:swap;src:url("fonts/manrope-cyrillic-ext.woff2") format("woff2");unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
@@ -11,10 +11,10 @@
   @font-face{font-family:"Manrope";font-style:normal;font-weight:400 800;font-display:swap;src:url("fonts/manrope-latin-ext.woff2") format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
   @font-face{font-family:"Manrope";font-style:normal;font-weight:400 800;font-display:swap;src:url("fonts/manrope-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
   :root{
-    /* Цвета dervo.ru: молочный фон, хвойный текст, листовая кнопка, песок */
-    --bg:#f0eee9; --panel:#fffcf8; --panel2:#e7e4dc; --line:#d7ddd3;
-    --text:#12160f; --muted:#4e5648; --accent:#39422b; --leaf:#8fbf7f; --leaf-ink:#0e140c;
-    --green:#39422b; --red:#a32a2a; --purple:#2a2e28; --yellow:#6b5d45; --orange:#c5a57c; --radius:14px;
+    /* Café Noir, Kombu Green, Moss Green, Tan, Bone */
+    --bg:#E5D7C4; --panel:#F6F1E8; --panel2:#E5D7C4; --line:#D4C4A8;
+    --text:#4C3D19; --muted:#6E5B3C; --accent:#354024; --leaf:#889063; --leaf-ink:#4C3D19;
+    --green:#354024; --red:#8C3F32; --purple:#354024; --yellow:#4C3D19; --orange:#CFBB99; --radius:14px;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light;font-family:"Manrope",system-ui,sans-serif;font-size:14px;line-height:1.45}
@@ -23,7 +23,7 @@
   .wrap{max-width:1400px;margin:0 auto;padding:22px 18px 60px}
   header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
   header h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.03em;display:flex;align-items:center;gap:10px}
-  header h1 .logo{width:34px;height:34px;border-radius:9px;background:conic-gradient(from 200deg,var(--leaf),var(--accent),var(--orange),var(--text),var(--leaf));display:inline-block;box-shadow:0 6px 20px rgba(57,66,43,.18)}
+  header h1 .logo{width:34px;height:34px;border-radius:9px;background:conic-gradient(from 200deg,var(--leaf),var(--accent),var(--orange),var(--text),var(--leaf));display:inline-block;box-shadow:0 6px 20px rgba(76,61,25,.18)}
   .sub{color:var(--muted);font-size:13px}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
   .panel h2{margin:0 0 12px;font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -43,7 +43,7 @@
   .status{margin-top:8px;font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .status.err{color:var(--red)}
   .status.ok{color:var(--green)}
-  .notice{background:rgba(197,165,124,.18);border:1px solid var(--orange);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13px;color:var(--text)}
+  .notice{background:rgba(207,187,153,.45);border:1px solid var(--orange);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13px;color:var(--text)}
   .notice ol{margin:8px 0 0 18px;padding:0}
   .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}
   .filters .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;overflow-x:auto;max-width:100%;scrollbar-width:none}
@@ -54,20 +54,20 @@
   .metric-head,.metric-row{display:grid;grid-template-columns:210px 1.5fr 1.15fr .62fr;gap:12px;align-items:center}
   .metric-head{padding:6px 16px 2px;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.08em}
   .metric-head span:nth-child(n+2){text-align:right}
-  .metric-row{border-radius:12px;padding:11px 16px;color:#1c2418}
+  .metric-row{border-radius:12px;padding:11px 16px;color:#4C3D19}
   .metric-row .tag{display:block;padding:0;border-radius:0;background:transparent;color:var(--muted);font-weight:700;font-size:14px;line-height:1.2;white-space:normal}
   .metric-row .m,.metric-row .r,.metric-row .n{text-align:right;font-variant-numeric:tabular-nums}
   .metric-row .m{font-weight:800;font-size:26px;letter-spacing:-.03em}
-  .metric-row .r{font-size:16px;font-weight:650;color:#3a4334}
-  .metric-row .n{font-size:16px;font-weight:650;color:#3a4334}
-  .metric-row.fact{background:#e7f0df}
-  .metric-row.fact .tag{color:#12160f;font-weight:800}
+  .metric-row .r{font-size:16px;font-weight:650;color:#5C4A30}
+  .metric-row .n{font-size:16px;font-weight:650;color:#5C4A30}
+  .metric-row.fact{background:#D5D6C2}
+  .metric-row.fact .tag{color:#4C3D19;font-weight:800}
   .metric-row.fact .m{font-size:32px}
-  .metric-row.plan{background:#f7f3e4}
-  .metric-row.calc{background:#f3f2ee}
+  .metric-row.plan{background:#CFBB99}
+  .metric-row.calc{background:#E8DFD2}
   .who-list{display:flex;flex-direction:column;gap:8px}
   .who-row{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:end;background:var(--panel2);border-radius:12px;padding:10px 12px}
-  .who-row.top{background:#e7e4dc}
+  .who-row.top{background:#E0D3BA}
   .who-name{font-weight:800}
   .who-margin{font-size:28px;font-weight:800;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
   .who-row.top .who-margin{font-size:34px}
@@ -101,20 +101,20 @@
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   tr.tot td{font-weight:700;color:var(--text);border-top:2px solid var(--line)}
   tr.clickable{cursor:pointer}
-  tr:hover td{background:rgba(18,22,15,.04)}
-  tr.detail td{background:rgba(143,191,127,.16);white-space:normal;padding:6px 10px 10px 28px}
+  tr:hover td{background:rgba(76,61,25,.04)}
+  tr.detail td{background:rgba(136,144,99,.2);white-space:normal;padding:6px 10px 10px 28px}
   .items{width:auto;font-size:12px} .items td,.items th{padding:3px 10px;border:0;background:transparent!important}
   .tbl{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:10px}
   .pay-fit table{table-layout:fixed;width:100%}
   .pay-fit th,.pay-fit td{white-space:normal;overflow-wrap:anywhere}
   .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
-  .badge.done{background:rgba(143,191,127,.4);color:var(--leaf-ink)}
-  .badge.cancel{background:rgba(163,42,42,.12);color:var(--red)}
-  .badge.progress{background:rgba(197,165,124,.4);color:#3a2e1c}
-  .badge.lead{background:rgba(57,66,43,.12);color:var(--accent)}
-  .badge.other{background:rgba(163,171,157,.35);color:var(--muted)}
+  .badge.done{background:rgba(136,144,99,.45);color:var(--leaf-ink)}
+  .badge.cancel{background:rgba(140,63,50,.12);color:var(--red)}
+  .badge.progress{background:rgba(207,187,153,.7);color:#4C3D19}
+  .badge.lead{background:rgba(53,64,36,.12);color:var(--accent)}
+  .badge.other{background:rgba(207,187,153,.45);color:var(--muted)}
   .pager{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:10px;color:var(--muted);font-size:13px}
-  .bar{height:6px;border-radius:3px;background:rgba(57,66,43,.12);position:relative;min-width:60px;display:inline-block;vertical-align:middle}
+  .bar{height:6px;border-radius:3px;background:rgba(53,64,36,.12);position:relative;min-width:60px;display:inline-block;vertical-align:middle}
   .bar>i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:3px}
   details.map{margin-top:12px}
   details.map summary{cursor:pointer;color:var(--muted);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
@@ -138,14 +138,14 @@
   .period-col h2{margin:0 0 10px;font-size:15px;font-weight:700}
   .period-col h2 .hint{font-weight:400;color:var(--muted);font-size:12px}
   .period-tbl td.mgr-margin,.period-tbl tr.past td.mgr-margin{color:var(--text);font-weight:800}
-  .period-tbl tr.past.is-zero td.mgr-margin{color:#a3ab9d;font-weight:700}
+  .period-tbl tr.past.is-zero td.mgr-margin{color:#B3A48C;font-weight:700}
   .period-tbl{max-height:480px}
   .period-tbl th{cursor:default}
   .period-tbl td,.period-tbl th{font-variant-numeric:tabular-nums}
   .period-tbl td:first-child,.period-tbl th:first-child{white-space:normal}
-  .period-tbl tr.now td{background:#e7e4dc;color:var(--text);font-weight:800}
+  .period-tbl tr.now td{background:#E0D3BA;color:var(--text);font-weight:800}
   .period-tbl tr.past td{color:var(--muted);font-weight:500}
-  .period-tbl tr.past.is-zero td{color:#a3ab9d}
+  .period-tbl tr.past.is-zero td{color:#B3A48C}
   .sum3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 12px}
   .sum3 div{background:var(--panel2);border-radius:10px;padding:10px 12px}
   .sum3 span{display:block;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
@@ -170,11 +170,11 @@
   .bunat-sheet tr.bunat-group td{background:var(--panel2);font-weight:800;font-size:14px;color:var(--text);border-bottom:0}
   .bunat-sheet tr.bunat-group .hint{font-weight:600;color:var(--muted);margin-left:6px}
   .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
-  .tag.ok{background:rgba(143,191,127,.45);color:var(--leaf-ink)}
-  .tag.no{background:rgba(163,42,42,.12);color:var(--red)}
-  .tag.cash{background:rgba(197,165,124,.45);color:#3a2e1c}
-  .tag.bill{background:rgba(57,66,43,.12);color:var(--accent)}
-  .tag.muted{background:rgba(163,171,157,.35);color:var(--muted)}
+  .tag.ok{background:rgba(136,144,99,.45);color:var(--leaf-ink)}
+  .tag.no{background:rgba(140,63,50,.12);color:var(--red)}
+  .tag.cash{background:rgba(207,187,153,.7);color:#4C3D19}
+  .tag.bill{background:rgba(53,64,36,.12);color:var(--accent)}
+  .tag.muted{background:rgba(207,187,153,.45);color:var(--muted)}
   @media (max-width:800px){
     .bunat-sheet{display:block;width:100%;table-layout:auto}
     .bunat-sheet tbody{display:block;width:100%}
@@ -214,7 +214,7 @@
   .mot-card .l{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
   .mot-card .v{font-size:28px;font-weight:800;letter-spacing:-.4px;margin-top:6px}
   .mot-card .d{color:var(--muted);font-size:13px;margin-top:4px}
-  .mot-track{height:12px;border-radius:6px;background:rgba(57,66,43,.12);overflow:hidden;margin-top:12px}
+  .mot-track{height:12px;border-radius:6px;background:rgba(53,64,36,.12);overflow:hidden;margin-top:12px}
   .mot-track>i{display:block;height:100%;background:var(--leaf)}
   @media (max-width:980px){.charts,.two,.three,.period-board,.mgr-board,.mot-hero{grid-template-columns:1fr}.source{grid-template-columns:1fr}.source .fields{grid-template-columns:1fr}}
   @media (max-width:700px){.metric-head,.metric-row{grid-template-columns:96px 1.35fr 1.05fr .55fr;gap:6px;padding-left:10px;padding-right:10px}.metric-row .tag{font-size:12px}.metric-row .m{font-size:18px}.metric-row.fact .m{font-size:22px}.metric-row .r,.metric-row .n{font-size:14px}}
@@ -370,11 +370,11 @@ const DEFAULT_TAB = 'Заказы и расчеты';
 const LS_KEY = 'avitoDash.v2';
 const XLSX_CDN = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
 const STAGE = {
-  done:{label:'Оплачен',color:'#8fbf7f'},
-  progress:{label:'План',color:'#c5a57c'},
-  lead:{label:'Расчёт',color:'#39422b'},
-  cancel:{label:'Слился',color:'#a32a2a'},
-  other:{label:'Другое',color:'#a3ab9d'},
+  done:{label:'Оплачен',color:'#889063'},
+  progress:{label:'План',color:'#CFBB99'},
+  lead:{label:'Расчёт',color:'#354024'},
+  cancel:{label:'Слился',color:'#8C3F32'},
+  other:{label:'Другое',color:'#C4B49A'},
 };
 const STAGE_ORDER = ['lead','progress','done','cancel','other'];
 const RU_MONTHS = {'янв':0,'фев':1,'мар':2,'апр':3,'май':4,'мая':4,'июн':5,'июл':6,'авг':7,'сен':8,'окт':9,'ноя':10,'дек':11};
@@ -1322,13 +1322,13 @@ function renderKPIs(){
   $('kpis').innerHTML=`<div class="metric-head"><span></span><span>Маржа</span><span>Выручка</span><span>Заказы</span></div>${row('Факт','fact','done')}${row('Запланированные заказы','plan','progress')}${row('Расчёт','calc','lead')}`;
 }
 function chart(id,cfg){ if(state.charts[id]) state.charts[id].destroy(); state.charts[id]=new Chart($(id).getContext('2d'),cfg); }
-Chart.defaults.color='#4e5648'; Chart.defaults.borderColor='rgba(18,22,15,.08)'; Chart.defaults.font.family='Manrope,system-ui,sans-serif';
+Chart.defaults.color='#6E5B3C'; Chart.defaults.borderColor='rgba(76,61,25,.08)'; Chart.defaults.font.family='Manrope,system-ui,sans-serif';
 const tipMoney={callbacks:{label:c=>{ const v=c.chart.options.indexAxis==='y'?c.parsed.x:c.parsed.y; return ` ${c.dataset.label}: ${c.dataset.money===false?fmtInt(v):fmtMoney(v)}`; }}};
 const moneyTicks={callback:v=>fmtInt(v)+' ₽'};
 function renderCharts(){
   const list=state.filtered;
   const ts=timeSeries(list,state.gran,state.filter);
-  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · серый столбик — выручка, зелёная часть — маржа`:'нет дат';
+  $('tsHint').textContent=ts.length?`${ts.length} ${state.gran==='day'?'дней':state.gran==='week'?'недель':'месяцев'} · столбик — выручка, зелёная часть — маржа`:'нет дат';
   const marginPart=ts.map(t=>Math.min(Math.max(0,t.profit), Math.max(0,t.done)));
   const restPart=ts.map((t,i)=>Math.max(0, t.done-marginPart[i]));
   const cap=ctx=>{
@@ -1339,8 +1339,8 @@ function renderCharts(){
   chart('chTs',{
     type:'bar',
     data:{labels:ts.map(t=>t.label),datasets:[
-      {label:'Выручка',data:restPart,backgroundColor:'#c5c5be',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:1},
-      {label:'Маржа',data:marginPart,backgroundColor:'#8fbf7f',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:2},
+      {label:'Выручка',data:restPart,backgroundColor:'#CFBB99',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:1},
+      {label:'Маржа',data:marginPart,backgroundColor:'#889063',stack:'rev',borderWidth:0,borderSkipped:false,borderRadius:cap,order:2},
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
@@ -1352,7 +1352,7 @@ function renderCharts(){
       },
       scales:{
         x:{stacked:true,grid:{display:false},border:{display:false},ticks:{maxRotation:0,autoSkip:true}},
-        y:{stacked:true,beginAtZero:true,ticks:moneyTicks,grid:{color:'rgba(18,22,15,.06)'},border:{display:false}},
+        y:{stacked:true,beginAtZero:true,ticks:moneyTicks,grid:{color:'rgba(76,61,25,.08)'},border:{display:false}},
       },
     },
   });
