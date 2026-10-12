@@ -1122,7 +1122,7 @@ function bunatCard(o){
   for(const raw of lines){
     const line=stripPhones(raw);
     if(!line) continue;
-    if(BUNAT_NOTE.test(line)){ if(/подтверд|думает|жду|не\s*ответ|уточн|больниц|видео|приед|перенос|уехали|закончил|когда/i.test(line)) clues.push(line); continue; }
+    if(BUNAT_NOTE.test(line)){ if(/подтверд|думает|жду|не\s*ответ|уточн|больниц|видео|приед|перенос|уехали|закончил|когда/i.test(line) && !confirmOnly(line)) clues.push(line); continue; }
     if(ADDR_MARK.test(line)||line.includes(',')||line.length>22) strong.push(line);
     else weak.push(line);
   }
@@ -1136,14 +1136,16 @@ function bunatCard(o){
   const bill=word('сч[её]т|р\\/?с|карт[аеуы]|перевод|qr');
   const pay=!cash&&!bill?'Не указан':cash&&bill?'Наличка и счёт':cash?'Наличка':'Счёт';
   const pickup=/самовывоз/.test(blob);
+  const viewing=/посмотр|просмотр/.test(blob);
   const deliveryMoney=(o.items||[]).some(i=>isDelivery(i.name)&&((i.sumBU||0)+(i.plantBU||0)+(i.sumCl||0)+(i.plantCl||0))>0);
   const deliveryText=(o.items||[]).some(i=>isDelivery(i.name)&&!/^доставка\s*:?\s*$/i.test(String(i.name).trim()));
-  const deliver=deliveryMoney||places.length||deliveryText||/манипулятор|грузов/.test(blob)||lines.some(l=>/^доставк/i.test(l));
-  let logistics=pickup&&deliver?'Самовывоз и доставка':pickup?'Самовывоз':deliver?'Доставка':'Не указано';
+  const noteDelivery=[...lines,...(o.notes||[])].some(l=>/доставк/i.test(l));
+  const deliver=deliveryMoney||places.length||deliveryText||/манипулятор|грузов/.test(blob)||noteDelivery;
+  let logistics=pickup&&deliver?'Самовывоз и доставка':pickup?'Самовывоз':deliver?'Доставка':viewing?'Просмотр':'Не указано';
   if(deliver&&/манипулятор/.test(blob)) logistics+=', манипулятор';
   else if(deliver&&/грузов/.test(blob)) logistics+=', грузовая';
   if(deliver&&/яндекс/.test(blob)) logistics+=', Яндекс';
-  const confirmed=/подтверд/.test(blob)&&!/не\s*подтверд/.test(blob);
+  const lane=deliver?'delivery':(pickup||viewing?'podolsk':'unknown');
   for(const item of o.items||[]){
     if(BUNAT_NOTE.test(item.name||'') && /подтверд|думает|жду|не\s*ответ|приед|уточн|видео|больниц/i.test(item.name||'')) clues.push(String(item.name).trim());
   }
@@ -1154,7 +1156,11 @@ function bunatCard(o){
   });
   const date=o.date&&!o.dateApprox?o.date:null;
   const past=!!(date&&dayFloor(date)<dayFloor(new Date()));
-  return {name, address:address.join('; ')||'не указан', phones:phones.join(', ')||'не указан', contacts:uniq(contacts), composition, pay, logistics, confirmed, clues:uniq(clues).slice(0,3), manager:o.manager?canonManager(o.manager):'', date, past, orderSum:o.revenue||0, bunatSum:o.cost||0};
+  return {name, address:address.join('; ')||'не указан', phones:phones.join(', ')||'не указан', contacts:uniq(contacts), composition, pay, logistics, lane, clues:uniq(clues).filter(line=>!confirmOnly(line)).slice(0,3), manager:o.manager?canonManager(o.manager):'', date, past, orderSum:o.revenue||0, bunatSum:o.cost||0};
+}
+function confirmOnly(line){
+  const t=String(line||'').toLowerCase().replace(/ё/g,'е').replace(/[^а-я\s]/g,' ').replace(/\s+/g,' ').trim();
+  return /^(не )?подтверд\S*$/.test(t);
 }
 function bunatBucket(card, today){
   if(!card.date) return 'undated';
@@ -1174,13 +1180,12 @@ function bunatRows(cards){
     const comp=c.composition.length?`<ul class="comp">${c.composition.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<span class="muted">состав не указан</span>';
     const payCls=c.pay==='Наличка'?'cash':c.pay==='Счёт'?'bill':c.pay==='Наличка и счёт'?'cash':'muted';
     const logCls=c.logistics==='Не указано'?'muted':'ok';
-    const conf=c.confirmed?'<span class="tag ok">Подтверждён</span>':'<span class="tag no">Не подтверждён</span>';
     const clue=[...c.clues, c.manager?`менеджер ${c.manager}`:''].filter(Boolean).join(' · ');
     const who=`<b>${esc(c.name)}</b>${c.contacts.length?`<div class="small muted">${esc(c.contacts.join(', '))}</div>`:''}`;
     const when=c.date?c.date.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}):(c.past?'':'без даты');
     const whenHtml=esc(when)+(c.past?'<div class="small muted">дата уже прошла</div>':'');
     const cell=(l,html,cls)=>`<td data-l="${l}"${cls?` class="${cls}"`:''}>${html}</td>`;
-    return `<tr>${cell('Дата',whenHtml)}${cell('Клиент',who)}${cell('Адрес',esc(c.address))}${cell('Телефон',esc(c.phones))}${cell('Состав',comp)}${cell('Сумма заказа',esc(fmtMoney(c.orderSum)),'money')}${cell('Сумма Буннату',esc(fmtMoney(c.bunatSum)),'money')}${cell('Оплата',`<span class="tag ${payCls}">${esc(c.pay)}</span>`)}${cell('Получение',`<span class="tag ${logCls}">${esc(c.logistics)}</span>`)}${cell('Комментарий',conf+(clue?`<div class="small muted">${esc(clue)}</div>`:''))}</tr>`;
+    return `<tr>${cell('Дата',whenHtml)}${cell('Клиент',who)}${cell('Адрес',esc(c.address))}${cell('Телефон',esc(c.phones))}${cell('Состав',comp)}${cell('Сумма заказа',esc(fmtMoney(c.orderSum)),'money')}${cell('Сумма Буннату',esc(fmtMoney(c.bunatSum)),'money')}${cell('Оплата',`<span class="tag ${payCls}">${esc(c.pay)}</span>`)}${cell('Получение',`<span class="tag ${logCls}">${esc(c.logistics)}</span>`)}${cell('Комментарий',clue?esc(clue):'<span class="muted">—</span>')}</tr>`;
   }).join('');
 }
 function bunatTable(cards){
@@ -1222,16 +1227,14 @@ function bunatRangeLabel(bounds){
   if(bounds.from) return 'с '+fmt(bounds.from);
   return 'по '+fmt(bounds.to);
 }
-function bunatDayBody(cards){
-  const kind=c=>{ const t=c.logistics.toLowerCase(); if(t.includes('доставк')) return 'delivery'; if(t.includes('самовывоз')) return 'pickup'; return 'unknown'; };
+function bunatSplit(cards){
   const groups=[
-    {title:'Доставка', cards:cards.filter(c=>kind(c)==='delivery')},
-    {title:'Самовывоз', cards:cards.filter(c=>kind(c)==='pickup')},
-  ].filter(g=>g.cards.length);
-  const unknown=cards.filter(c=>kind(c)==='unknown');
-  if(unknown.length) groups.push({title:'Получение не указано', cards:unknown});
-  if(groups.length>1) return bunatGrouped(groups);
-  return bunatTable(cards);
+    {title:'Приедут в Подольск', cards:cards.filter(c=>c.lane==='podolsk')},
+    {title:'Доставки', cards:cards.filter(c=>c.lane==='delivery')},
+  ];
+  const rest=cards.filter(c=>c.lane!=='podolsk'&&c.lane!=='delivery');
+  if(rest.length) groups.push({title:'Получение не указано', cards:rest});
+  return bunatGrouped(groups);
 }
 function renderBunat(){
   const bounds=bunatBounds();
@@ -1271,11 +1274,11 @@ function renderBunat(){
     const hint=paired&&isNow?'':gran==='day'
       ?(isNow?today.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'}):'')
       :(isNow?granLabel(k, gran):'');
-    const body=gran==='day'?bunatDayBody(list):bunatTable(list);
+    const body=bunatSplit(list);
     const hintHtml=hint?`${esc(hint)} · ${fmtInt(list.length)}`:fmtInt(list.length);
     bits.push(`<div class="panel" style="margin-bottom:14px"><h2>${esc(title)} <span class="hint">${hintHtml}</span></h2>${body}</div>`);
   }
-  if(undated.length) bits.push(`<div class="panel" style="margin-bottom:14px"><h2>Без даты <span class="hint">в плане, день не указан · ${fmtInt(undated.length)}</span></h2>${bunatTable(undated)}</div>`);
+  if(undated.length) bits.push(`<div class="panel" style="margin-bottom:14px"><h2>Без даты <span class="hint">в плане, день не указан · ${fmtInt(undated.length)}</span></h2>${bunatSplit(undated)}</div>`);
   if(!bits.length) bits.push('<div class="panel"><div class="empty">Нет заказов за выбранный период</div></div>');
   const shown=cards.length+undated.length;
   const fmtShort=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
