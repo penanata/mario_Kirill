@@ -400,18 +400,9 @@
       </div>
       <button class="btn sm" id="rnpReload" type="button">Обновить</button>
     </div>
-    <div class="panel noprint" id="rnpKeys" style="margin-bottom:12px">
-      <div class="rnp-keys">
-        <label class="f">Client ID
-          <input id="rnpClientId" autocomplete="off" spellcheck="false">
-        </label>
-        <label class="f">Client Secret
-          <input id="rnpClientSecret" type="password" autocomplete="new-password" spellcheck="false">
-        </label>
-        <button class="btn primary" id="rnpSave" type="button">Сохранить и загрузить</button>
-        <button class="btn" id="rnpForget" type="button">Забыть ключи</button>
-      </div>
-      <div class="small muted" style="margin-top:8px">Ключи из Авито: «Для профессионалов» → API. Они остаются в этом браузере и в код сайта не записываются.</div>
+    <div class="panel noprint" id="rnpNeed" style="margin-bottom:12px">
+      <p style="margin:0 0 8px">Авито не отдаёт статистику прямо в браузер. Цифры забирает обновление на GitHub, примерно раз в час.</p>
+      <p class="small muted" style="margin:0">В репозитории откройте <b>Settings → Secrets and variables → Actions</b> и добавьте секреты <b>AVITO_CLIENT_ID</b> и <b>AVITO_CLIENT_SECRET</b> — ключи из раздела «Для профессионалов» → API. Затем <b>Actions → Avito RNP → Run workflow</b>. После этого нажмите «Обновить».</p>
     </div>
     <div class="status" id="rnpStatus"></div>
     <div class="panel" id="rnpTable"></div>
@@ -1682,18 +1673,6 @@ function renderMotivation(){
   $('motView').innerHTML=`<div class="bunat-head"><div><h2>Мотивация Дарьи</h2><div class="small muted">Только оплаченные, по месяцам. Столбик в строке — доля плана ${fmtMoney(DARYA_PLAN)}. Пунктир — 1 млн.</div></div></div>
     <div class="panel"><h2>По месяцам</h2><div class="tbl period-tbl mot-tbl"><table><thead><tr><th>Месяц</th><th class="num">Выручка</th><th class="share">Доля плана</th><th class="num">Маржа</th><th class="num">Ставка</th><th class="num">Бонус</th><th class="num">Заказы</th></tr></thead><tbody>${body||'<tr><td colspan="7" class="muted">Нет оплаченных заказов</td></tr>'}</tbody></table></div>${planNote}${undatedNote}</div>`;
 }
-const AVITO_KEY='avitoDash.avito';
-const AVITO_API='https://api.avito.ru';
-function loadAvitoKeys(){
-  try{
-    const j=JSON.parse(localStorage.getItem(AVITO_KEY)||'null');
-    if(j&&j.clientId&&j.clientSecret) return {clientId:String(j.clientId), clientSecret:String(j.clientSecret)};
-  }catch(e){}
-  return null;
-}
-function saveAvitoKeys(clientId, clientSecret){
-  localStorage.setItem(AVITO_KEY, JSON.stringify({clientId, clientSecret}));
-}
 function isoDate(d){
   const x=dayFloor(d);
   return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
@@ -1714,165 +1693,53 @@ function rnpRangeLabel(b){
   const fmt=d=>d.toLocaleDateString('ru-RU',{day:'numeric', month:'long'});
   return fmt(b.from)+' – '+fmt(b.to);
 }
+function rnpFileLabel(){
+  const preset=state.rnpPreset||'month';
+  const range=state.rnpFile&&state.rnpFile.ranges&&state.rnpFile.ranges[preset];
+  if(!(range&&range.from&&range.to)) return rnpRangeLabel(rnpBounds());
+  const parse=s=>{ const [y,m,d]=s.split('-').map(Number); return new Date(y, m-1, d); };
+  const a=parse(range.from), b=parse(range.to);
+  if(preset==='month'||preset==='prevmonth') return a.toLocaleDateString('ru-RU',{month:'long', year:'numeric'});
+  const fmt=d=>d.toLocaleDateString('ru-RU',{day:'numeric', month:'long'});
+  return fmt(a)+' – '+fmt(b);
+}
 const fmtCost = n => n==null||!isFinite(n)?'—':n.toLocaleString('ru-RU',{minimumFractionDigits:2, maximumFractionDigits:2})+' ₽';
-function avitoMoney(raw){
-  const n=Number(raw);
-  return isFinite(n)?n/100:0;
-}
-async function avitoCall(path, opts, token){
-  const headers=Object.assign({Accept:'application/json'}, (opts&&opts.headers)||{});
-  if(token) headers.Authorization='Bearer '+token;
-  let res;
-  try{
-    res=await fetch(AVITO_API+path, {
-      method:(opts&&opts.method)||'GET',
-      headers,
-      body:opts?opts.body:undefined,
-      cache:'no-store',
-      credentials:'omit',
-    });
-  }catch(e){
-    const err=new Error('cors');
-    err.cors=true;
-    throw err;
+async function fetchRnpPayload(){
+  const local=new URL('rnp.json', location.href).toString()+'?t='+Date.now();
+  const read=async url=>{
+    const res=await fetch(url, {cache:'no-store', headers:url.includes('api.github.com')?{Accept:'application/vnd.github.raw'}:{}});
+    if(!res.ok) throw new Error('file');
+    return res.json();
+  };
+  if(location.hostname!=='penanata.github.io') return read(local);
+  const remote=[
+    'https://api.github.com/repos/penanata/mario_Kirill/contents/avito-dashboard/rnp.json',
+    'https://raw.githubusercontent.com/penanata/mario_Kirill/main/avito-dashboard/rnp.json?t='+Date.now()
+  ];
+  for(const url of remote){
+    try{ return await read(url); }catch(e){}
   }
-  const text=await res.text();
-  let data=null;
-  try{ data=text?JSON.parse(text):null; }catch(err){ data=null; }
-  const failed=!res.ok || (data&&data.error&&!data.access_token&&!data.result&&!data.resources&&data.id==null);
-  if(failed){
-    const msg=(data&&data.error_description)
-      ||(data&&data.error&&data.error.message)
-      ||(typeof (data&&data.error)==='string'?data.error:'')
-      ||(data&&data.message)
-      ||('Авито ответил кодом '+res.status);
-    const err=new Error(msg);
-    err.status=res.ok?401:res.status;
-    throw err;
-  }
-  return data;
-}
-async function avitoToken(keys){
-  const now=Date.now();
-  if(state.rnpToken&&state.rnpToken.until>now+60000&&state.rnpToken.clientId===keys.clientId) return state.rnpToken.access;
-  const body=new URLSearchParams({grant_type:'client_credentials', client_id:keys.clientId, client_secret:keys.clientSecret});
-  const data=await avitoCall('/token', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
-  const access=data&&data.access_token;
-  if(!access) throw new Error('Авито не вернул токен');
-  state.rnpToken={access, until:Date.now()+((Number(data.expires_in)||3600)*1000), clientId:keys.clientId};
-  return access;
-}
-function rnpMetric(list){
-  const m={};
-  (list||[]).forEach(x=>{ if(x&&x.slug!=null) m[x.slug]=Number(x.value)||0; });
-  return m;
-}
-function rnpCard(id, info, metrics){
-  const m=rnpMetric(metrics);
-  const impressions=m.impressions||0;
-  const views=m.views||0;
-  const contacts=m.contacts||0;
-  const orders=m.orderedItems||0;
-  let spend=avitoMoney(m.spending||0);
-  const hasView=Object.prototype.hasOwnProperty.call(m,'averageViewCost');
-  const hasContact=Object.prototype.hasOwnProperty.call(m,'averageContactCost');
-  const viewOfficial=hasView?avitoMoney(m.averageViewCost):null;
-  if(!(m.spending>0)&&viewOfficial!=null&&views) spend=viewOfficial*views;
-  const viewCost=hasView?viewOfficial:(views?spend/views:null);
-  const contactCost=hasContact?avitoMoney(m.averageContactCost):(contacts?spend/contacts:null);
-  const impCost=impressions?spend/impressions:null;
-  return {id, title:(info&&info.title)||('Объявление '+id), url:(info&&info.url)||'', impressions, views, contacts, orders, spend, impCost, viewCost, contactCost};
-}
-async function avitoItemPages(token, status){
-  const items=[];
-  let per=100;
-  for(let page=1; page<=20; page++){
-    const q='per_page='+per+'&page='+page+(status?'&status='+encodeURIComponent(status):'');
-    let data;
-    try{ data=await avitoCall('/core/v1/items?'+q, {method:'GET'}, token); }
-    catch(e){
-      if(page===1&&per===100&&e.status===400){ per=25; page=0; continue; }
-      throw e;
-    }
-    const list=(data&&data.resources)||[];
-    items.push(...list);
-    if(list.length<per) break;
-  }
-  return items;
-}
-function rnpMessage(e){
-  if(e&&e.cors) return 'Авито не отдаёт статистику в браузер: у api.avito.ru нет разрешения для этого сайта. Ключи сохранены только здесь и на чужой сервер не уходят.';
-  if(e&&e.status===403) return 'Авито закрыл статистику для этих ключей. Нужен доступ к статистике объявлений.';
-  if(e&&e.status===429) return 'Авито просит не чаще одного запроса в минуту. Подождите и нажмите «Обновить».';
-  const blob=(e&&e.message)||'';
-  if(e&&(e.status===401||/unauthorized|invalid_client|not authorized/i.test(blob))) return 'Авито не принял ключи. Проверьте Client ID и Client Secret в разделе «Для профессионалов» → API.';
-  return blob||'Не удалось получить статистику Авито';
+  return read(local);
 }
 async function loadRnp(force){
   if(bunatOnly) return;
-  const keys=loadAvitoKeys();
-  if(!keys){ state.rnpLoading=false; state.rnpError=''; paintRnp(); return; }
-  const b=rnpBounds();
-  const sig=isoDate(b.from)+'|'+isoDate(b.to);
-  const fresh=state.rnpCache&&state.rnpCache.sig===sig&&Date.now()-(state.rnpCache.at||0)<10*60*1000;
-  if(!force&&fresh){ paintRnp(); return; }
+  if(!force && state.rnpFile && Date.now()-(state.rnpFileAt||0)<10*60*1000){ paintRnp(); return; }
   if(state.rnpLoading&&!force) return;
   state.rnpLoading=true;
   state.rnpError='';
   const req=++state.rnpReq;
   paintRnp();
   try{
-    const token=await avitoToken(keys);
+    const data=await fetchRnpPayload();
     if(req!==state.rnpReq) return;
-    const self=await avitoCall('/core/v1/accounts/self', {method:'GET'}, token);
-    const userId=self&&self.id;
-    if(!userId) throw new Error('Авито не вернул номер профиля');
-    let items=[];
-    try{ items=await avitoItemPages(token, 'active,old'); }
-    catch(e){
-      if(e.cors||e.status===401) throw e;
-      try{ items=await avitoItemPages(token, 'active'); }
-      catch(e2){ if(e2.cors||e2.status===401) throw e2; items=[]; }
-    }
-    if(req!==state.rnpReq) return;
-    const stats=await avitoCall('/stats/v2/accounts/'+encodeURIComponent(userId)+'/items', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        dateFrom:isoDate(b.from),
-        dateTo:isoDate(b.to),
-        grouping:'item',
-        metrics:['impressions','views','contacts','orderedItems','averageViewCost','averageContactCost','spending'],
-        limit:1000,
-        offset:0,
-      }),
-    }, token);
-    if(req!==state.rnpReq) return;
-    const byId=new Map();
-    items.forEach(it=>{ if(it&&it.id!=null) byId.set(Number(it.id), it); });
-    const groupings=(stats&&stats.result&&stats.result.groupings)||[];
-    const seen=new Set();
-    const rows=[];
-    groupings.forEach(g=>{
-      if(!g||(g.type&&g.type!=='item')) return;
-      const id=Number(g.id);
-      if(!id) return;
-      seen.add(id);
-      rows.push(rnpCard(id, byId.get(id), g.metrics));
-    });
-    items.forEach(it=>{
-      const id=Number(it&&it.id);
-      if(!id||seen.has(id)) return;
-      if(it.status&&it.status!=='active') return;
-      rows.push(rnpCard(id, it, []));
-    });
-    rows.sort((a,c)=>c.contacts-a.contacts||c.views-a.views||c.impressions-a.impressions||String(a.title).localeCompare(String(c.title),'ru'));
-    const total=Number(stats&&stats.result&&stats.result.dataTotalCount)||groupings.length;
-    state.rnpCache={sig, at:Date.now(), rows, total};
-    state.rnpError='';
+    state.rnpFile=data;
+    state.rnpFileAt=Date.now();
+    state.rnpError=data&&data.ok?'':(data&&data.error==='auth'? 'Авито не принял ключи. Проверьте секреты AVITO_CLIENT_ID и AVITO_CLIENT_SECRET.': '');
   }catch(e){
     if(req!==state.rnpReq) return;
-    state.rnpError=rnpMessage(e);
+    state.rnpFile={ok:false, error:'file'};
+    state.rnpFileAt=Date.now();
+    state.rnpError='';
   }finally{
     if(req===state.rnpReq){ state.rnpLoading=false; paintRnp(); }
   }
@@ -1893,43 +1760,38 @@ function rnpTable(rows, note, emptyText){
 }
 function paintRnp(){
   if(!($('rnpLead')&&$('rnpTable'))) return;
-  const b=rnpBounds();
-  const label=rnpRangeLabel(b);
+  const label=rnpFileLabel();
   $('rnpLead').textContent=label+(/[.!?]$/.test(label)?' ':'. ')+'По каждой карточке. Заказы — товары с Авито Доставкой. Цена показа — расход на карточку, делённый на показы.';
   document.querySelectorAll('#rnpPeriod button').forEach(btn=>btn.classList.toggle('active', btn.dataset.p===(state.rnpPreset||'month')));
-  const keys=loadAvitoKeys();
-  if($('rnpForget')) $('rnpForget').classList.toggle('hidden', !keys);
-  if($('rnpClientSecret')&&document.activeElement!==$('rnpClientSecret')) $('rnpClientSecret').placeholder=keys?'сохранён в этом браузере':'';
+  const file=state.rnpFile;
+  const ok=!!(file&&file.ok&&file.ranges);
+  if($('rnpNeed')) $('rnpNeed').classList.toggle('hidden', ok);
   const st=$('rnpStatus');
   if(st){
     st.className='status'+(state.rnpError?' err':'');
-    st.textContent=state.rnpLoading?'Тяну показы, просмотры, контакты и заказы с Авито…':(state.rnpError||'');
+    if(state.rnpLoading) st.textContent='Обновляю лист…';
+    else if(state.rnpError) st.textContent=state.rnpError;
+    else if(ok&&file.at){
+      const at=new Date(file.at);
+      st.textContent='Обновлено '+at.toLocaleString('ru-RU',{day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
+    } else st.textContent=ok?'':'';
   }
   if($('rnpReload')) $('rnpReload').disabled=!!state.rnpLoading;
-  if(!keys){
-    $('rnpTable').innerHTML=rnpTable([], '', 'Карточки появятся, когда ключи API будут сохранены.');
-    if(st&&!state.rnpError) st.textContent='Вставьте ключи API — лист подтянет карточки с Авито.';
-    return;
-  }
-  const sig=isoDate(b.from)+'|'+isoDate(b.to);
-  const cache=state.rnpCache&&state.rnpCache.sig===sig?state.rnpCache:null;
-  if(!cache){
-    const wait=state.rnpLoading?'Жду ответ Авито…':(state.rnpError?'Карточки не загрузились.':'Нет карточек за этот период');
+  const preset=state.rnpPreset||'month';
+  const range=ok&&file.ranges[preset];
+  if(!range){
+    const wait=state.rnpLoading?'Жду статистику…':(state.rnpError?'Карточки не загрузились.':(ok?'Нет карточек за этот период':'Карточки появятся после первого обновления.'));
     $('rnpTable').innerHTML=rnpTable([], '', wait);
     return;
   }
-  const note=cache.total>cache.rows.length?'Авито отдал первые 1000 карточек.':'';
-  $('rnpTable').innerHTML=rnpTable(cache.rows, note);
+  const note=range.total>range.rows.length?'Авито отдал первые 1000 карточек.':'';
+  $('rnpTable').innerHTML=rnpTable(range.rows, note);
 }
 function renderRnp(){
   if(bunatOnly) return;
   paintRnp();
-  const keys=loadAvitoKeys();
-  if(!keys||state.rnpLoading) return;
-  const b=rnpBounds();
-  const sig=isoDate(b.from)+'|'+isoDate(b.to);
-  const fresh=state.rnpCache&&state.rnpCache.sig===sig&&Date.now()-(state.rnpCache.at||0)<10*60*1000;
-  if(!fresh) loadRnp(false);
+  if(state.rnpLoading) return;
+  if(!(state.rnpFile && Date.now()-(state.rnpFileAt||0)<10*60*1000)) loadRnp(false);
 }
 const viewHints={owner:'Оплаченные заказы: сегодня, эта неделя, этот месяц. Ниже план теми же столбцами: месяцы, внутри недели и семь дней.',mgr:'Рейтинг по марже по месяцам. Месяц раскрывается в недели.',mot:'Мотивация Дарьи по месяцам: столбик доли плана стоит в строке таблицы.',bunat:'Лист для Бунната: план, карта доставок и взаиморасчёты. Период выбирается, таблица только читается.',detail:'Маржа, выручка и заказы. Столбик — выручка, зелёная часть от нуля — маржа.',rnp:'Показы, просмотры, контакты и заказы по каждой карточке Авито. Цены — из расходов на карточку.'};
 function showView(view){
@@ -2209,30 +2071,8 @@ function init(){
   $('chartFrom').onchange=$('chartTo').onchange=()=>{ setCustomRange($('chartFrom').value, $('chartTo').value); state.page=0; render(); };
   $('btnExport').onclick=exportCSV;
   document.querySelectorAll('#views button').forEach(b=>b.onclick=()=>showView(b.dataset.v));
-  document.querySelectorAll('#rnpPeriod button').forEach(b=>b.onclick=()=>{ state.rnpPreset=b.dataset.p; loadRnp(true); });
-  if($('rnpReload')) $('rnpReload').onclick=()=>{ state.rnpCache=null; loadRnp(true); };
-  if($('rnpSave')) $('rnpSave').onclick=()=>{
-    const prev=loadAvitoKeys();
-    const clientId=($('rnpClientId').value||'').trim()||(prev&&prev.clientId)||'';
-    const typed=($('rnpClientSecret').value||'').trim();
-    const clientSecret=typed||(prev&&prev.clientSecret)||'';
-    if(!clientId||!clientSecret){ state.rnpError='Нужны Client ID и Client Secret из раздела «Для профессионалов» → API.'; state.rnpLoading=false; paintRnp(); return; }
-    saveAvitoKeys(clientId, clientSecret);
-    $('rnpClientId').value=clientId;
-    $('rnpClientSecret').value='';
-    state.rnpToken=null;
-    state.rnpCache=null;
-    loadRnp(true);
-  };
-  if($('rnpForget')) $('rnpForget').onclick=()=>{
-    try{ localStorage.removeItem(AVITO_KEY); }catch(e){}
-    state.rnpToken=null; state.rnpCache=null; state.rnpError=''; state.rnpLoading=false; state.rnpReq++;
-    if($('rnpClientId')) $('rnpClientId').value='';
-    if($('rnpClientSecret')) $('rnpClientSecret').value='';
-    paintRnp();
-  };
-  const savedAvito=loadAvitoKeys();
-  if(savedAvito&&$('rnpClientId')&&!$('rnpClientId').value) $('rnpClientId').value=savedAvito.clientId;
+  document.querySelectorAll('#rnpPeriod button').forEach(b=>b.onclick=()=>{ state.rnpPreset=b.dataset.p; paintRnp(); });
+  if($('rnpReload')) $('rnpReload').onclick=()=>{ state.rnpFileAt=0; loadRnp(true); };
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden||state.loading) return;
     if(!state.sheetId||state.sheetId==='demo'||String(state.sheetId).startsWith('file:')) return;
@@ -2241,7 +2081,7 @@ function init(){
   const view=params.get('view');
   if(!bunatOnly && (view==='bunat'||view==='detail'||view==='owner'||view==='mgr'||view==='mot'||view==='rnp')) state.view=view;
   const foot=document.querySelector('footer');
-  if(foot&&!bunatOnly) foot.textContent='Заказы читаются из Google Таблицы. Лист РНП запрашивает статистику Авито из этого браузера, ключи в код сайта не записываются.';
+  if(foot&&!bunatOnly) foot.textContent='Заказы читаются из Google Таблицы. Лист РНП берёт статистику Авито из обновления раз в час.';
   if(params.get('demo')!=null) $('btnDemo').click();
   else if(parseSheetId($('sheetUrl').value)) loadFromGoogle();
 }
