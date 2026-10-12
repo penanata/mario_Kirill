@@ -1219,6 +1219,7 @@ function renderBunat(){
     buckets.get(k).push(c);
   }
   const granWord=gran==='week'?'по неделям':gran==='month'?'по месяцам':'по дням';
+  const paired=(preset==='today'&&gran==='day')||(preset==='week'&&gran==='week')||(preset==='month'&&gran==='month');
   const bits=[];
   for(const k of [...buckets.keys()].sort()){
     const list=buckets.get(k);
@@ -1229,7 +1230,7 @@ function renderBunat(){
       title=isNow?'Сегодня':WEEKDAYS[(d.getDay()+6)%7]+', '+d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
     } else if(gran==='week') title=isNow?'Эта неделя':granLabel(k,'week');
     else title=isNow?'Этот месяц':granLabel(k,'month');
-    const hint=gran==='day'
+    const hint=paired&&isNow?'':gran==='day'
       ?(isNow?today.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'}):'')
       :(isNow?granLabel(k, gran):'');
     const body=gran==='day'?bunatDayBody(list):bunatTable(list);
@@ -1239,19 +1240,29 @@ function renderBunat(){
   if(undated.length) bits.push(`<div class="panel" style="margin-bottom:14px"><h2>Без даты <span class="hint">в плане, день не указан · ${fmtInt(undated.length)}</span></h2>${bunatTable(undated)}</div>`);
   if(!bits.length) bits.push('<div class="panel"><div class="empty">Нет заказов за выбранный период</div></div>');
   const shown=cards.length+undated.length;
-  const paired=(preset==='today'&&gran==='day')||(preset==='week'&&gran==='week')||(preset==='month'&&gran==='month');
   const fmtShort=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
   const rangeText=paired&&preset==='month'?bounds.from.toLocaleDateString('ru-RU',{month:'long',year:'numeric'}):paired&&preset==='week'?fmtShort(bounds.from)+' – '+fmtShort(bounds.to):paired&&preset==='today'?fmtShort(bounds.today):bunatRangeLabel(bounds).replace(/\.$/,'');
   const planMap=deliveryMap(state.orders.filter(o=>o.statusClass==='progress'));
   if(cityMap){ try{ cityMap.remove(); }catch(e){} cityMap=null; }
   const on=(id,v)=>preset===v?' class="active"':'';
   const gn=(g)=>gran===g?' class="active"':'';
-  const tools=`<div class="chart-tools noprint" id="bunatTools"><div class="seg" id="bunatGran"><button type="button" data-g="day"${gn('day')}>День</button><button type="button" data-g="week"${gn('week')}>Неделя</button><button type="button" data-g="month"${gn('month')}>Месяц</button></div><div class="seg" id="bunatPeriod"><button type="button" data-p="next7"${on(0,'next7')}>7 дней</button><button type="button" data-p="next30"${on(0,'next30')}>30 дней</button><button type="button" data-p="upcoming"${on(0,'upcoming')}>Предстоящие</button></div><label class="chart-range">с <input type="date" id="bunatFrom" title="Начало" value="${bounds.from?isoDay(bounds.from):''}"> по <input type="date" id="bunatTo" title="Конец" value="${bounds.to?isoDay(bounds.to):''}"></label></div>`;
-  $('bunatView').innerHTML=`<div class="bunat-head"><div><h2>Лист для Бунната</h2><div class="small muted">Заказы со статусом «2 план»: ${esc(rangeText)}${paired?'':', '+granWord}, ${fmtInt(shown)}. Таблица только читается.</div></div><button type="button" class="btn noprint" id="btnBunatPrint">Печать</button></div>${tools}`+bits.join('')+planMap.html+settlementPanel();
+  const showDates=preset==='custom';
+  const dates=showDates?`<label class="chart-range">с <input type="date" id="bunatFrom" title="Начало" value="${bounds.from?isoDay(bounds.from):''}"> по <input type="date" id="bunatTo" title="Конец" value="${bounds.to?isoDay(bounds.to):''}"></label>`:'';
+  const tools=`<div class="chart-tools noprint" id="bunatTools"><div class="seg" id="bunatGran"><button type="button" data-g="day"${gn('day')}>День</button><button type="button" data-g="week"${gn('week')}>Неделя</button><button type="button" data-g="month"${gn('month')}>Месяц</button></div><div class="seg" id="bunatPeriod"><button type="button" data-p="next7"${on(0,'next7')}>7 дней</button><button type="button" data-p="next30"${on(0,'next30')}>30 дней</button><button type="button" data-p="upcoming"${on(0,'upcoming')}>Предстоящие</button><button type="button" data-p="dates"${showDates?' class="active"':''}>Даты</button></div>${dates}</div>`;
+  const lead=showDates?`Заказы со статусом «2 план», ${fmtInt(shown)}`:`Заказы со статусом «2 план»: ${esc(rangeText)}${paired?'':', '+granWord}, ${fmtInt(shown)}`;
+  $('bunatView').innerHTML=`<div class="bunat-head"><div><h2>Лист для Бунната</h2><div class="small muted">${lead}. Таблица только читается.</div></div><button type="button" class="btn noprint" id="btnBunatPrint">Печать</button></div>${tools}`+bits.join('')+planMap.html+settlementPanel();
   mountDeliveryMap(planMap.pins);
   const btn=$('btnBunatPrint'); if(btn) btn.onclick=()=>window.print();
   document.querySelectorAll('#bunatGran button').forEach(b=>b.onclick=()=>{ state.bunatGran=b.dataset.g; state.bunatPreset=b.dataset.g==='week'?'week':b.dataset.g==='month'?'month':'today'; renderBunat(); });
-  document.querySelectorAll('#bunatPeriod button').forEach(b=>b.onclick=()=>{ state.bunatPreset=b.dataset.p; renderBunat(); });
+  document.querySelectorAll('#bunatPeriod button').forEach(b=>b.onclick=()=>{
+    if(b.dataset.p==='dates'){
+      const bnds=bunatBounds();
+      state.bunatFrom=bnds.from;
+      state.bunatTo=bnds.to;
+      state.bunatPreset='custom';
+    } else state.bunatPreset=b.dataset.p;
+    renderBunat();
+  });
   const onRange=()=>{
     state.bunatPreset='custom';
     state.bunatFrom=$('bunatFrom').value?new Date($('bunatFrom').value+'T00:00:00'):null;
