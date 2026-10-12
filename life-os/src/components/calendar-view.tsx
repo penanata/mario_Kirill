@@ -88,7 +88,7 @@ export function CalendarView({ data }: { data: Data }) {
               const selected = day === data.anchor;
               return (
                 <a key={day} href={`/calendar?day=${day}`} className="flex h-12 flex-col items-center justify-center no-underline">
-                  <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm ${selected ? "bg-[var(--danger)] text-white" : day === data.today ? "text-[var(--danger)]" : ""}`}>{Number(day.slice(-2))}</span>
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm ${selected ? "bg-[var(--accent)] text-white" : ""}`}>{Number(day.slice(-2))}</span>
                   <span className="flex h-2 gap-0.5">{dots.map((color) => <i key={color} className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />)}</span>
                 </a>
               );
@@ -105,18 +105,19 @@ export function CalendarView({ data }: { data: Data }) {
       {mode === "month" && (
         <section className="card mt-3 overflow-hidden">
           {eventsOn(data.anchor).length === 0 && <p className="px-4 py-5 text-sm text-[var(--muted)]">Нет событий</p>}
+          {eventsOn(data.anchor).length > 0 && <div className="space-y-2 p-3">
           {eventsOn(data.anchor).map((event) => {
-            const color = GROUPS[eventGroup(event)].color;
+            const tone = GROUPS[eventGroup(event)];
             return (
-              <div key={event.id} className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-3 last:border-b-0">
-                <span className="h-8 w-1 rounded-full" style={{ background: color }} />
-                <div>
-                  <div>{event.title}</div>
-                  <div className="text-sm text-[var(--muted)]">{formatTime(event.startAt, data.tz)}–{formatTime(event.endAt, data.tz)}{event.secondaryTz ? ` · ${formatTime(event.startAt, event.secondaryTz)} МСК` : ""}</div>
+              <div key={event.id} className="rounded-2xl px-4 py-3" style={{ background: tone.wash }}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="font-medium">{event.title}</div>
+                  <div className="text-sm" style={{ color: tone.color }}>{formatTime(event.startAt, data.tz)}</div>
                 </div>
               </div>
             );
           })}
+          </div>}
         </section>
       )}
 
@@ -131,9 +132,9 @@ export function CalendarView({ data }: { data: Data }) {
             {eventsOn(data.anchor).map((event) => {
               const startHour = Number(formatTime(event.startAt, data.tz).slice(0, 2)) + Number(formatTime(event.startAt, data.tz).slice(3)) / 60;
               const endHour = Number(formatTime(event.endAt, data.tz).slice(0, 2)) + Number(formatTime(event.endAt, data.tz).slice(3)) / 60;
-              const color = GROUPS[eventGroup(event)].color;
+              const tone = GROUPS[eventGroup(event)];
               return (
-                <div key={event.id} draggable className="event-block" style={{ top: (startHour - 7) * 48, height: Math.max(32, (endHour - startHour) * 48), background: color, border: "none", color: "#fff" }} onDragStart={(drag) => drag.dataTransfer.setData("text/plain", event.id)}>
+                <div key={event.id} draggable className="event-block" style={{ top: (startHour - 7) * 48, height: Math.max(36, (endHour - startHour) * 48), background: tone.wash, color: "var(--ink)", boxShadow: `inset 3px 0 0 ${tone.color}` }} onDragStart={(drag) => drag.dataTransfer.setData("text/plain", event.id)}>
                   <div className="text-sm font-medium">{event.title}</div>
                   <div className="text-[11px] opacity-90">{formatTime(event.startAt, data.tz)}–{formatTime(event.endAt, data.tz)}</div>
                 </div>
@@ -156,10 +157,10 @@ export function CalendarView({ data }: { data: Data }) {
         <div className="grid grid-cols-7 gap-1">
           {eachDay(data.week.start, data.week.end, data.tz).map((day) => (
             <a key={day} href={`/calendar?day=${day}`} className="min-h-28 rounded-xl bg-[var(--surface)] p-1 no-underline">
-              <div className={`mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs ${day === data.today ? "bg-[var(--danger)] text-white" : "text-[var(--muted)]"}`}>{Number(day.slice(-2))}</div>
+              <div className={`mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs ${day === data.today ? "bg-[var(--accent)] text-white" : "text-[var(--muted)]"}`}>{Number(day.slice(-2))}</div>
               <div className="text-center text-[10px] uppercase text-[var(--muted)]">{weekdayName(day, data.tz, true)}</div>
               {eventsOn(day).slice(0, 3).map((event) => (
-                <div key={event.id} className="mt-1 truncate rounded px-1 text-[10px] text-white" style={{ background: GROUPS[eventGroup(event)].color }}>{event.title}</div>
+                <div key={event.id} className="mt-1 truncate rounded-md px-1 text-[10px]" style={{ background: GROUPS[eventGroup(event)].wash, color: GROUPS[eventGroup(event)].color }}>{event.title}</div>
               ))}
             </a>
           ))}

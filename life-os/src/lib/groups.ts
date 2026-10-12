@@ -2,12 +2,12 @@ export type LifeGroup = "sport" | "learning" | "work" | "personal" | "relationsh
 
 export const GROUP_ORDER: LifeGroup[] = ["sport", "learning", "work", "personal", "relationships"];
 
-export const GROUPS: Record<LifeGroup, { label: string; color: string }> = {
-  sport: { label: "Спорт", color: "var(--c-sport)" },
-  learning: { label: "Обучение", color: "var(--c-learning)" },
-  work: { label: "Работа", color: "var(--c-work)" },
-  personal: { label: "Личное", color: "var(--c-personal)" },
-  relationships: { label: "Отношения", color: "var(--c-relationships)" },
+export const GROUPS: Record<LifeGroup, { label: string; color: string; wash: string }> = {
+  sport: { label: "Спорт", color: "var(--c-sport)", wash: "var(--w-sport)" },
+  learning: { label: "Обучение", color: "var(--c-learning)", wash: "var(--w-learning)" },
+  work: { label: "Работа", color: "var(--c-work)", wash: "var(--w-work)" },
+  personal: { label: "Личное", color: "var(--c-personal)", wash: "var(--w-personal)" },
+  relationships: { label: "Отношения", color: "var(--c-relationships)", wash: "var(--w-relationships)" },
 };
 
 const SLUGS: Record<string, LifeGroup> = {

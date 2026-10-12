@@ -125,6 +125,7 @@ export function getDashboard() {
         day: formatShortDate(todayKey(new Date(item.startAt!), tz)),
         isDemo: item.isDemo,
         color: GROUPS[group].color,
+        wash: GROUPS[group].wash,
       };
     });
   const rest = events.filter((event) => /обед|прогул|пляж|отдых|йога|медитац/i.test(event.title));
@@ -161,6 +162,7 @@ export function getDashboard() {
         isDemo: task?.isDemo ?? false,
         status: item.task.status,
         color: GROUPS[group].color,
+        wash: GROUPS[group].wash,
       };
     }),
     overload: focus.overload
@@ -180,6 +182,7 @@ export function getDashboard() {
         isDemo: event.isDemo,
         taskId: event.taskId,
         color: GROUPS[group].color,
+        wash: GROUPS[group].wash,
       };
     }),
     weekStrip: weekDays.map((date) => ({
@@ -192,7 +195,7 @@ export function getDashboard() {
     monthGoals: monthGoals.map((goal) => {
       const area = areas.find((item) => item.name === goal.area);
       const group = groupFromSlug(area?.slug) ?? "personal";
-      return { ...goal, color: GROUPS[group].color, area: GROUPS[group].label };
+      return { ...goal, color: GROUPS[group].color, wash: GROUPS[group].wash, area: GROUPS[group].label };
     }),
     week: {
       outcomes: goals.filter((goal) => goal.horizon === "week" && goal.status === "active").map((goal) => ({ id: goal.id, title: goal.title, isDemo: goal.isDemo })),
