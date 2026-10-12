@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/components/client";
-import { Badge, Button, DemoMark, Modal, Progress } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 import type { DashboardData } from "@/lib/dashboard";
 
 export function Dashboard({ data }: { data: DashboardData }) {
@@ -13,6 +13,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
   const [move, setMove] = useState<{ id: string; title: string } | null>(null);
   const [slots, setSlots] = useState<{ startAt: string; endAt: string }[]>([]);
   const [day, setDay] = useState(data.today);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
 
   async function run(path: string, init?: RequestInit) {
     setError("");
@@ -30,159 +31,136 @@ export function Dashboard({ data }: { data: DashboardData }) {
     setSlots(result.slots);
   }
 
+  async function saveReflection() {
+    if (!data.reflection) return;
+    const filled = Object.fromEntries(Object.entries(answers).filter(([, value]) => value.trim()));
+    if (!Object.keys(filled).length) {
+      setError("Напишите хотя бы одну строку.");
+      return;
+    }
+    await run("/api/reflections", {
+      method: "POST",
+      body: JSON.stringify({ period: data.reflection.period, periodKey: data.reflection.periodKey, answers: filled }),
+    });
+    setAnswers({});
+  }
+
   return (
-    <main className="page space-y-6">
+    <main className="page space-y-5">
       {data.demo && (
-        <div className="card flex flex-wrap items-center justify-between gap-3 px-5 py-4 rise">
-          <p className="max-w-xl text-sm">Демонстрационные данные — это пример, не ваши реальные события. Их можно удалить и начать с пустого листа.</p>
-          <Button variant="outline" size="sm" onClick={() => void run("/api/settings/demo", { method: "DELETE" })}>Удалить демо</Button>
+        <div className="flex items-center justify-between px-1 text-sm text-[var(--muted)]">
+          <span>Демо</span>
+          <button type="button" className="text-[var(--accent)]" onClick={() => void run("/api/settings/demo", { method: "DELETE" })}>Удалить</button>
         </div>
       )}
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="flex items-end justify-between px-1">
         <div>
-          <p className="text-sm text-[var(--muted)]">{data.greeting}</p>
-          <h1 className="font-display text-4xl leading-tight md:text-6xl">{data.heading}</h1>
+          <p className="text-sm capitalize text-[var(--danger)]">{data.weekday}</p>
+          <h1 className="text-[56px] font-semibold leading-none tracking-tight">{data.dayNumber}</h1>
+          <p className="text-sm text-[var(--muted)]">{data.monthName}</p>
         </div>
-        <div className="text-sm text-[var(--muted)]">
-          <div className="font-display text-3xl text-[var(--ink)]">{data.freeLabel}</div>
-          свободно с 8:00 до 20:00
-        </div>
+        <p className="pb-1 text-sm text-[var(--muted)]">{data.freeLabel}</p>
       </header>
-      <section className="card flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-        <div>
-          <div className="text-sm text-[var(--muted)]">Самочувствие</div>
-          <div>{data.energy ? `Энергия ${data.energy} из 5 — вы сами отметили` : "Энергия не отмечена. Я её не угадываю."}</div>
-        </div>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map((value) => (
-            <button key={value} className="h-11 w-11 rounded-full border border-[var(--line)]" onClick={() => void run("/api/checkins", { method: "POST", body: JSON.stringify({ date: data.today, energy: value }) })}>{value}</button>
-          ))}
-        </div>
-      </section>
-      {data.reminder && <p className="text-sm text-[var(--muted)]">{data.reminder.text} <Link href="/reflection">Открыть рефлексию</Link></p>}
-      <p className="text-sm text-[var(--muted)]">
-        iCloud: {data.icloud.status === "connected" ? `синхронизация ${data.icloud.lastSyncAt ? new Date(data.icloud.lastSyncAt).toLocaleString("ru-RU") : "ещё не запускалась"}` : data.icloud.status === "error" ? data.icloud.lastError : "требует подключения"}. <Link href="/settings">Настроить</Link>
-      </p>
-      {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
-      <section>
-        <div className="mb-3 flex items-end justify-between">
-          <h2 className="font-display text-3xl">Что делать сегодня</h2>
-          <span className="text-sm text-[var(--muted)]">не больше трёх</span>
-        </div>
-        <div className="grid gap-3 lg:grid-cols-3">
-          {data.focus.length === 0 && <article className="card p-5">Открытых задач нет. Можно отдохнуть или сказать ассистенту, что появилось.</article>}
-          {data.focus.map((item) => (
-            <article key={item.id} className="card flex flex-col gap-3 p-5 rise">
-              <div className="flex flex-wrap gap-2">
-                <Badge tone={item.lane === "obligation" ? "warn" : "accent"}>{item.lane === "obligation" ? "Обязательство" : "Фокус"}</Badge>
-                <DemoMark on={item.isDemo} />
-              </div>
-              <h3 className="text-xl">{item.title}</h3>
-              <p className="text-sm text-[var(--muted)]">{item.estimateLabel}{item.goal ? ` · ${item.goal}` : " · без глобальной цели"}</p>
-              <p className="text-sm">{item.reason}</p>
-              {item.outcome && <p className="text-sm text-[var(--muted)]">Результат: {item.outcome}</p>}
-              <div className="mt-auto flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => void run(`/api/tasks/${item.id}/complete`, { method: "POST" })}>Готово</Button>
-                <Button size="sm" variant="outline" onClick={() => void openMove(item.id, item.title)}>Перенести</Button>
-                <Button size="sm" variant="quiet" onClick={() => void run(`/api/tasks/${item.id}`, { method: "DELETE" })}>Отменить</Button>
-              </div>
-            </article>
-          ))}
-        </div>
-        {data.overload && (
-          <p className="mt-3 text-sm text-[var(--muted)]">Оценок больше, чем свободного времени, примерно на {data.overload.excessLabel}. Можно перенести необязательное, сократить или отказаться. Само ничего не двигаю.</p>
-        )}
-      </section>
+      <div className="flex justify-between px-1">
+        {data.weekStrip.map((item) => (
+          <Link key={item.date} href={`/calendar?day=${item.date}`} className="flex w-10 flex-col items-center gap-1 no-underline">
+            <span className="text-[11px] uppercase text-[var(--muted)]">{item.weekday}</span>
+            <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm ${item.isToday ? "bg-[var(--danger)] text-white" : ""}`}>{item.day}</span>
+            <span className="flex h-2 gap-0.5">
+              {item.colors.map((color) => <i key={color} className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />)}
+            </span>
+          </Link>
+        ))}
+      </div>
 
-      <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="card p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-3xl">День</h2>
-            <Link href="/calendar" className="text-sm">Весь календарь</Link>
+      {error && <p className="px-1 text-sm text-[var(--danger)]">{error}</p>}
+
+      <section className="card overflow-hidden">
+        {data.timeline.length === 0 && <p className="px-4 py-6 text-sm text-[var(--muted)]">Сегодня пусто</p>}
+        {data.timeline.map((event) => (
+          <div key={event.id} className="flex gap-3 border-b border-[var(--line)] px-4 py-3 last:border-b-0">
+            <span className="mt-1 h-10 w-1 rounded-full" style={{ background: event.color }} />
+            <div className="min-w-0">
+              <div className="truncate">{event.title}</div>
+              <div className="text-sm text-[var(--muted)]">{event.secondary || `${event.start}–${event.end}`}</div>
+            </div>
           </div>
-          <div className="mb-4 flex gap-2 overflow-auto">
-            {data.weekStrip.map((dayItem) => (
-              <div key={dayItem.date} className={`min-w-14 rounded-2xl px-2 py-2 text-center ${dayItem.isToday ? "bg-[var(--accent-soft)]" : ""}`}>
-                <div className="text-xs text-[var(--muted)]">{dayItem.weekday}</div>
-                <div className="font-display text-2xl">{dayItem.day}</div>
-                <div className="text-[11px] text-[var(--muted)]">{dayItem.count ? `${dayItem.count}` : "—"}</div>
+        ))}
+      </section>
+
+      <section className="card overflow-hidden">
+        <h2 className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Сегодня</h2>
+        {data.focus.length === 0 && <p className="px-4 py-4 text-sm text-[var(--muted)]">Свободный день</p>}
+        {data.focus.map((item) => (
+          <div key={item.id} className="flex items-center gap-3 border-t border-[var(--line)] px-4 py-3">
+            <button type="button" aria-label="Готово" className="h-6 w-6 shrink-0 rounded-full border-2" style={{ borderColor: item.color }} onClick={() => void run(`/api/tasks/${item.id}/complete`, { method: "POST" })} />
+            <div className="min-w-0 flex-1">
+              <div className="truncate">{item.title}</div>
+              <div className="truncate text-sm text-[var(--muted)]">{item.estimateLabel}</div>
+            </div>
+            <button type="button" className="text-sm text-[var(--accent)]" onClick={() => void openMove(item.id, item.title)}>Позже</button>
+          </div>
+        ))}
+      </section>
+
+      {data.suggestions.length > 0 && (
+        <section className="card overflow-hidden">
+          <h2 className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Пойдёте?</h2>
+          {data.suggestions.map((item) => (
+            <div key={item.id} className="border-t border-[var(--line)] px-4 py-3">
+              <div className="flex items-center gap-2">
+                <i className="h-2 w-2 rounded-full" style={{ background: item.color }} />
+                <span className="truncate">{item.title}</span>
+                {item.isDemo && <span className="text-[11px] text-[var(--muted)]">демо</span>}
               </div>
+              <div className="mt-0.5 text-sm text-[var(--muted)]">{item.day} · {item.start}{item.location ? ` · ${item.location}` : ""}</div>
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" onClick={() => void run(`/api/opportunities/${item.id}/schedule`, { method: "POST" })}>Пойду</Button>
+                <Button size="sm" variant="quiet" onClick={() => void run(`/api/opportunities/${item.id}`, { method: "PATCH", body: JSON.stringify({ status: "declined" }) })}>Не пойду</Button>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {data.reflection && (
+        <section className="card p-4">
+          <h2 className="text-lg font-semibold">{data.reflection.title}</h2>
+          <div className="mt-3 space-y-2">
+            {data.reflection.prompts.map((prompt) => (
+              <label key={prompt.key} className="block text-sm text-[var(--muted)]">
+                {prompt.prompt}
+                <input className="field mt-1" value={answers[prompt.key] ?? ""} onChange={(event) => setAnswers({ ...answers, [prompt.key]: event.target.value })} />
+              </label>
             ))}
           </div>
-          <div className="space-y-2">
-            {data.timeline.length === 0 && <p className="text-sm text-[var(--muted)]">На сегодня в календаре пусто.</p>}
-            {data.timeline.map((event) => (
-              <div key={event.id} className="flex items-baseline justify-between gap-3 border-t border-[var(--line)] py-3">
-                <div>
-                  <div className="flex items-center gap-2">{event.title} <DemoMark on={event.isDemo} /></div>
-                  {event.location && <div className="text-sm text-[var(--muted)]">{event.location}</div>}
-                </div>
-                <div className="text-sm text-[var(--muted)]">{event.secondary || `${event.start}–${event.end}`}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="card p-5">
-          <h2 className="font-display text-3xl">Неделя</h2>
-          <ul className="mt-3 space-y-2 text-sm">
-            {data.week.outcomes.map((goal) => <li key={goal.id}>{goal.title} <DemoMark on={goal.isDemo} /></li>)}
-          </ul>
-          <p className="mt-4 text-sm text-[var(--muted)]">Открыто {data.week.openCount}, закрыто на этой неделе {data.week.doneCount}.</p>
-          <div className="mt-3 space-y-1 text-sm">
-            {data.week.deadlines.map((task) => <div key={task.id}>{task.title} · {task.due}</div>)}
-          </div>
-          <p className="mt-4 text-sm">{data.week.recommendation}</p>
-          <p className="mt-2 text-sm text-[var(--muted)]">{data.week.rest.length ? `Отдых: ${data.week.rest.join(", ")}` : "Отдельный отдых на неделе пока не стоит в календаре."}</p>
-        </div>
+          <Button className="mt-3" onClick={() => void saveReflection()}>Сохранить</Button>
+        </section>
+      )}
+
+      <section className="card overflow-hidden">
+        {data.monthGoals.map((goal) => (
+          <Link key={goal.id} href={`/goals#${goal.id}`} className="block border-b border-[var(--line)] px-4 py-3 no-underline last:border-b-0">
+            <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+              <span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full" style={{ background: goal.color }} />{goal.area}</span>
+              <span className="text-[var(--muted)]">{goal.detail}</span>
+            </div>
+            <div className="h-1 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+              <div className="h-full" style={{ width: `${Math.round((goal.ratio ?? 0) * 100)}%`, background: goal.color }} />
+            </div>
+          </Link>
+        ))}
       </section>
 
-      <section>
-        <h2 className="mb-3 font-display text-3xl">Цели месяца</h2>
-        <div className="grid gap-3 md:grid-cols-2">
-          {data.monthGoals.map((goal) => (
-            <Link key={goal.id} href={`/goals#${goal.id}`} className="card block p-5 no-underline">
-              <div className="mb-2 flex items-center justify-between gap-2 text-sm text-[var(--muted)]"><span>{goal.area}</span><DemoMark on={goal.isDemo} /></div>
-              <div className="mb-3 text-lg">{goal.title}</div>
-              <Progress value={goal.ratio} />
-              <p className="mt-2 text-sm text-[var(--muted)]">{goal.detail}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="card p-5 md:col-span-2">
-          <h2 className="font-display text-3xl">Глобальные цели</h2>
-          <div className="mt-3 space-y-3">
-            {data.globals.map((goal) => (
-              <Link key={goal.id} href={`/goals#${goal.id}`} className="block border-t border-[var(--line)] py-3 no-underline">
-                <div className="text-xs text-[var(--muted)]">{goal.area}</div>
-                <div className="flex items-center gap-2">{goal.title} <DemoMark on={goal.isDemo} /></div>
-              </Link>
-            ))}
-          </div>
-        </div>
-        <div className="card p-5">
-          <h2 className="font-display text-3xl">Идеи</h2>
-          <p className="mt-3 font-display text-5xl">{data.ideas.fresh}</p>
-          <p className="text-sm text-[var(--muted)]">новых · отложено {data.ideas.deferred}</p>
-          {data.ideas.examples > 0 && <p className="mt-2 text-sm">Ещё {data.ideas.examples} примеров ждут, хотите ли вы их себе.</p>}
-          {data.habit && <p className="mt-4 text-sm">{data.habit.name}: {data.habit.done} из {data.habit.target}. {data.habit.note}</p>}
-          <Link href="/ideas" className="mt-4 inline-block text-sm">Открыть банк</Link>
-        </div>
-      </section>
-
-      <Modal open={Boolean(move)} onOpenChange={(open) => !open && setMove(null)} title={move ? `Куда перенести «${move.title}»` : ""}>
-        <label className="mb-3 block text-sm">День
-          <input className="field mt-1" type="date" value={day} onChange={(event) => { setDay(event.target.value); void api<{ slots: { startAt: string; endAt: string }[] }>(`/api/schedule/slots?date=${event.target.value}&minutes=60`).then((result) => setSlots(result.slots)); }} />
-        </label>
+      <Modal open={Boolean(move)} onOpenChange={(open) => !open && setMove(null)} title="Перенести">
+        <input className="field mb-3" type="date" value={day} onChange={(event) => { setDay(event.target.value); void api<{ slots: { startAt: string; endAt: string }[] }>(`/api/schedule/slots?date=${event.target.value}&minutes=60`).then((result) => setSlots(result.slots)); }} />
         <div className="space-y-2">
-          {slots.length === 0 && <p className="text-sm">Свободного часа в этот день между 8:00 и 20:00 нет.</p>}
+          {slots.length === 0 && <p className="text-sm text-[var(--muted)]">Свободного часа нет</p>}
           {slots.map((slot) => (
             <Button key={slot.startAt} variant="outline" className="w-full" onClick={() => {
               if (!move) return;
-              void run(`/api/tasks/${move.id}`, { method: "PATCH", body: JSON.stringify({ scheduledStart: slot.startAt, scheduledEnd: slot.endAt, rescheduleCount: undefined }) }).then(() => setMove(null));
+              void run(`/api/tasks/${move.id}`, { method: "PATCH", body: JSON.stringify({ scheduledStart: slot.startAt, scheduledEnd: slot.endAt }) }).then(() => setMove(null));
             }}>{new Date(slot.startAt).toLocaleString("ru-RU", { timeZone: data.tz, hour: "2-digit", minute: "2-digit" })}</Button>
           ))}
         </div>

@@ -9,7 +9,8 @@ import { eventsToIcs, parseIcs } from "@/lib/ics";
 import { planRemainingDates, reconcileHabit } from "@/lib/habits";
 import { interpret } from "@/lib/parser";
 import { buildDailyFocus } from "@/lib/priority";
-import { summarizeReflection } from "@/lib/reflection";
+import { groupFromText } from "@/lib/groups";
+import { dueReflection, summarizeReflection } from "@/lib/reflection";
 import { createHabit, createProposal, createTask, getTask, listHabitLogs, listTasks, ready, updateTask, upsertHabitLog } from "@/lib/store";
 import { findFreeSlots, formatTime, zonedDate } from "@/lib/time";
 import type { InterpContext } from "@/lib/types";
@@ -327,5 +328,37 @@ describe("database actions", () => {
     });
     expect(() => applyProposal(proposal.id)).toThrow(/Выберите/);
     expect(getTask(created.task.id).scheduledStart).toBeNull();
+  });
+});
+
+describe("calendar groups and reflection timing", () => {
+  it("colors actions by group", () => {
+    expect(groupFromText("Тренировка в зале")).toBe("sport");
+    expect(groupFromText("Изучение AI")).toBe("learning");
+    expect(groupFromText("Отчёт по платежу")).toBe("work");
+    expect(groupFromText("Пляж")).toBe("personal");
+    expect(groupFromText("Встреча с друзьями")).toBe("relationships");
+  });
+
+  it("asks about yesterday in the morning and the week only after the day is closed", () => {
+    const morning = dueReflection({
+      now: new Date("2026-10-12T02:00:00.000Z"),
+      tz: "Asia/Bangkok",
+      today: "2026-10-12",
+      reflections: [],
+      dailyEnabled: true,
+      weeklyEnabled: true,
+    });
+    expect(morning?.title).toBe("Как прошёл вчера");
+    expect(morning?.periodKey).toBe("2026-10-11");
+    const afterDay = dueReflection({
+      now: new Date("2026-10-12T02:00:00.000Z"),
+      tz: "Asia/Bangkok",
+      today: "2026-10-12",
+      reflections: [{ period: "day", periodKey: "2026-10-11" }],
+      dailyEnabled: true,
+      weeklyEnabled: true,
+    });
+    expect(afterDay?.period).toBe("week");
   });
 });

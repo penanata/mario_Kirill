@@ -1,7 +1,8 @@
+import { eventGroup, GROUPS, groupFromSlug } from "@/lib/groups";
 import { reconcileHabit } from "@/lib/habits";
 import { buildDailyFocus, weekRecommendation } from "@/lib/priority";
+import { dueReflection } from "@/lib/reflection";
 import {
-  getIntegration,
   getPrefs,
   getUser,
   hasDemo,
@@ -11,6 +12,7 @@ import {
   listHabitLogs,
   listHabits,
   listIdeas,
+  listOpportunities,
   listReflections,
   listTasks,
   loadContext,
@@ -28,7 +30,6 @@ import {
   freeMinutes,
   greeting,
   humanDuration,
-  isoDow,
   monthBounds,
   todayKey,
   weekRange,
@@ -40,7 +41,7 @@ function goalRatio(goal: GoalRow, tasks: TaskRow[], doneHabit: number | null) {
     const done = doneHabit ?? 0;
     return {
       ratio: Math.max(0, Math.min(1, done / goal.metricTarget)),
-      detail: `${done} из ${goal.metricTarget} ${goal.unit ?? "раз"}`.trim(),
+      detail: `${done}/${goal.metricTarget}`,
     };
   }
   if (goal.metricMode === "task_minutes" && goal.metricTarget) {
@@ -50,17 +51,17 @@ function goalRatio(goal: GoalRow, tasks: TaskRow[], doneHabit: number | null) {
     const hours = Math.round((minutes / 60) * 10) / 10;
     return {
       ratio: Math.max(0, Math.min(1, hours / goal.metricTarget)),
-      detail: `${hours} из ${goal.metricTarget} ч по оценкам выполненных задач`,
+      detail: `${hours}/${goal.metricTarget} ч`,
     };
   }
   if (goal.metricMode === "manual" && goal.metricTarget) {
     const current = goal.metricCurrent ?? 0;
-    return { ratio: Math.max(0, Math.min(1, current / goal.metricTarget)), detail: `${current} из ${goal.metricTarget} ${goal.unit ?? ""}`.trim() };
+    return { ratio: Math.max(0, Math.min(1, current / goal.metricTarget)), detail: `${current}/${goal.metricTarget}` };
   }
   const linked = tasks.filter((task) => task.goalId === goal.id && task.status !== "cancelled");
-  if (!linked.length) return { ratio: null, detail: "Пока нет измеримого показателя" };
+  if (!linked.length) return { ratio: null, detail: "" };
   const done = linked.filter((task) => task.status === "done").length;
-  return { ratio: done / linked.length, detail: `По задачам: ${done} из ${linked.length}` };
+  return { ratio: done / linked.length, detail: `${done}/${linked.length}` };
 }
 
 export function getDashboard() {
@@ -101,17 +102,31 @@ export function getDashboard() {
       return { id: goal.id, title: goal.title, area: area?.name ?? "Без сферы", color: area?.color ?? "#6b6560", isDemo: goal.isDemo, ...progress };
     });
   const ideas = listIdeas();
-  const integration = getIntegration();
   const prefs = getPrefs();
   const reflections = listReflections();
-  const dow = isoDow(today, tz);
-  const weeklyDay = prefs.weeklyReflectionWeekday === 0 ? 7 : prefs.weeklyReflectionWeekday;
-  let reminder: { kind: "day" | "week"; text: string } | null = null;
-  if (prefs.weeklyReflectionEnabled && dow === weeklyDay && !reflections.some((item) => item.period === "week" && item.periodKey === week.key)) {
-    reminder = { kind: "week", text: "Сегодня день недельной рефлексии. Это напоминание внутри приложения: фоновые уведомления не настроены." };
-  } else if (prefs.dailyReflectionEnabled && !reflections.some((item) => item.period === "day" && item.periodKey === today)) {
-    reminder = { kind: "day", text: "Можно коротко закрыть день. Напоминание видно только пока приложение открыто." };
-  }
+  const reflection = dueReflection({
+    now,
+    tz,
+    today,
+    reflections,
+    dailyEnabled: prefs.dailyReflectionEnabled,
+    weeklyEnabled: prefs.weeklyReflectionEnabled,
+  });
+  const suggestions = listOpportunities()
+    .filter((item) => item.status === "suggested" && item.startAt)
+    .slice(0, 3)
+    .map((item) => {
+      const group = eventGroup({ title: item.title });
+      return {
+        id: item.id,
+        title: item.title,
+        location: item.location,
+        start: formatTime(item.startAt!, tz),
+        day: formatShortDate(todayKey(new Date(item.startAt!), tz)),
+        isDemo: item.isDemo,
+        color: GROUPS[group].color,
+      };
+    });
   const rest = events.filter((event) => /обед|прогул|пляж|отдых|йога|медитац/i.test(event.title));
   const open = tasks.filter((task) => task.status === "open");
   const doneWeek = tasks.filter((task) => task.status === "done" && task.completedAt && todayKey(new Date(task.completedAt), tz) >= week.start && todayKey(new Date(task.completedAt), tz) <= week.end);
@@ -125,49 +140,60 @@ export function getDashboard() {
     freeLabel: humanDuration(freeMinutes(today, tz, todayEvents)),
     energy: ctx.energy,
     demo: hasDemo(),
-    reminder,
-    icloud: {
-      status: integration?.status ?? "needs_setup",
-      lastSyncAt: integration?.lastSyncAt ?? null,
-      lastError: integration?.lastError ?? null,
-      account: integration?.accountLabel ?? null,
-    },
-    focus: focus.items.map((item) => ({
-      id: item.task.id,
-      title: item.task.title,
-      priority: item.task.priority,
-      lane: item.lane,
-      estimate: item.task.estimateMinutes,
-      estimateLabel: humanDuration(item.task.estimateMinutes ?? 45),
-      goal: item.task.goalTitle,
-      outcome: tasks.find((task) => task.id === item.task.id)?.outcome ?? null,
-      reason: item.reason,
-      isDemo: tasks.find((task) => task.id === item.task.id)?.isDemo ?? false,
-      status: item.task.status,
-    })),
+    weekday: weekdayName(today, tz),
+    dayNumber: today.slice(-2).replace(/^0/, ""),
+    monthName: (formatLongDate(today, tz).split(", ")[1] ?? "").replace(/^\d+\s/, "").replace(/\s\d{4}$/, ""),
+    reflection,
+    suggestions,
+    focus: focus.items.map((item) => {
+      const task = tasks.find((entry) => entry.id === item.task.id);
+      const area = areas.find((entry) => entry.id === task?.areaId);
+      const group = groupFromSlug(area?.slug) ?? eventGroup({ title: item.task.title });
+      return {
+        id: item.task.id,
+        title: item.task.title,
+        priority: item.task.priority,
+        lane: item.lane,
+        estimate: item.task.estimateMinutes,
+        estimateLabel: humanDuration(item.task.estimateMinutes ?? 45),
+        goal: item.task.goalTitle,
+        reason: item.reason,
+        isDemo: task?.isDemo ?? false,
+        status: item.task.status,
+        color: GROUPS[group].color,
+      };
+    }),
     overload: focus.overload
       ? { excessLabel: humanDuration(focus.overload.excessMinutes), suggestions: focus.overload.suggestions }
       : null,
-    timeline: todayEvents.map((event) => ({
-      id: event.id,
-      title: event.title,
-      start: formatTime(event.startAt, tz),
-      end: formatTime(event.endAt, tz),
-      startAt: event.startAt,
-      endAt: event.endAt,
-      secondary: event.secondaryTz ? formatDualTime(event.startAt, tz, event.secondaryTz) : null,
-      location: event.location,
-      isDemo: event.isDemo,
-      taskId: event.taskId,
-    })),
+    timeline: todayEvents.map((event) => {
+      const group = eventGroup(event);
+      return {
+        id: event.id,
+        title: event.title,
+        start: formatTime(event.startAt, tz),
+        end: formatTime(event.endAt, tz),
+        startAt: event.startAt,
+        endAt: event.endAt,
+        secondary: event.secondaryTz ? formatDualTime(event.startAt, tz, event.secondaryTz) : null,
+        location: event.location,
+        isDemo: event.isDemo,
+        taskId: event.taskId,
+        color: GROUPS[group].color,
+      };
+    }),
     weekStrip: weekDays.map((date) => ({
       date,
       weekday: weekdayName(date, tz, true),
       day: date.slice(-2).replace(/^0/, ""),
-      count: events.filter((event) => todayKey(new Date(event.startAt), tz) === date).length,
+      colors: [...new Set(events.filter((event) => todayKey(new Date(event.startAt), tz) === date).map((event) => GROUPS[eventGroup(event)].color))].slice(0, 4),
       isToday: date === today,
     })),
-    monthGoals,
+    monthGoals: monthGoals.map((goal) => {
+      const area = areas.find((item) => item.name === goal.area);
+      const group = groupFromSlug(area?.slug) ?? "personal";
+      return { ...goal, color: GROUPS[group].color, area: GROUPS[group].label };
+    }),
     week: {
       outcomes: goals.filter((goal) => goal.horizon === "week" && goal.status === "active").map((goal) => ({ id: goal.id, title: goal.title, isDemo: goal.isDemo })),
       deadlines: open

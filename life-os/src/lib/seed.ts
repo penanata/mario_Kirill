@@ -239,3 +239,25 @@ export function seedDemo() {
     );
   });
 }
+
+export function ensureAssistantSuggestions() {
+  const existing = getDb().prepare("SELECT COUNT(*) AS c FROM event_recommendations WHERE user_id = ?").get(USER) as { c: number };
+  if (existing.c) return;
+  const user = getDb().prepare("SELECT timezone FROM users WHERE id = ?").get(USER) as { timezone?: string } | undefined;
+  const tz = user?.timezone || process.env.LIFEOS_TZ || DEFAULT_TZ;
+  const today = todayKey(new Date(), tz);
+  const now = nowISO();
+  const yogaDay = addDaysKey(today, 1, tz);
+  const teaDay = addDaysKey(today, 3, tz);
+  const rows = [
+    ["suggest_yoga", "Йога на Банг Тао", "Банг Тао", zonedDate(yogaDay, "07:30", tz).toISOString(), zonedDate(yogaDay, "08:30", tz).toISOString()],
+    ["suggest_tea", "Чайная церемония", "Тхаланг", zonedDate(teaDay, "18:00", tz).toISOString(), zonedDate(teaDay, "19:30", tz).toISOString()],
+  ] as const;
+  for (const [id, title, location, start, end] of rows) {
+    insert(
+      `INSERT INTO event_recommendations (id, user_id, title, location, start_at, end_at, status, is_demo, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'suggested', 1, ?, ?)`,
+      id, USER, title, location, start, end, now, now,
+    );
+  }
+}

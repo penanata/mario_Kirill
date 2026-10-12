@@ -76,7 +76,7 @@ export function getHabitsView() {
     });
     return { ...habit, logs, plan, days: eachDay(bounds.start, bounds.end, meta.tz) };
   });
-  return { ...meta, monthLabel: bounds.label, habits };
+  return { ...meta, monthLabel: bounds.label, habits, areas: listAreas() };
 }
 
 export function getReflectionView() {

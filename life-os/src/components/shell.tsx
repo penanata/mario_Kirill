@@ -9,21 +9,18 @@ import { Assistant } from "@/components/assistant";
 const main = [
   { href: "/", label: "Сегодня" },
   { href: "/calendar", label: "Календарь" },
-  { href: "/tasks", label: "Задачи" },
-  { href: "/goals", label: "Цели" },
   { href: "/habits", label: "Привычки" },
+  { href: "/goals", label: "Цели" },
+  { href: "/tasks", label: "Задачи" },
   { href: "/ideas", label: "Идеи" },
-  { href: "/reflection", label: "Рефлексия" },
-  { href: "/opportunities", label: "Возможности" },
-  { href: "/insights", label: "Аналитика" },
   { href: "/settings", label: "Настройки" },
 ];
 
 const tabs = [
   { href: "/", label: "Сегодня", icon: SunMedium },
   { href: "/calendar", label: "Календарь", icon: CalendarDays },
-  { href: "/goals", label: "Цели", icon: Target },
-  { href: "/ideas", label: "Идеи", icon: Lightbulb },
+  { href: "/habits", label: "Привычки", icon: Target },
+  { href: "/goals", label: "Цели", icon: Lightbulb },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {

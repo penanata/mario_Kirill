@@ -1,11 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Literata, Manrope } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { Shell } from "@/components/shell";
 import "./globals.css";
-
-const sans = Manrope({ subsets: ["latin", "cyrillic"], variable: "--font-sans", display: "swap" });
-const display = Literata({ subsets: ["latin", "cyrillic"], variable: "--font-display", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Life OS",
@@ -18,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f4f0e8",
+  themeColor: "#f2f2f7",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -29,7 +25,7 @@ export const dynamic = "force-dynamic";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className={`${sans.variable} ${display.variable} antialiased`}>
+      <body className="antialiased">
         <Providers>
           <Shell>{children}</Shell>
         </Providers>
