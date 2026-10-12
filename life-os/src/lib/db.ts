@@ -316,8 +316,15 @@ export function closeDb() {
   database = null;
 }
 
+function addColumn(db: SqlDatabase, table: string, column: string, type: string) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!columns.some((item) => item.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+}
+
 function migrate(db: SqlDatabase) {
   db.exec(MIGRATION);
+  addColumn(db, "calendar_events", "area_id", "TEXT");
+  addColumn(db, "calendar_events", "group_key", "TEXT");
   const existing = db.prepare("SELECT id FROM schema_migrations WHERE id = ?").get("001_init");
   if (!existing) {
     db.prepare("INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)").run("001_init", nowISO());

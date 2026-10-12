@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
-import { seedDemo } from "@/lib/seed";
+import { groupFromText } from "@/lib/groups";
+import { ensureAssistantSuggestions, seedDemo } from "@/lib/seed";
 import { fingerprint } from "@/lib/text";
 import { DEFAULT_TZ, addDaysKey, daySpan, freeMinutes, monthBounds, nowISO, todayKey, weekRange } from "@/lib/time";
 import type { InterpContext } from "@/lib/types";
@@ -64,6 +65,7 @@ export function ready() {
     if (process.env.LIFEOS_SKIP_SEED === "1") return;
     const count = getDb().prepare("SELECT COUNT(*) AS c FROM life_areas").get() as { c: number };
     if (!count.c) seedDemo();
+    ensureAssistantSuggestions();
   } finally {
     readyLock = false;
   }
@@ -146,6 +148,8 @@ export type EventRow = {
   syncState: string;
   conflict: string | null;
   isDemo: boolean;
+  areaId: string | null;
+  groupKey: string | null;
 };
 export type HabitRow = {
   id: string;
@@ -541,6 +545,8 @@ export function createEvent(input: {
   calendarHref?: string | null;
   syncState?: string;
   isDemo?: boolean;
+  areaId?: string | null;
+  groupKey?: string | null;
   actor?: string;
 }) {
   ready();
@@ -554,10 +560,11 @@ export function createEvent(input: {
   const id = uid();
   const now = nowISO();
   const tz = getUser().timezone;
+  const groupKey = input.groupKey || groupFromText(input.title);
   getDb()
     .prepare(
-      `INSERT INTO calendar_events (id, user_id, calendar_href, external_uid, source, title, notes, location, start_at, end_at, timezone, secondary_tz, task_id, etag, href, sync_state, is_demo, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO calendar_events (id, user_id, calendar_href, external_uid, source, title, notes, location, start_at, end_at, timezone, secondary_tz, task_id, etag, href, sync_state, is_demo, area_id, group_key, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       id,
@@ -577,6 +584,8 @@ export function createEvent(input: {
       input.href ?? null,
       input.syncState ?? "local",
       input.isDemo ? 1 : 0,
+      input.areaId ?? null,
+      groupKey,
       now,
       now,
     );

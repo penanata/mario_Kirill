@@ -164,6 +164,7 @@ async function route(req: Request, slug: string[]): Promise<unknown> {
       location: text,
       secondaryTz: z.string().nullable().optional(),
       pushToIcloud: z.boolean().optional(),
+      groupKey: z.enum(["sport", "learning", "work", "personal", "relationships"]).optional(),
     }), await body(req));
     return createEvent({ ...input, syncState: input.pushToIcloud ? "pending_push" : "local" });
   }
@@ -405,6 +406,7 @@ async function proposeMiss(habitId: string, input: unknown) {
 function saveReflectionRequest(input: unknown) {
   const parsed = parse(z.object({
     period: z.enum(["day", "week", "month", "quarter", "year"]),
+    periodKey: z.string().regex(/^\d{4}(-\d{2}(-\d{2})?|-W\d{2}|-Q[1-4])?$/).optional(),
     answers: z.record(z.string().max(5000)),
   }), input);
   const tz = getUser().timezone;
@@ -413,7 +415,7 @@ function saveReflectionRequest(input: unknown) {
   const energy = energyFromText(parsed.answers.feeling) ?? energyFromText(parsed.answers.energy) ?? energyFromText(parsed.answers.state);
   const saved = saveReflection({
     period: parsed.period,
-    periodKey: periodKey(today, parsed.period, tz),
+    periodKey: parsed.periodKey || periodKey(today, parsed.period, tz),
     answers: parsed.answers,
     summary,
     energy,
