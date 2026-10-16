@@ -172,6 +172,11 @@
 
     <div class="kpis" id="kpis"></div>
 
+    <div class="panel" id="settlePanel" style="margin-bottom:14px">
+      <h2>Расчёты с поставщиком <span class="hint" id="settleHint">перевод с расчётного счёта — это аванс, он не входит в выручку и маржу</span></h2>
+      <div id="settleBody"></div>
+    </div>
+
     <div class="charts">
       <div class="panel"><h2>Динамика по дате заказа <span class="hint" id="tsHint"></span></h2><div class="ch"><canvas id="chTs"></canvas></div></div>
       <div class="panel"><h2>Воронка по статусам <span class="hint">заказов / сумма</span></h2><div class="ch"><canvas id="chStatus"></canvas></div></div>
@@ -263,7 +268,7 @@ const NUMERIC_ROLES = new Set(['qty','price','revenue','cost','profit']);
 /* ---------- state ---------- */
 const state = {
   sheetId: DEFAULT_SHEET_ID, workbook:null, tabNames:[], tab:DEFAULT_TAB, matrix:null,
-  mode:'blocks', orders:[], filtered:[], summary:[], headers:[], headerIdx:0, mapping:{}, autoMapping:{},
+  mode:'blocks', orders:[], filtered:[], summary:[], transfers:[], headers:[], headerIdx:0, mapping:{}, autoMapping:{},
   filter:{ preset:'all', from:null, to:null, status:'all', manager:'', product:'', q:'' },
   gran:'week', sort:{col:'date',dir:-1}, page:0, pageSize:25, expanded:new Set(), charts:{}, sourceLabel:'',
 };
@@ -379,11 +384,43 @@ function parseBlocks(rows,hi){
   const cell=(r,k)=>c[k]>=0?(r[c[k]]??''):'';
   const num=(r,k)=>c[k]>=0?toNum(r[c[k]]):null;
 
+  // money movements sit to the right of the order columns:
+  // either a journal (Дата | Операция | Сумма) or a pair «Аванс Гунату | 500000»
+  const transfers=[]; const skipCols=new Set();
+  let journal=null;
+  for(let i=0;i<Math.min(rows.length,40)&&!journal;i++){
+    const r=rows[i];
+    for(let j=lastCol+1;j<r.length;j++){
+      if(!/операц/i.test(r[j])) continue;
+      const sumAt=r.findIndex((v,k)=>k>j&&/сумм/i.test(v));
+      if(sumAt<0) continue;
+      const dateAt=r.findIndex((v,k)=>k>lastCol&&k<sumAt&&/дат/i.test(v));
+      journal={row:i,op:j,sum:sumAt,date:dateAt};
+      [j,sumAt,dateAt].forEach(k=>{ if(k>=0) skipCols.add(k); });
+    }
+  }
+  if(journal){
+    for(let i=journal.row+1;i<rows.length;i++){
+      const label=(rows[i][journal.op]||'').trim();
+      const amount=toNum(rows[i][journal.sum]);
+      if(!label&&amount==null){ if(rows.slice(i,i+2).every(rr=>!(rr[journal.op]||'').trim()&&toNum(rr[journal.sum])==null)) break; continue; }
+      if(!label||amount==null) continue;
+      const date=journal.date>=0?toDate(rows[i][journal.date]):null;
+      transfers.push({date,label,amount:Math.abs(amount),kind:transferKind(label)});
+    }
+  }
   // side summary: label followed by a value, to the right of the order columns
   const summary=[];
   for(const r of rows){
     for(let j=lastCol+1;j<r.length-1;j++){
-      if(r[j] && toNum(r[j])==null && (r[j+1]!=='' )){ summary.push({label:r[j],raw:r[j+1],value:toNum(r[j+1])}); j++; }
+      if(skipCols.has(j)||skipCols.has(j+1)) continue;
+      if(r[j] && toNum(r[j])==null && r[j+1]!==''){
+        const value=toNum(r[j+1]);
+        if(!journal && value!=null && isAdvanceLabel(r[j])){
+          transfers.push({date:null,label:r[j],amount:Math.abs(value),kind:transferKind(r[j])});
+        } else summary.push({label:r[j],raw:r[j+1],value});
+        j++;
+      }
     }
   }
 
@@ -445,8 +482,21 @@ function parseBlocks(rows,hi){
     if(plant && (hasMoney || line.qty || isHeader)) cur.items.push(line);
   }
   if(cur) finish(cur);
-  return {orders,summary,cols:c};
+  return {orders,summary,transfers,cols:c};
 }
+function isAdvanceLabel(s){
+  const t=String(s||'').toLowerCase();
+  if(/из\s*не[её]|выручк|себестоим|марж/.test(t)) return false;
+  return (/аванс|перевод|оплат/.test(t) && /гунат|буннат|поставщик|рс|сч[её]т/.test(t))
+    || (/гунат|буннат/.test(t) && /долж|аванс|перевод|оплат|рс|сч[её]т/.test(t));
+}
+function transferKind(s){
+  const t=String(s||'').toLowerCase();
+  if(/возврат/.test(t)) return 'refund';
+  if(/закрыт|отгруз|зач[её]т|погаш/.test(t)) return 'close';
+  return 'advance';
+}
+const TRANSFER_LABEL={advance:'Аванс с расчётного счёта',close:'Закрыто отгрузкой',refund:'Возврат на расчётный счёт'};
 function classifyPay(s){
   const t=(s||'').toLowerCase();
   if(!t||/^нет/.test(t)) return 'none';
@@ -517,14 +567,14 @@ function ingestMatrix(matrix,label){
   const bh=detectBlockHeader(matrix);
   if(bh>=0){
     state.mode='blocks'; $('mapDetails').classList.add('hidden');
-    const res=parseBlocks(matrix,bh); state.orders=res.orders; state.summary=res.summary; state.headers=matrix[bh];
+    const res=parseBlocks(matrix,bh); state.orders=res.orders; state.summary=res.summary; state.transfers=res.transfers; state.headers=matrix[bh];
   } else {
     state.mode='flat'; $('mapDetails').classList.remove('hidden');
     state.headerIdx=detectHeaderRow(matrix); state.headers=matrix[state.headerIdx].map(h=>h||'');
     state.autoMapping=autoMap(state.headers,matrix.slice(state.headerIdx+1,state.headerIdx+60));
     const saved=loadSettings().maps?.[state.headers.join('|')];
     state.mapping=saved||{...state.autoMapping};
-    state.orders=buildFlatOrders(); state.summary=[]; renderMapping();
+    state.orders=buildFlatOrders(); state.summary=[]; state.transfers=[]; renderMapping();
   }
   fillFilters(); state.page=0; render();
   const dated=state.orders.filter(o=>o.date&&!o.dateApprox);
@@ -688,7 +738,58 @@ function render(){
   state.filtered=filterOrders(state.orders,state.filter);
   $('mgrPanel').classList.toggle('hidden',!state.orders.some(o=>o.manager));
   $('payPanel').classList.toggle('hidden',!state.orders.some(o=>o.payTo));
-  renderKPIs(); renderCharts(); renderManagers(); renderPayments(); renderServices(); renderProducts(); renderClients(); renderOrders();
+  renderKPIs(); renderSettlement(); renderCharts(); renderManagers(); renderPayments(); renderServices(); renderProducts(); renderClients(); renderOrders();
+}
+function partyName(list){
+  const t=list.map(x=>x.label).join(' ').toLowerCase();
+  if(/гунат/.test(t)) return 'Гунат';
+  if(/буннат/.test(t)) return 'Буннат';
+  return 'Поставщик';
+}
+function rsInflow(orders){
+  let s=0;
+  for(const o of orders){
+    if(o.statusClass!=='done') continue;
+    if(o.payments.length){ for(const p of o.payments) if(classifyPay(p.to)==='rs') s+=p.amount||0; }
+    else if(o.payClass==='rs') s+=o.revenue||0;
+  }
+  return s;
+}
+function renderSettlement(){
+  const panel=$('settlePanel');
+  if(state.mode!=='blocks'){ panel.classList.add('hidden'); return; }
+  panel.classList.remove('hidden');
+  const list=state.transfers;
+  if(!list.length){
+    $('settleHint').textContent='перевод с расчётного счёта — это аванс, он не входит в выручку и маржу';
+    $('settleBody').innerHTML=`<div class="notice" style="margin:0">
+      Оплата поставщику с расчётного счёта — не расход заказа. Счёт уменьшается, а поставщик становится должен вам эту сумму, пока не закроет её растениями или возвратом денег.
+      На листе «Заказы и расчеты», справа от заказов, добавьте три колонки (например Q, R и S):
+      <table style="margin-top:8px;width:auto"><thead><tr><th>Дата</th><th>Операция</th><th class="num">Сумма</th></tr></thead><tbody>
+      <tr><td>16.10.2026</td><td>Аванс Гунату с РС</td><td class="num">500000</td></tr>
+      </tbody></table>
+      <div class="small" style="margin-top:8px">Когда Гунат отдаст растения в счёт этих денег — строка «Закрыто отгрузкой Гуната». Если вернёт деньги на счёт — «Возврат от Гуната на РС». После правки нажмите «Загрузить / обновить».</div>
+    </div>`;
+    return;
+  }
+  const name=partyName(list);
+  const adv=list.filter(t=>t.kind==='advance').reduce((a,t)=>a+t.amount,0);
+  const closed=list.filter(t=>t.kind==='close').reduce((a,t)=>a+t.amount,0);
+  const refund=list.filter(t=>t.kind==='refund').reduce((a,t)=>a+t.amount,0);
+  const debt=adv-closed-refund;
+  const leftAccount=adv-refund;
+  const rsIn=rsInflow(state.orders);
+  const cards=[
+    {l:`${name} должен нам`,v:fmtMoney(debt),sub:debt>0?'аванс ещё не закрыт':debt<0?'аванс перекрыт':'аванс закрыт'},
+    {l:'Ушло с расчётного счёта',v:fmtMoney(leftAccount),sub:'переводы поставщику минус возвраты'},
+    {l:'Пришло на РС от клиентов',v:fmtMoney(rsIn),sub:'оплаченные заказы с пометкой «РС»'},
+    {l:'Остаток на РС',v:fmtMoney(rsIn-leftAccount),sub:'поступления минус переводы поставщику'},
+  ];
+  $('settleHint').textContent=`${list.length} операций · за всё время, фильтр периода на этот блок не влияет`;
+  $('settleBody').innerHTML=`<div class="calc-cards" style="margin-bottom:12px">${cards.map(c=>`<div class="calc-card"><div class="l">${esc(c.l)}</div><div class="v">${c.v}</div><div class="small muted">${esc(c.sub)}</div></div>`).join('')}</div>
+    <div class="tbl" style="max-height:220px"><table><thead><tr><th>Дата</th><th>Операция</th><th>Что это</th><th class="num">Сумма</th></tr></thead><tbody>${
+      list.map(t=>`<tr><td>${fmtDate(t.date)}</td><td>${esc(t.label)}</td><td class="muted">${TRANSFER_LABEL[t.kind]}</td><td class="num">${fmtMoney(t.amount)}</td></tr>`).join('')
+    }</tbody></table></div>`;
 }
 function renderKPIs(){
   const f=state.filter; const s=stageSums(state.filtered);
@@ -867,6 +968,8 @@ function demoData(){
     if(st==='3 оплачен'){ factRev+=rev; factBU+=cost; n++; }
   }
   rows[2][16]='Выручка факт'; rows[2][17]=R(factRev); rows[3][16]='Из нее Буннату'; rows[3][17]=R(factBU); rows[5][16]='На расчетном счете'; rows[5][17]=R((factRev-factBU)*0.9);
+  rows[0][19]='Дата'; rows[0][20]='Операция'; rows[0][21]='Сумма';
+  rows[1][19]='16.10.2026'; rows[1][20]='Аванс Гунату с РС'; rows[1][21]=R(500000);
   return trimMatrix(rows);
 }
 
