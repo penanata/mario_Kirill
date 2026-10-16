@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Загрузить чат из Telegram{% endblock %}
+{% block content %}
+<section class="narrow">
+  <p class="eyebrow">источник данных</p>
+  <h1>Собрать каталог из чата поставщика</h1>
+  <p class="lead">Google-таблица фото не отдаёт. Здесь снимки лежат файлами: их можно открыть и скачать по одному или архивом.</p>
+
+  {% if has_demo %}
+    <div class="note wait">
+      В каталоге ещё лежат демо-карточки. Удалите их, чтобы не смешать с реальным поставщиком.
+      <form method="post" action="/clear-demo" style="display:inline">
+        <button type="submit" class="btn small">Удалить демо</button>
+      </form>
+    </div>
+  {% endif %}
+  {% if result %}
+    <div class="note ok">{{ result }} <a href="/">Открыть каталог</a></div>
+  {% endif %}
+  {% if error %}
+    <div class="note bad">{{ error }}</div>
+  {% endif %}
+
+  <ol class="steps">
+    <li>В Telegram Desktop откройте чат с поставщиком.</li>
+    <li>Меню ⋮ → <b>Export chat history</b> / Экспорт истории.</li>
+    <li>Формат <b>JSON</b>, галочка <b>Photos</b>. Без видео и стикеров — быстрее.</li>
+    <li>Получится папка. Сожмите её в <b>zip</b> и загрузите сюда.</li>
+  </ol>
+
+  <form class="upload" method="post" action="/import" enctype="multipart/form-data">
+    <label class="drop">
+      <input type="file" name="archive" accept=".zip" required>
+      <span>Выберите zip экспорта Telegram</span>
+    </label>
+    <button class="btn" type="submit">Разобрать чат</button>
+  </form>
+
+  <h2>Живое обновление без выгрузки</h2>
+  <p>Если в <code>.env</code> указан <code>TELEGRAM_BOT_TOKEN</code>, бот сам забирает новые фото и подписи, пока каталог запущен. Сейчас бот {% if bot_enabled %}<b>включён</b>{% else %}<b>выключен</b> — токена нет{% endif %}.</p>
+  <p><a href="/help">Подробная инструкция</a></p>
+</section>
+{% endblock %}

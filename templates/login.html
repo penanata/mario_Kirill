@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вход в каталог</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="login-body">
+  <form class="login" method="post" action="/login">
+    <p class="eyebrow">каталог поставщика</p>
+    <h1>Вход</h1>
+    {% if error %}<p class="note bad">{{ error }}</p>{% endif %}
+    <input type="password" name="password" placeholder="Пароль" required autofocus>
+    <button class="btn" type="submit">Открыть</button>
+  </form>
+</body>
+</html>
