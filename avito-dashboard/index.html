@@ -567,7 +567,7 @@ function ingestMatrix(matrix,label){
   const bh=detectBlockHeader(matrix);
   if(bh>=0){
     state.mode='blocks'; $('mapDetails').classList.add('hidden');
-    const res=parseBlocks(matrix,bh); state.orders=res.orders; state.summary=res.summary; state.transfers=res.transfers; state.headers=matrix[bh];
+    const res=parseBlocks(matrix,bh); state.orders=res.orders; state.summary=res.summary; state.transfers=applyRecordedAdvances(res.transfers); state.headers=matrix[bh];
   } else {
     state.mode='flat'; $('mapDetails').classList.remove('hidden');
     state.headerIdx=detectHeaderRow(matrix); state.headers=matrix[state.headerIdx].map(h=>h||'');
@@ -740,6 +740,17 @@ function render(){
   $('payPanel').classList.toggle('hidden',!state.orders.some(o=>o.payTo));
   renderKPIs(); renderSettlement(); renderCharts(); renderManagers(); renderPayments(); renderServices(); renderProducts(); renderClients(); renderOrders();
 }
+// Оплата Гунату с расчётного счёта есть в учёте, но в листе её пока нет.
+// Если в таблице появится строка «Аванс Гунату», она заменит эту запись, чтобы сумма не задвоилась.
+const RECORDED_ADVANCES=[
+  {date:null,label:'Аванс Гунату с РС',amount:500000,kind:'advance',recorded:true},
+];
+function applyRecordedAdvances(transfers){
+  const tab=(state.tab||'').trim().toLowerCase();
+  if(tab!=='заказы и расчеты') return transfers;
+  if(transfers.some(t=>t.kind==='advance' && /гунат|буннат/i.test(t.label))) return transfers;
+  return transfers.concat(RECORDED_ADVANCES);
+}
 function partyName(list){
   const t=list.map(x=>x.label).join(' ').toLowerCase();
   if(/гунат/.test(t)) return 'Гунат';
@@ -785,10 +796,10 @@ function renderSettlement(){
     {l:'Пришло на РС от клиентов',v:fmtMoney(rsIn),sub:'оплаченные заказы с пометкой «РС»'},
     {l:'Остаток на РС',v:fmtMoney(rsIn-leftAccount),sub:'поступления минус переводы поставщику'},
   ];
-  $('settleHint').textContent=`${list.length} операций · за всё время, фильтр периода на этот блок не влияет`;
+  $('settleHint').textContent=`за всё время · фильтр периода на этот блок не влияет · выручка и маржа не меняются`;
   $('settleBody').innerHTML=`<div class="calc-cards" style="margin-bottom:12px">${cards.map(c=>`<div class="calc-card"><div class="l">${esc(c.l)}</div><div class="v">${c.v}</div><div class="small muted">${esc(c.sub)}</div></div>`).join('')}</div>
     <div class="tbl" style="max-height:220px"><table><thead><tr><th>Дата</th><th>Операция</th><th>Что это</th><th class="num">Сумма</th></tr></thead><tbody>${
-      list.map(t=>`<tr><td>${fmtDate(t.date)}</td><td>${esc(t.label)}</td><td class="muted">${TRANSFER_LABEL[t.kind]}</td><td class="num">${fmtMoney(t.amount)}</td></tr>`).join('')
+      list.map(t=>`<tr><td>${fmtDate(t.date)}</td><td>${esc(t.label)}${t.recorded?' <span class="small muted">· учтено в дашборде</span>':''}</td><td class="muted">${TRANSFER_LABEL[t.kind]}</td><td class="num">${fmtMoney(t.amount)}</td></tr>`).join('')
     }</tbody></table></div>`;
 }
 function renderKPIs(){
